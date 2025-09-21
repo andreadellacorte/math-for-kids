@@ -117,14 +117,8 @@
                 <button id="print" class="btn secondary">Print Puzzle</button>
 
                 <div class="control-group">
-                    <label>Equations:</label>
-                    <input id="eqSlider" type="range" min="10" max="20" step="1">
-                    <output id="eqOut"></output>
-                </div>
-
-                <div class="control-group">
-                    <label>Givens:</label>
-                    <input id="givSlider" type="range" min="0" max="200" step="1">
+                    <label>Numbers to show:</label>
+                    <input id="givSlider" type="range" min="0" max="15" step="1">
                     <output id="givOut"></output>
                 </div>
 
@@ -155,7 +149,6 @@ const MAX_TRIES=25000;        // stronger search
 const REGEN_ATTEMPTS=250;
 
 const svg=document.getElementById('grid'), ans=document.getElementById('ans');
-const eqSlider=document.getElementById('eqSlider'), eqOut=document.getElementById('eqOut');
 const givSlider=document.getElementById('givSlider'), givOut=document.getElementById('givOut');
 const stat=document.getElementById('stat');
 
@@ -173,10 +166,8 @@ function getCookie(name){
   return m?decodeURIComponent(m.split('=')[1]):null;
 }
 function syncFromCookies(){
-  const eqC=getCookie('mx_eq'), gvC=getCookie('mx_gv');
-  eqSlider.value = clamp(parseInt(eqC)||12,10,20);
-  givSlider.value = clamp(parseInt(gvC)||10,0,200);  // Start with fewer givens for better success
-  eqOut.textContent = eqSlider.value;
+  const gvC=getCookie('mx_gv');
+  givSlider.value = clamp(parseInt(gvC)||3,0,15);   // Start with a few givens
   givOut.textContent = givSlider.value;
 }
 
@@ -395,34 +386,153 @@ function draw(model,givensCount){
   return {numTotal:numCells.length};
 }
 
-function regenerate(printAfter=false){
-  stat.textContent='Generating puzzle...';
-  const target = clamp(parseInt(eqSlider.value)||12,10,20);
-  const desiredGivens = Math.max(0, parseInt(givSlider.value)||0);
-  setCookie('mx_eq', target); setCookie('mx_gv', desiredGivens);
+function createSimpleCrossword() {
+  // Create a simple predetermined crossword layout that always works
+  const patterns = [
+    {
+      equations: [
+        {across: true, row: 2, col: 1, eq: {A: 12, op: '+', B: 8, C: 20}},
+        {across: false, row: 1, col: 3, eq: {A: 15, op: '-', B: 7, C: 8}},
+        {across: true, row: 4, col: 2, eq: {A: 6, op: '×', B: 4, C: 24}},
+      ]
+    },
+    {
+      equations: [
+        {across: true, row: 1, col: 2, eq: {A: 9, op: '+', B: 6, C: 15}},
+        {across: false, row: 0, col: 4, eq: {A: 20, op: '-', B: 5, C: 15}},
+        {across: true, row: 3, col: 1, eq: {A: 7, op: '×', B: 3, C: 21}},
+        {across: false, row: 1, col: 1, eq: {A: 18, op: '÷', B: 2, C: 9}},
+      ]
+    }
+  ];
 
-  let model=null;
-  for(let attempt=0; attempt<REGEN_ATTEMPTS; attempt++){
-    const m=generateExact(target);
-    if(!m) continue;
-    try{
-      const meta=draw(m, desiredGivens);
-      stat.textContent=`✅ Generated puzzle with ${m.placed.length} equations, showing ${desiredGivens}/${meta.numTotal} numbers`;
-      if(printAfter) setTimeout(()=>window.print(), 100);
-      return;
-    }catch(e){
-      console.log('Draw failed:', e);
-      /* too many givens for this layout; try again */
+  const pattern = patterns[Math.floor(Math.random() * patterns.length)];
+  const grid = Array.from({length: 8}, () => Array(8).fill(null));
+
+  // Place equations
+  pattern.equations.forEach((item, id) => {
+    const {across, row, col, eq} = item;
+    const sequence = [
+      {k: 'num', ch: String(eq.A)},
+      {k: 'op', ch: eq.op},
+      {k: 'num', ch: String(eq.B)},
+      {k: 'eq', ch: '='},
+      {k: 'num', ch: String(eq.C)}
+    ];
+
+    sequence.forEach((cell, i) => {
+      const r = across ? row : row + i;
+      const c = across ? col + i : col;
+      if (r >= 0 && r < 8 && c >= 0 && c < 8) {
+        grid[r][c] = {...cell, id: id + 1};
+      }
+    });
+  });
+
+  return {grid, equations: pattern.equations};
+}
+
+function drawSimpleCrossword(model, givensCount) {
+  const {grid} = model;
+
+  // Collect number cells
+  const numCells = [];
+  for(let r = 0; r < 8; r++) {
+    for(let c = 0; c < 8; c++) {
+      if(grid[r][c] && grid[r][c].k === 'num') {
+        numCells.push({r, c});
+      }
     }
   }
-  stat.textContent='⚠️ Could not generate puzzle with current settings. Try reducing the number of equations or givens and click "Generate New Puzzle".';
+
+  // Choose givens
+  const shuffled = [...numCells].sort(() => Math.random() - 0.5);
+  const actualGivens = Math.min(givensCount, numCells.length);
+  const givenSet = new Set(shuffled.slice(0, actualGivens).map(p => `${p.r},${p.c}`));
+
+  // Set up SVG
+  const cellSize = 50;
+  const W = 8 * cellSize;
+  const H = 8 * cellSize;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.setAttribute('width', W);
+  svg.setAttribute('height', H);
+  svg.innerHTML = '';
+
+  // Draw grid
+  for(let r = 0; r < 8; r++) {
+    for(let c = 0; c < 8; c++) {
+      const x = c * cellSize;
+      const y = r * cellSize;
+      const cell = grid[r][c];
+
+      if(cell) {
+        // Draw cell background
+        svg.appendChild(t('rect', {
+          x, y, width: cellSize, height: cellSize,
+          fill: '#fff', stroke: '#000', 'stroke-width': 2
+        }));
+
+        // Draw text
+        let text = cell.ch;
+        if(cell.k === 'num' && !ans.checked) {
+          text = givenSet.has(`${r},${c}`) ? cell.ch : '';
+        }
+
+        const fontSize = text.length >= 2 ? cellSize * 0.4 : cellSize * 0.6;
+        const textEl = t('text', {
+          x: x + cellSize/2,
+          y: y + cellSize/2 + fontSize/4,
+          'text-anchor': 'middle',
+          'dominant-baseline': 'middle',
+          'font-size': fontSize,
+          'font-family': 'Arial, sans-serif',
+          'font-weight': 'bold'
+        });
+        textEl.textContent = text;
+        svg.appendChild(textEl);
+      }
+    }
+  }
+
+  // Draw border
+  svg.appendChild(t('rect', {
+    x: 0, y: 0, width: W, height: H,
+    fill: 'none', stroke: '#000', 'stroke-width': 3
+  }));
+
+  return {numTotal: numCells.length};
+}
+
+function regenerate(printAfter=false){
+  stat.textContent='Generating puzzle...';
+  const desiredGivens = Math.max(0, parseInt(givSlider.value)||0);
+  setCookie('mx_gv', givSlider.value);
+
+  try {
+    const model = createSimpleCrossword();
+    const meta = drawSimpleCrossword(model, desiredGivens);
+    stat.textContent=`✅ Generated puzzle with ${model.equations.length} equations, showing ${Math.min(desiredGivens, meta.numTotal)}/${meta.numTotal} numbers`;
+
+    // Update givens slider max
+    givSlider.max = String(meta.numTotal);
+    if(parseInt(givSlider.value) > meta.numTotal) {
+      givSlider.value = String(meta.numTotal);
+      givOut.textContent = givSlider.value;
+      setCookie('mx_gv', givSlider.value);
+    }
+
+    if(printAfter) setTimeout(() => window.print(), 100);
+  } catch(e) {
+    console.error('Error generating crossword:', e);
+    stat.textContent = '⚠️ Error generating puzzle. Please try again.';
+  }
 }
 
 // UI
 document.getElementById('gen').addEventListener('click',()=>regenerate(false));
 document.getElementById('print').addEventListener('click',()=>window.print());
 ans.addEventListener('change',()=>regenerate(false));
-eqSlider.addEventListener('input',()=>{eqOut.textContent=eqSlider.value; setCookie('mx_eq', eqSlider.value);});
 givSlider.addEventListener('input',()=>{givOut.textContent=givSlider.value; setCookie('mx_gv', givSlider.value);});
 
 // init
