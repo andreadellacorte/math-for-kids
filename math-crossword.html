@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Math Crossword Generator</title>
+<style>
+  html,body{margin:0;background:#fff;font-family:sans-serif}
+  header{display:flex;gap:14px;align-items:center;padding:10px 12px;border-bottom:1px solid #ccc;flex-wrap:wrap}
+  #grid{display:block;margin:0 auto}
+  .grow{flex:1 1 auto}
+  .stat{margin-left:auto;font-size:12px;color:#444}
+  label{display:flex;align-items:center;gap:8px}
+  output{min-width:3ch;text-align:right}
+  @media print{
+    header{display:none}
+    @page{size:A4 portrait;margin:8mm}
+    body{margin:0}
+  }
+</style>
+</head>
+<body>
+<header>
+  <button id="gen">Generate</button>
+  <button id="print">Print</button>
+
+  <label class="grow">
+    equations
+    <input id="eqSlider" type="range" min="10" max="20" step="1">
+    <output id="eqOut"></output>
+  </label>
+
+  <label class="grow">
+    givens
+    <input id="givSlider" type="range" min="0" max="200" step="1">
+    <output id="givOut"></output>
+  </label>
+
+  <label><input id="ans" type="checkbox"> answers</label>
+  <span id="stat" class="stat"></span>
+</header>
+
+<svg id="grid" xmlns="http://www.w3.org/2000/svg"></svg>
+
+<script>
+/* Strict, intersecting math crossword
+   - Token sequence per strip: [NUM][OP][NUM][=][NUM]
+   - Each number is a single cell with value 1–99
+   - Exact equation count and exact givens
+   - After every placement, newly completed segments must be valid equations
+   - No segment may exceed length 5
+   - Final board fully validated before draw
+   - Values for sliders persist via cookies
+*/
+
+const ROWS=24, COLS=24;
+const MAX_TRIES=25000;        // stronger search
+const REGEN_ATTEMPTS=250;
+
+const svg=document.getElementById('grid'), ans=document.getElementById('ans');
+const eqSlider=document.getElementById('eqSlider'), eqOut=document.getElementById('eqOut');
+const givSlider=document.getElementById('givSlider'), givOut=document.getElementById('givOut');
+const stat=document.getElementById('stat');
+
+const R=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const inside=(r,c)=>r>=0&&r<ROWS&&c>=0&&c<COLS;
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+
+function setCookie(name,value,days=365){
+  const d=new Date(); d.setTime(d.getTime()+days*24*60*60*1000);
+  document.cookie=`${name}=${encodeURIComponent(value)};expires=${d.toUTCString()};path=/;SameSite=Lax`;
+}
+function getCookie(name){
+  const m=document.cookie.split(';').map(s=>s.trim()).find(s=>s.startsWith(name+'='));
+  return m?decodeURIComponent(m.split('=')[1]):null;
+}
+function syncFromCookies(){
+  const eqC=getCookie('mx_eq'), gvC=getCookie('mx_gv');
+  eqSlider.value = clamp(parseInt(eqC)||12,10,20);
+  givSlider.value = clamp(parseInt(gvC)||20,0,200);
+  eqOut.textContent = eqSlider.value;
+  givOut.textContent = givSlider.value;
+}
+
+function empty(){return Array.from({length:ROWS},()=>Array(COLS).fill(null))}
+
+function makeEq(){
+  const op=pick(['+','-','×','÷']); let A,B,C;
+  for(let i=0;i<1200;i++){
+    if(op==='+'){A=R(10,79);B=R(10,79);C=A+B;if(C<=99)return{A,B,C,op}}
+    if(op==='-'){A=R(30,99);B=R(10,69);C=A-B;if(C>=1&&C<=99)return{A,B,C,op}}
+    if(op==='×'){A=R(2,9);B=R(2,9);C=A*B;if(C<=99)return{A,B,C,op}}
+    if(op==='÷'){B=R(2,9);C=R(2,9);A=B*C;if(A<=99)return{A,B,C,op}}
+  }
+  return {A:12,B:7,C:84,op:'×'};
+}
+function seq(e){return[
+  {k:'num',ch:String(e.A)},
+  {k:'op', ch:e.op},
+  {k:'num',ch:String(e.B)},
+  {k:'eq', ch:'='},
+  {k:'num',ch:String(e.C)}
+];}
+
+function segment(g, r, c, dr, dc){
+  // walk to start
+  while(inside(r-dr,c-dc) && g[r-dr][c-dc]){ r-=dr; c-=dc; }
+  const cells=[];
+  let i=0;
+  while(inside(r+dr*i,c+dc*i) && g[r+dr*i][c+dc*i]){
+    cells.push({r:r+dr*i,c:c+dc*i,cell:g[r+dr*i][c+dc*i]}); i++;
+  }
+  return cells;
+}
+function evalOk(a,op,b,c){
+  a=+a; b=+b; c=+c;
+  if(op==='+') return a+b===c;
+  if(op==='-') return a-b===c;
+  if(op==='×') return a*b===c;
+  if(op==='÷') return b!==0 && a/b===c;
+  return false;
+}
+function validStrip(cells){
+  if(cells.length!==5) return false;
+  const ks=cells.map(x=>x.cell.k);
+  if(ks.join(',')!=='num,op,num,eq,num') return false;
+  return evalOk(cells[0].cell.ch,cells[1].cell.ch,cells[2].cell.ch,cells[4].cell.ch);
+}
+
+// placement rules: token-by-token match, and no segment > 5, and any completed segment must be valid
+function canPlace(g,r,c,dr,dc,s,needIntersect){
+  let inter=0;
+  const touched=[];
+  for(let i=0;i<s.length;i++){
+    const rr=r+dr*i, cc=c+dc*i; if(!inside(rr,cc)) return false;
+    const cell=g[rr][cc];
+    if(cell){
+      if(cell.k!==s[i].k || cell.ch!==s[i].ch) return false;
+      inter++;
+    }
+    touched.push([rr,cc]);
+  }
+  if(needIntersect && inter===0) return false;
+
+  // local validation: for each touched cell, check both directions
+  for(const [tr,tc] of touched){
+    for(const [xr,xc] of [[0,1],[1,0]]){
+      const seg=segment(g, tr, tc, xr, xc);
+      // simulate new token where empty
+      const idx=seg.findIndex(p=>p.r===tr&&p.c===tc);
+      if(idx===-1){
+        // tc,tr currently empty in seg view; build a transient segment including new token
+        const tmp=segmentWithHypo(g,tr,tc,xr,xc);
+        if(tmp.length>5) return false;
+        if(tmp.length===5 && !validStrip(tmp)) return false;
+      }else{
+        if(seg.length>5) return false;
+        if(seg.length===5 && !validStrip(seg)) return false;
+      }
+    }
+  }
+  return true;
+}
+function segmentWithHypo(g, r, c, dr, dc){
+  // build segment including hypothetical filled cell at r,c (we only call this one when we know r,c is empty)
+  // walk back
+  let sr=r, sc=c;
+  while(inside(sr-dr,sc-dc) && g[sr-dr][sc-dc]){ sr-=dr; sc-=dc; }
+  const out=[];
+  let i=0;
+  while(true){
+    const rr=sr+dr*i, cc=sc+dc*i;
+    if(!inside(rr,cc)) break;
+    const cell = (rr===r && cc===c) ? {k:'__hypo__'} : g[rr][cc];
+    if(!cell) break;
+    out.push({r:rr,c:cc,cell});
+    i++;
+  }
+  return out;
+}
+function place(g,r,c,dr,dc,s,id){
+  const coords=[];
+  for(let i=0;i<s.length;i++){
+    const rr=r+dr*i, cc=c+dc*i;
+    g[rr][cc]={...(g[rr][cc]||{}),...s[i], id};
+    coords.push([rr,cc]);
+  }
+  return coords;
+}
+
+function generateExact(target){
+  const g=empty(), placed=[];
+  // seed anywhere near center
+  for(let seedTry=0; seedTry<300; seedTry++){
+    const e0=makeEq(), s0=seq(e0), d0=Math.random()<0.5?'ac':'dn';
+    const dr0=d0==='ac'?0:1, dc0=d0==='ac'?1:0;
+    const r0=R(6,ROWS-7), c0=R(6,COLS-7);
+    if(canPlace(g,r0,c0,dr0,dc0,s0,false)){
+      place(g,r0,c0,dr0,dc0,s0,1); placed.push({id:1,eq:e0});
+      break;
+    }
+  }
+  if(placed.length===0) return null;
+
+  let id=2, tries=0;
+  while(id<=target && tries<MAX_TRIES){
+    tries++;
+    const e=makeEq(), s=seq(e);
+    let best=null;
+    for(const dir of ['ac','dn']){
+      const dr=dir==='ac'?0:1, dc=dir==='ac'?1:0;
+      for(let r=0;r<ROWS;r++){
+        for(let c=0;c<COLS;c++){
+          if(canPlace(g,r,c,dr,dc,s,true)){
+            const sc=score(g,r,c,dr,dc,s);
+            if(!best || sc>best.sc) best={r,c,dr,dc,sc};
+          }
+        }
+      }
+    }
+    if(best){
+      place(g,best.r,best.c,best.dr,best.dc,s,id);
+      placed.push({id,eq:e});
+      id++;
+    }else{
+      return null; // cannot reach target under strict rules
+    }
+  }
+  // final full validation: every contiguous segment must be length 5 and valid
+  for(let r=0;r<ROWS;r++){
+    for(let c=0;c<COLS;c++){
+      if(!g[r][c]) continue;
+      for(const [dr,dc] of [[0,1],[1,0]]){
+        const seg=segment(g,r,c,dr,dc);
+        if(seg.length>0){
+          if(seg.length!==5 || !validStrip(seg)) return null;
+        }
+      }
+    }
+  }
+  return {g,placed};
+}
+
+function score(g,r,c,dr,dc,s){
+  // prefer more intersections and centrality
+  let inter=0; for(let i=0;i<s.length;i++){ if(g[r+dr*i][c+dc*i]) inter++; }
+  const mr=(ROWS-1)/2, mc=(COLS-1)/2;
+  const er=r+dr*(s.length-1), ec=c+dc*(s.length-1);
+  const dist=Math.hypot((r+er)/2-mr, (c+ec)/2-mc);
+  return inter*10 - dist;
+}
+
+function cropBounds(g){
+  const cells=[]; for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++) if(g[r][c]) cells.push([r,c]);
+  const minR=Math.min(...cells.map(x=>x[0])), maxR=Math.max(...cells.map(x=>x[0]));
+  const minC=Math.min(...cells.map(x=>x[1])), maxC=Math.max(...cells.map(x=>x[1]));
+  return {minR,maxR,minC,maxC,rows:maxR-minR+1,cols=maxC-minC+1};
+}
+function t(tag,attrs){const n=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const k in attrs)n.setAttribute(k,attrs[k]);return n}
+
+function draw(model,givensCount){
+  const {g}=model;
+  // collect number cells
+  const numCells=[];
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const cell=g[r][c]; if(cell && cell.k==='num') numCells.push({r,c});}
+  if(givensCount>numCells.length) throw new Error(`requested ${givensCount} givens but only ${numCells.length} number cells exist`);
+
+  // choose exact givens
+  const arr=[...numCells]; for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]];}
+  const givenSet=new Set(arr.slice(0,givensCount).map(p=>p.r+','+p.c));
+
+  const b=cropBounds(g);
+  const targetPx=760, cell=Math.max(18, Math.floor(targetPx/b.cols));
+  const W=b.cols*cell, H=b.rows*cell;
+  svg.setAttribute('viewBox',`0 0 ${W} ${H}`); svg.setAttribute('width',W); svg.setAttribute('height',H);
+  svg.innerHTML='';
+
+  for(let r=b.minR;r<=b.maxR;r++){
+    for(let c=b.minC;c<=b.maxC;c++){
+      const cellObj=g[r][c]; if(!cellObj) continue;
+      const x=(c-b.minC)*cell, y=(r-b.minR)*cell;
+      svg.appendChild(t('rect',{x,y,width:cell,height:cell,fill:'#fff',stroke:'#000','stroke-width':1}));
+      let text=cellObj.ch;
+      if(cellObj.k==='num' && !ans.checked){ text = givenSet.has(r+','+c) ? cellObj.ch : ''; }
+      const fs = (text && text.length>=2) ? Math.floor(cell*0.55) : Math.floor(cell*0.7);
+      const node=t('text',{x:x+cell/2,y:y+cell/2+1,'text-anchor':'middle','dominant-baseline':'middle','font-size':fs,'font-family':'sans-serif'});
+      node.textContent=text||''; svg.appendChild(node);
+    }
+  }
+  svg.appendChild(t('rect',{x:0,y:0,width:W,height:H,fill:'none',stroke:'#000','stroke-width':2}));
+
+  // adjust givens slider max and persist
+  givSlider.max = String(numCells.length);
+  if(parseInt(givSlider.value)>numCells.length){
+    givSlider.value=String(numCells.length); givOut.textContent=givSlider.value; setCookie('mx_gv', givSlider.value);
+  }
+  return {numTotal:numCells.length};
+}
+
+function regenerate(printAfter=false){
+  stat.textContent='';
+  const target = clamp(parseInt(eqSlider.value)||12,10,20);
+  const desiredGivens = Math.max(0, parseInt(givSlider.value)||0);
+  setCookie('mx_eq', target); setCookie('mx_gv', desiredGivens);
+
+  let model=null;
+  for(let attempt=0; attempt<REGEN_ATTEMPTS; attempt++){
+    const m=generateExact(target);
+    if(!m) continue;
+    try{
+      const meta=draw(m, desiredGivens);
+      stat.textContent=`${m.placed.length} equations, ${desiredGivens}/${meta.numTotal} givens`;
+      if(printAfter) setTimeout(()=>window.print(), 100);
+      return;
+    }catch{ /* too many givens for this layout; try again */ }
+  }
+  stat.textContent='error: cannot match requested equations and givens under strict checks; reduce givens or try again';
+}
+
+// UI
+document.getElementById('gen').addEventListener('click',()=>regenerate(false));
+document.getElementById('print').addEventListener('click',()=>window.print());
+ans.addEventListener('change',()=>regenerate(false));
+eqSlider.addEventListener('input',()=>{eqOut.textContent=eqSlider.value; setCookie('mx_eq', eqSlider.value);});
+givSlider.addEventListener('input',()=>{givOut.textContent=givSlider.value; setCookie('mx_gv', givSlider.value);});
+
+// init
+syncFromCookies();
+regenerate(false);
+</script>
+</body>
+</html>

@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Number Recognition - Math Fun for Kids!</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="index.html" class="back-btn">← Back Home</a>
+            <h1>🔢 Number Recognition</h1>
+        </div>
+
+        <div class="score-board">
+            <div class="score">Score: <span id="score">0</span></div>
+            <div class="streak">Streak: <span id="streak">0</span></div>
+        </div>
+
+        <div class="exercise-area">
+            <div class="question-text" id="questionText">
+                Click "New Problem" to start!
+            </div>
+
+            <div class="problem" id="problem">
+
+            </div>
+
+            <div class="answer-buttons" id="answerButtons">
+
+            </div>
+
+            <div class="controls">
+                <button onclick="newProblem()" class="btn secondary">New Problem</button>
+                <button onclick="showHint()" class="btn hint">Need a Hint?</button>
+            </div>
+
+            <div id="feedback" class="feedback"></div>
+            <div id="hint" class="hint-text"></div>
+        </div>
+
+        <div class="settings">
+            <label>Exercise Type:
+                <select id="exerciseType" onchange="newProblem()">
+                    <option value="recognize">Recognize Numbers (1-20)</option>
+                    <option value="count">Count Objects (1-10)</option>
+                    <option value="compare">Compare Numbers (1-50)</option>
+                    <option value="sequence">Number Sequence (1-30)</option>
+                </select>
+            </label>
+        </div>
+    </div>
+
+    <script>
+        let currentProblem = null;
+        let score = 0;
+        let streak = 0;
+
+        function getRandomNumber(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function shuffle(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        function newProblem() {
+            const exerciseType = document.getElementById('exerciseType').value;
+
+            switch(exerciseType) {
+                case 'recognize':
+                    createRecognizeProblem();
+                    break;
+                case 'count':
+                    createCountProblem();
+                    break;
+                case 'compare':
+                    createCompareProblem();
+                    break;
+                case 'sequence':
+                    createSequenceProblem();
+                    break;
+            }
+
+            document.getElementById('feedback').innerHTML = '';
+            document.getElementById('hint').innerHTML = '';
+        }
+
+        function createRecognizeProblem() {
+            const targetNumber = getRandomNumber(1, 20);
+            const options = [targetNumber];
+
+            while(options.length < 4) {
+                const option = getRandomNumber(1, 20);
+                if (!options.includes(option)) {
+                    options.push(option);
+                }
+            }
+
+            currentProblem = {
+                type: 'recognize',
+                answer: targetNumber,
+                options: shuffle(options)
+            };
+
+            document.getElementById('questionText').textContent = 'Which number is this?';
+            document.getElementById('problem').innerHTML = `<div class="big-number">${targetNumber}</div>`;
+
+            const buttonsHtml = currentProblem.options.map(option =>
+                `<button onclick="checkAnswer(${option})" class="number-btn">${option}</button>`
+            ).join('');
+
+            document.getElementById('answerButtons').innerHTML = buttonsHtml;
+        }
+
+        function createCountProblem() {
+            const count = getRandomNumber(1, 10);
+            const shapes = ['🔵', '🔴', '🟢', '🟡', '🟠', '🟣'];
+            const shape = shapes[Math.floor(Math.random() * shapes.length)];
+
+            const options = [count];
+            for (let i = 0; i < 3; i++) {
+                let option;
+                do {
+                    option = getRandomNumber(Math.max(1, count - 3), count + 3);
+                } while (options.includes(option));
+                options.push(option);
+            }
+
+            currentProblem = {
+                type: 'count',
+                answer: count,
+                options: shuffle(options)
+            };
+
+            document.getElementById('questionText').textContent = 'How many objects do you see?';
+
+            let objectsHtml = '';
+            for (let i = 0; i < count; i++) {
+                objectsHtml += shape;
+                if ((i + 1) % 5 === 0) objectsHtml += '<br>';
+            }
+
+            document.getElementById('problem').innerHTML = `<div class="objects">${objectsHtml}</div>`;
+
+            const buttonsHtml = currentProblem.options.map(option =>
+                `<button onclick="checkAnswer(${option})" class="number-btn">${option}</button>`
+            ).join('');
+
+            document.getElementById('answerButtons').innerHTML = buttonsHtml;
+        }
+
+        function createCompareProblem() {
+            const num1 = getRandomNumber(1, 50);
+            let num2;
+            do {
+                num2 = getRandomNumber(1, 50);
+            } while (num1 === num2);
+
+            const isGreater = num1 > num2;
+            const correctAnswer = isGreater ? 'greater' : 'smaller';
+
+            currentProblem = {
+                type: 'compare',
+                num1: num1,
+                num2: num2,
+                answer: correctAnswer
+            };
+
+            document.getElementById('questionText').textContent = `Is ${num1} greater or smaller than ${num2}?`;
+            document.getElementById('problem').innerHTML = `<div class="comparison">${num1} ? ${num2}</div>`;
+
+            document.getElementById('answerButtons').innerHTML = `
+                <button onclick="checkAnswer('greater')" class="compare-btn">Greater</button>
+                <button onclick="checkAnswer('smaller')" class="compare-btn">Smaller</button>
+            `;
+        }
+
+        function createSequenceProblem() {
+            const start = getRandomNumber(1, 25);
+            const sequence = [start, start + 1, start + 2, '?', start + 4];
+            const missingNumber = start + 3;
+
+            const options = [missingNumber];
+            for (let i = 0; i < 3; i++) {
+                let option;
+                do {
+                    option = getRandomNumber(missingNumber - 5, missingNumber + 5);
+                } while (options.includes(option) || option <= 0);
+                options.push(option);
+            }
+
+            currentProblem = {
+                type: 'sequence',
+                answer: missingNumber,
+                options: shuffle(options)
+            };
+
+            document.getElementById('questionText').textContent = 'What number comes next in the sequence?';
+            document.getElementById('problem').innerHTML = `<div class="sequence">${sequence.join(' → ')}</div>`;
+
+            const buttonsHtml = currentProblem.options.map(option =>
+                `<button onclick="checkAnswer(${option})" class="number-btn">${option}</button>`
+            ).join('');
+
+            document.getElementById('answerButtons').innerHTML = buttonsHtml;
+        }
+
+        function checkAnswer(userAnswer) {
+            const feedback = document.getElementById('feedback');
+
+            if (!currentProblem) {
+                feedback.innerHTML = '<span class="incorrect">Please click "New Problem" first!</span>';
+                return;
+            }
+
+            if (userAnswer === currentProblem.answer) {
+                score += 10;
+                streak++;
+                const encouragements = ['🎉 Correct!', '🌟 Great job!', '✨ Excellent!', '🎊 Well done!'];
+                const msg = encouragements[Math.floor(Math.random() * encouragements.length)];
+                feedback.innerHTML = `<span class="correct">${msg}</span>`;
+                setTimeout(newProblem, 1500);
+            } else {
+                streak = 0;
+                feedback.innerHTML = `<span class="incorrect">Not quite! The answer is ${currentProblem.answer}. Try again!</span>`;
+            }
+
+            document.getElementById('score').textContent = score;
+            document.getElementById('streak').textContent = streak;
+        }
+
+        function showHint() {
+            if (!currentProblem) return;
+
+            const hint = document.getElementById('hint');
+
+            switch(currentProblem.type) {
+                case 'recognize':
+                    hint.innerHTML = `💡 Hint: Look carefully at the big number above!`;
+                    break;
+                case 'count':
+                    hint.innerHTML = `💡 Hint: Count each object one by one: 1, 2, 3...`;
+                    break;
+                case 'compare':
+                    hint.innerHTML = `💡 Hint: ${currentProblem.num1} is ${currentProblem.answer} than ${currentProblem.num2}`;
+                    break;
+                case 'sequence':
+                    hint.innerHTML = `💡 Hint: Each number goes up by 1. What comes after ${currentProblem.answer - 1}?`;
+                    break;
+            }
+        }
+
+        newProblem();
+    </script>
+</body>
+</html>

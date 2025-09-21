@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Division Practice - Math Fun for Kids!</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="index.html" class="back-btn">← Back Home</a>
+            <h1>➗ Division Practice</h1>
+        </div>
+
+        <div class="score-board">
+            <div class="score">Score: <span id="score">0</span></div>
+            <div class="streak">Streak: <span id="streak">0</span></div>
+        </div>
+
+        <div class="exercise-area">
+            <div class="problem" id="problem">
+                Click "New Problem" to start!
+            </div>
+
+            <div class="answer-section">
+                <input type="number" id="answer" placeholder="Your answer" />
+                <button onclick="checkAnswer()" class="btn">Check Answer</button>
+            </div>
+
+            <div class="controls">
+                <button onclick="newProblem()" class="btn secondary">New Problem</button>
+                <button onclick="showHint()" class="btn hint">Need a Hint?</button>
+            </div>
+
+            <div id="feedback" class="feedback"></div>
+            <div id="hint" class="hint-text"></div>
+        </div>
+
+        <div class="settings">
+            <label>Difficulty:
+                <select id="difficulty" onchange="newProblem()">
+                    <option value="easy">Easy (÷ 2, 3, 4, 5)</option>
+                    <option value="medium">Medium (÷ 2-10)</option>
+                    <option value="hard">Hard (÷ 2-12)</option>
+                </select>
+            </label>
+        </div>
+    </div>
+
+    <script>
+        let currentProblem = null;
+        let score = 0;
+        let streak = 0;
+
+        function getRandomNumber(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function newProblem() {
+            const difficulty = document.getElementById('difficulty').value;
+            let divisor;
+
+            switch(difficulty) {
+                case 'easy':
+                    divisor = [2, 3, 4, 5][Math.floor(Math.random() * 4)];
+                    break;
+                case 'medium':
+                    divisor = getRandomNumber(2, 10);
+                    break;
+                case 'hard':
+                    divisor = getRandomNumber(2, 12);
+                    break;
+            }
+
+            // Generate a quotient first, then calculate dividend
+            const quotient = getRandomNumber(1, 12);
+            const dividend = divisor * quotient;
+
+            currentProblem = {
+                dividend: dividend,
+                divisor: divisor,
+                answer: quotient
+            };
+
+            document.getElementById('problem').innerHTML = `${dividend} ÷ ${divisor} = ?`;
+            document.getElementById('answer').value = '';
+            document.getElementById('feedback').innerHTML = '';
+            document.getElementById('hint').innerHTML = '';
+            document.getElementById('answer').focus();
+        }
+
+        function checkAnswer() {
+            const userAnswer = parseInt(document.getElementById('answer').value);
+            const feedback = document.getElementById('feedback');
+
+            if (!currentProblem) {
+                feedback.innerHTML = '<span class="incorrect">Please click "New Problem" first!</span>';
+                return;
+            }
+
+            if (isNaN(userAnswer)) {
+                feedback.innerHTML = '<span class="incorrect">Please enter a number!</span>';
+                return;
+            }
+
+            if (userAnswer === currentProblem.answer) {
+                score += 15;
+                streak++;
+                feedback.innerHTML = '<span class="correct">🎉 Correct! Well done!</span>';
+                setTimeout(newProblem, 1500);
+            } else {
+                streak = 0;
+                feedback.innerHTML = `<span class="incorrect">Not quite! The answer is ${currentProblem.answer}. Try again!</span>`;
+            }
+
+            document.getElementById('score').textContent = score;
+            document.getElementById('streak').textContent = streak;
+        }
+
+        function showHint() {
+            if (!currentProblem) return;
+
+            const hint = document.getElementById('hint');
+            hint.innerHTML = `💡 Hint: How many groups of ${currentProblem.divisor} can you make from ${currentProblem.dividend}?<br>Think: ${currentProblem.divisor} × ? = ${currentProblem.dividend}`;
+        }
+
+        document.getElementById('answer').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                checkAnswer();
+            }
+        });
+
+        newProblem();
+    </script>
+</body>
+</html>
