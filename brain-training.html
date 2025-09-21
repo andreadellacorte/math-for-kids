@@ -24,7 +24,20 @@
             gap: 20px;
         }
 
-        .timer, .problem-counter, .accuracy {
+        .timer {
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            padding: 25px 40px;
+            border-radius: 20px;
+            font-size: 3em;
+            font-weight: bold;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+            border: 4px solid transparent;
+            min-width: 150px;
+        }
+
+        .problem-counter, .accuracy {
             background: rgba(255, 255, 255, 0.2);
             padding: 15px 25px;
             border-radius: 15px;
@@ -34,12 +47,16 @@
         }
 
         .timer.warning {
-            background: rgba(255, 193, 7, 0.8);
+            background: rgba(255, 193, 7, 0.9);
+            color: #333;
+            border-color: #ffc107;
             animation: pulse 1s infinite;
         }
 
         .timer.danger {
-            background: rgba(220, 53, 69, 0.8);
+            background: rgba(220, 53, 69, 0.9);
+            color: white;
+            border-color: #dc3545;
             animation: pulse 0.5s infinite;
         }
 
@@ -63,24 +80,93 @@
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
         }
 
-        .answer-input {
-            font-size: 2.5em;
-            padding: 20px 30px;
+        .answer-options {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            max-width: 500px;
+            margin: 30px auto;
+        }
+
+        .answer-btn {
+            font-size: 2em;
+            padding: 25px;
             border: 4px solid rgba(255, 255, 255, 0.3);
             border-radius: 20px;
-            text-align: center;
-            width: 300px;
-            max-width: 90%;
-            margin: 20px auto;
             background: rgba(255, 255, 255, 0.9);
             color: #333;
             font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
         }
 
-        .answer-input:focus {
-            outline: none;
-            border-color: #ffd700;
-            box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+        .answer-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+            border-color: #667eea;
+        }
+
+        .answer-btn.correct {
+            background: #28a745;
+            color: white;
+            border-color: #28a745;
+            animation: correctFlash 0.6s ease;
+        }
+
+        .answer-btn.incorrect {
+            background: #dc3545;
+            color: white;
+            border-color: #dc3545;
+            animation: incorrectShake 0.6s ease;
+        }
+
+        @keyframes correctFlash {
+            0% { background: #28a745; transform: scale(1); }
+            50% { background: #20c997; transform: scale(1.05); }
+            100% { background: #28a745; transform: scale(1); }
+        }
+
+        @keyframes incorrectShake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        .feedback-overlay {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 4em;
+            font-weight: bold;
+            z-index: 1000;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .feedback-overlay.correct {
+            color: #28a745;
+            animation: feedbackBounce 0.6s ease;
+        }
+
+        .feedback-overlay.incorrect {
+            color: #dc3545;
+            animation: feedbackShake 0.6s ease;
+        }
+
+        @keyframes feedbackBounce {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+            50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+        }
+
+        @keyframes feedbackShake {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+            25% { opacity: 1; transform: translate(-50%, -50%) scale(1.1) rotate(-5deg); }
+            75% { opacity: 1; transform: translate(-50%, -50%) scale(1.1) rotate(5deg); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(1) rotate(0deg); }
         }
 
         .game-controls {
@@ -199,9 +285,14 @@
                 padding: 30px;
             }
 
-            .answer-input {
-                font-size: 2em;
-                width: 100%;
+            .answer-options {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
+            .answer-btn {
+                font-size: 1.8em;
+                padding: 20px;
             }
 
             .game-status {
@@ -209,9 +300,22 @@
                 gap: 15px;
             }
 
-            .timer, .problem-counter, .accuracy {
+            .timer {
+                font-size: 2.5em;
+                padding: 20px 30px;
+            }
+
+            .problem-counter, .accuracy {
                 font-size: 1.2em;
                 padding: 10px 20px;
+            }
+
+            .feedback-overlay {
+                font-size: 3em;
+            }
+
+            .brain-training-container {
+                padding: 20px;
             }
         }
     </style>
@@ -256,7 +360,9 @@
                     Get Ready...
                 </div>
 
-                <input type="number" id="answerInput" class="answer-input" placeholder="?" disabled>
+                <div class="answer-options" id="answerOptions">
+                    <!-- Answer buttons will be generated here -->
+                </div>
 
                 <div class="game-controls">
                     <button id="skipBtn" class="btn secondary">Skip Problem</button>
@@ -295,6 +401,10 @@
                 </div>
             </div>
         </div>
+
+        <!-- Feedback overlay -->
+        <div id="feedbackOverlay" class="feedback-overlay"></div>
+
     </div>
 
     <script>
@@ -316,10 +426,45 @@
                 this.accuracy = document.getElementById('accuracy');
                 this.progressFill = document.getElementById('progressFill');
                 this.mathProblem = document.getElementById('mathProblem');
-                this.answerInput = document.getElementById('answerInput');
+                this.answerOptions = document.getElementById('answerOptions');
                 this.skipBtn = document.getElementById('skipBtn');
                 this.playAgainBtn = document.getElementById('playAgainBtn');
                 this.shareSocreBtn = document.getElementById('shareSocreBtn');
+                this.feedbackOverlay = document.getElementById('feedbackOverlay');
+                this.setupAudio();
+            }
+
+            setupAudio() {
+                // Create audio context for sound effects
+                try {
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                } catch (e) {
+                    this.audioContext = null;
+                }
+            }
+
+            playSound(frequency, duration, volume = 0.1) {
+                if (!this.audioContext) return;
+
+                try {
+                    const oscillator = this.audioContext.createOscillator();
+                    const gainNode = this.audioContext.createGain();
+
+                    oscillator.connect(gainNode);
+                    gainNode.connect(this.audioContext.destination);
+
+                    oscillator.frequency.value = frequency;
+                    oscillator.type = 'sine';
+
+                    gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
+                    gainNode.gain.linearRampToValueAtTime(volume, this.audioContext.currentTime + 0.01);
+                    gainNode.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + duration);
+
+                    oscillator.start(this.audioContext.currentTime);
+                    oscillator.stop(this.audioContext.currentTime + duration);
+                } catch (e) {
+                    // Audio might not be supported
+                }
             }
 
             resetGame() {
@@ -338,18 +483,6 @@
                 this.startBtn.addEventListener('click', () => this.startGame());
                 this.playAgainBtn.addEventListener('click', () => this.showSetup());
                 this.skipBtn.addEventListener('click', () => this.skipProblem());
-
-                this.answerInput.addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') this.submitAnswer();
-                });
-
-                this.answerInput.addEventListener('input', () => {
-                    const value = this.answerInput.value;
-                    if (value && parseInt(value) === this.currentAnswer) {
-                        this.submitAnswer();
-                    }
-                });
-
                 this.shareSocreBtn.addEventListener('click', () => this.shareScore());
             }
 
@@ -411,19 +544,76 @@
                 const problem = this.generateProblem();
                 this.currentAnswer = problem.answer;
                 this.mathProblem.textContent = `${problem.num1} ${problem.operation} ${problem.num2} = ?`;
-                this.answerInput.value = '';
-                this.answerInput.focus();
+
+                // Generate multiple choice options
+                const options = this.generateOptions(problem.answer);
+                this.answerOptions.innerHTML = '';
+
+                options.forEach((option, index) => {
+                    const button = document.createElement('button');
+                    button.className = 'answer-btn';
+                    button.textContent = option;
+                    button.addEventListener('click', () => this.selectAnswer(option, button));
+                    this.answerOptions.appendChild(button);
+                });
+
                 this.problemStartTime = Date.now();
             }
 
-            submitAnswer() {
+            generateOptions(correctAnswer) {
+                const options = [correctAnswer];
+                const range = Math.max(10, Math.floor(correctAnswer * 0.5));
+
+                while (options.length < 4) {
+                    let option;
+                    if (Math.random() < 0.5) {
+                        // Generate nearby wrong answers
+                        option = correctAnswer + Math.floor(Math.random() * range) - Math.floor(range / 2);
+                    } else {
+                        // Generate random wrong answers
+                        option = Math.floor(Math.random() * (correctAnswer * 2)) + 1;
+                    }
+
+                    if (option > 0 && !options.includes(option)) {
+                        options.push(option);
+                    }
+                }
+
+                // Shuffle options
+                return options.sort(() => Math.random() - 0.5);
+            }
+
+            selectAnswer(answer, button) {
                 if (!this.gameActive) return;
 
-                const userAnswer = parseInt(this.answerInput.value);
+                const isCorrect = answer === this.currentAnswer;
                 const responseTime = Date.now() - this.problemStartTime;
                 this.responseTimes.push(responseTime);
 
-                if (userAnswer === this.currentAnswer) {
+                // Visual feedback on button
+                button.classList.add(isCorrect ? 'correct' : 'incorrect');
+
+                // Disable all buttons temporarily
+                const allButtons = this.answerOptions.querySelectorAll('.answer-btn');
+                allButtons.forEach(btn => btn.style.pointerEvents = 'none');
+
+                // Show overlay feedback
+                this.showFeedback(isCorrect);
+
+                // Play sound
+                if (isCorrect) {
+                    // Happy sound: rising tones
+                    this.playSound(523, 0.1); // C5
+                    setTimeout(() => this.playSound(659, 0.1), 100); // E5
+                    setTimeout(() => this.playSound(784, 0.2), 200); // G5
+                } else {
+                    // Error sound: descending buzz
+                    this.playSound(300, 0.1);
+                    setTimeout(() => this.playSound(250, 0.1), 100);
+                    setTimeout(() => this.playSound(200, 0.2), 200);
+                }
+
+                if (isCorrect) {
                     this.correctAnswers++;
                 }
 
@@ -431,10 +621,26 @@
                 this.currentProblem++;
                 this.updateUI();
 
-                if (this.timeLeft > 0) {
-                    this.showProblem();
-                }
+                // Move to next problem after delay
+                setTimeout(() => {
+                    if (this.timeLeft > 0 && this.gameActive) {
+                        this.showProblem();
+                    }
+                }, 800);
             }
+
+            showFeedback(isCorrect) {
+                this.feedbackOverlay.textContent = isCorrect ? '✓ Correct!' : '✗ Wrong!';
+                this.feedbackOverlay.className = `feedback-overlay ${isCorrect ? 'correct' : 'incorrect'}`;
+
+                // Trigger animation by forcing reflow
+                this.feedbackOverlay.offsetHeight;
+
+                setTimeout(() => {
+                    this.feedbackOverlay.className = 'feedback-overlay';
+                }, 600);
+            }
+
 
             skipProblem() {
                 if (!this.gameActive) return;
@@ -509,7 +715,11 @@
                 this.resetGame();
                 this.gameActive = true;
                 this.showScreen('game');
-                this.answerInput.disabled = false;
+
+                // Enable audio context on user interaction
+                if (this.audioContext && this.audioContext.state === 'suspended') {
+                    this.audioContext.resume();
+                }
 
                 // Start countdown
                 this.gameTimer = setInterval(() => this.updateTimer(), 1000);
@@ -521,7 +731,6 @@
             endGame() {
                 this.gameActive = false;
                 clearInterval(this.gameTimer);
-                this.answerInput.disabled = true;
 
                 // Calculate results
                 const brainAge = this.calculateBrainAge();
