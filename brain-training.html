@@ -249,21 +249,48 @@
             flex-wrap: wrap;
         }
 
-        .time-input {
-            background: rgba(255, 255, 255, 0.9);
-            border: 2px solid transparent;
-            border-radius: 10px;
-            padding: 10px 15px;
-            font-size: 1.1em;
-            width: 80px;
-            text-align: center;
-            font-weight: bold;
+        .time-slider {
+            flex: 1;
+            min-width: 200px;
+            height: 8px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.3);
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
         }
 
-        .time-input:focus {
-            outline: none;
-            border-color: #ffd700;
-            box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+        .time-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #ffd700;
+            cursor: pointer;
+            border: 3px solid white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .time-slider::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #ffd700;
+            cursor: pointer;
+            border: 3px solid white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .time-display {
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 1.1em;
+            min-width: 80px;
+            text-align: center;
         }
 
         .checkbox-setting {
@@ -437,6 +464,12 @@
 
             .time-selector {
                 justify-content: center;
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .time-slider {
+                min-width: 100%;
             }
 
             .checkbox-setting {
@@ -485,8 +518,8 @@
                     <div class="setting-group">
                         <label>Time Limit:</label>
                         <div class="time-selector">
-                            <input type="number" id="timeLimit" class="time-input" value="60" min="30" max="300">
-                            <span style="color: white; font-weight: bold;">seconds</span>
+                            <input type="range" id="timeLimit" class="time-slider" min="40" max="120" step="10" value="60">
+                            <div class="time-display" id="timeDisplay">60s</div>
                         </div>
                     </div>
 
@@ -576,7 +609,8 @@
                 this.gameScreen = document.getElementById('gameScreen');
                 this.resultsScreen = document.getElementById('resultsScreen');
                 this.difficultyButtons = document.querySelectorAll('.difficulty-btn');
-                this.timeLimitInput = document.getElementById('timeLimit');
+                this.timeLimitSlider = document.getElementById('timeLimit');
+                this.timeDisplay = document.getElementById('timeDisplay');
                 this.assistedModeCheckbox = document.getElementById('assistedMode');
                 this.startBtn = document.getElementById('startBtn');
                 this.timer = document.getElementById('timer');
@@ -626,7 +660,7 @@
             }
 
             resetGame() {
-                this.timeLeft = parseInt(this.timeLimitInput.value) || 60;
+                this.timeLeft = parseInt(this.timeLimitSlider.value) || 60;
                 this.currentProblem = 0;
                 this.correctAnswers = 0;
                 this.totalProblems = 0;
@@ -652,6 +686,11 @@
                         this.difficultyButtons.forEach(b => b.classList.remove('selected'));
                         btn.classList.add('selected');
                     });
+                });
+
+                // Time slider update
+                this.timeLimitSlider.addEventListener('input', () => {
+                    this.timeDisplay.textContent = `${this.timeLimitSlider.value}s`;
                 });
             }
 
