@@ -82,13 +82,175 @@
             font-weight: bold;
         }
 
+        /* Print grid styles */
+        .print-grid {
+            position: relative;
+            margin: 0 auto;
+            font-family: Arial, sans-serif;
+        }
+
+        .print-cell {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 16px;
+            box-sizing: border-box;
+
+            /* Only add borders on specific sides to avoid doubling */
+            border-top: 1px solid black;
+            border-left: 1px solid black;
+        }
+
+        /* Add right border only to rightmost cells */
+        .print-cell.border-right {
+            border-right: 1px solid black;
+        }
+
+        /* Add bottom border only to bottom cells */
+        .print-cell.border-bottom {
+            border-bottom: 1px solid black;
+        }
+
+        /* Colorful screen styles */
+        .print-cell.screen-view {
+            border-top-color: #666;
+            border-left-color: #666;
+            transition: all 0.2s ease;
+        }
+
+        .print-cell.screen-view.border-right {
+            border-right-color: #666;
+        }
+
+        .print-cell.screen-view.border-bottom {
+            border-bottom-color: #666;
+        }
+
+        .print-cell.screen-view:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        /* Operator colors - soft pastels */
+        .print-cell.op-add {
+            background: #e8f5e8;
+            color: #4a7c59;
+        }
+        .print-cell.op-sub {
+            background: #fff3e0;
+            color: #8d4004;
+        }
+        .print-cell.op-mul {
+            background: #f3e5f5;
+            color: #6a1b9a;
+        }
+        .print-cell.op-div {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+        .print-cell.op-eq {
+            background: #fce4ec;
+            color: #ad1457;
+        }
+
+        /* Number cell alternating colors */
+        .print-cell.num-even {
+            background: #f8f9fa;
+            color: #495057;
+        }
+        .print-cell.num-odd {
+            background: #f1f8e9;
+            color: #2e7d32;
+        }
+
+        /* Given number highlight */
+        .print-cell.given {
+            background: #fff8e1;
+            color: #f57c00;
+            font-weight: 900;
+        }
+
         @media print {
-            .container > *:not(.crossword-container) { display: none; }
-            .crossword-controls { display: none; }
-            .crossword-status { display: none; }
-            .container { padding: 0; margin: 0; box-shadow: none; }
-            .crossword-container { border: none; padding: 0; margin: 0; }
-            @page { size: A4 portrait; margin: 8mm; }
+            /* Hide everything except the print grid */
+            .header { display: none !important; }
+            .crossword-controls { display: none !important; }
+            .crossword-status { display: none !important; }
+            .footer { display: none !important; }
+            #grid { display: none !important; }
+
+            /* Hide screen version and show print version */
+            #screenGrid { display: none !important; }
+            #printGrid {
+                display: block !important;
+                margin: 0 auto !important;
+                padding: 20px !important;
+            }
+
+            /* Simple color printing approach */
+            body {
+                -webkit-print-color-adjust: exact;
+            }
+
+            /* Clean body and container */
+            body {
+                background: white !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                -webkit-print-color-adjust: exact !important;
+                color-adjust: exact !important;
+            }
+
+            .container {
+                background: white !important;
+                box-shadow: none !important;
+                border-radius: 0 !important;
+                padding: 10mm !important;
+                margin: 0 !important;
+                min-height: auto !important;
+            }
+
+            .crossword-container {
+                background: white !important;
+                border: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                box-shadow: none !important;
+                border-radius: 0 !important;
+            }
+
+            /* Print grid styles */
+            .print-grid {
+                -webkit-print-color-adjust: exact !important;
+                color-adjust: exact !important;
+            }
+
+            .print-cell {
+                -webkit-print-color-adjust: exact !important;
+                color-adjust: exact !important;
+                border: 2px solid black !important;
+                background: white !important;
+            }
+
+            /* Page setup - dynamic orientation with minimal margins */
+            @page {
+                margin: 10mm 10mm 13.5mm 10mm; /* top right bottom left */
+            }
+
+            /* Specific orientation rules */
+            @page :first {
+                size: A4 portrait;
+            }
+
+            @media print and (orientation: landscape) {
+                @page {
+                    size: A4 landscape;
+                }
+            }
         }
 
         @media (max-width: 768px) {
@@ -114,19 +276,42 @@
         <div class="crossword-container">
             <div class="crossword-controls">
                 <button id="gen" class="btn">Generate New Puzzle</button>
-                <button id="print" class="btn secondary">Print Puzzle</button>
+                <button id="printColor" class="btn secondary">Print</button>
 
                 <div class="control-group">
                     <label>Number of equations:</label>
-                    <input id="eqSlider" type="range" min="3" max="6" step="1">
+                    <input id="eqSlider" type="range" min="3" max="20" step="1">
                     <output id="eqOut"></output>
                 </div>
 
                 <div class="control-group">
-                    <label>Numbers to show:</label>
-                    <input id="givSlider" type="range" min="0" max="100" step="10">
-                    <output id="givOut"></output>
-                    <span>%</span>
+                    <label>Difficulty Level:</label>
+                    <select id="difficultySelect">
+                        <option value="easy">Easy (More clues)</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="hard">Hard (Fewer clues)</option>
+                        <option value="expert">Expert (Minimal clues)</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label>Number Range:</label>
+                    <select id="rangeSelect">
+                        <option value="20">0-20 (Easy numbers)</option>
+                        <option value="100" selected>0-100 (Standard)</option>
+                        <option value="500">0-500 (Larger numbers)</option>
+                        <option value="1000">0-1000 (Challenge)</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label>Operations:</label>
+                    <div class="checkbox-group">
+                        <label><input id="opAdd" type="checkbox" checked> + Addition</label>
+                        <label><input id="opSub" type="checkbox" checked> - Subtraction</label>
+                        <label><input id="opMul" type="checkbox" checked> × Multiplication</label>
+                        <label><input id="opDiv" type="checkbox" checked> ÷ Division</label>
+                    </div>
                 </div>
 
                 <div class="control-group checkbox-control">
@@ -134,7 +319,13 @@
                 </div>
             </div>
 
-            <svg id="grid" xmlns="http://www.w3.org/2000/svg"></svg>
+            <svg id="grid" xmlns="http://www.w3.org/2000/svg" style="display: none;"></svg>
+
+            <!-- Colorful screen version -->
+            <div id="screenGrid"></div>
+
+            <!-- Hidden print version using HTML table -->
+            <div id="printGrid" style="display: none;"></div>
 
             <div id="stat" class="crossword-status"></div>
         </div>
@@ -157,7 +348,10 @@ const REGEN_ATTEMPTS=250;
 
 const svg=document.getElementById('grid'), ans=document.getElementById('ans');
 const eqSlider=document.getElementById('eqSlider'), eqOut=document.getElementById('eqOut');
-const givSlider=document.getElementById('givSlider'), givOut=document.getElementById('givOut');
+const difficultySelect=document.getElementById('difficultySelect');
+const rangeSelect=document.getElementById('rangeSelect');
+const opAdd=document.getElementById('opAdd'), opSub=document.getElementById('opSub');
+const opMul=document.getElementById('opMul'), opDiv=document.getElementById('opDiv');
 const stat=document.getElementById('stat');
 
 const R=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
@@ -174,11 +368,21 @@ function getCookie(name){
   return m?decodeURIComponent(m.split('=')[1]):null;
 }
 function syncFromCookies(){
-  const eqC=getCookie('mx_eq'), gvC=getCookie('mx_gv');
-  eqSlider.value = clamp(parseInt(eqC)||4,3,6);     // Start with 4 equations
-  givSlider.value = clamp(parseInt(gvC)||30,0,100); // Start with 30%
+  const eqC=getCookie('mx_eq'), diffC=getCookie('mx_diff');
+  const rangeC=getCookie('mx_range');
+  const opsC=getCookie('mx_ops');
+
+  eqSlider.value = clamp(parseInt(eqC)||4,3,20);    // Start with 4 equations
+  difficultySelect.value = diffC || 'medium';       // Start with medium difficulty
+  rangeSelect.value = rangeC || '100';              // Start with 0-100 range
   eqOut.textContent = eqSlider.value;
-  givOut.textContent = givSlider.value;
+
+  // Restore operation settings
+  const ops = opsC ? JSON.parse(opsC) : {add: true, sub: true, mul: true, div: true};
+  opAdd.checked = ops.add !== false;
+  opSub.checked = ops.sub !== false;
+  opMul.checked = ops.mul !== false;
+  opDiv.checked = ops.div !== false;
 }
 
 function empty(){return Array.from({length:ROWS},()=>Array(COLS).fill(null))}
@@ -396,115 +600,688 @@ function draw(model,givensCount){
   return {numTotal:numCells.length};
 }
 
-function createSimpleCrossword(numEquations) {
-  // Multiple patterns for different equation counts
-  const allPatterns = {
-    3: [
-      [
-        {across: true, row: 2, col: 1, eq: {A: 12, op: '+', B: 8, C: 20}},
-        {across: false, row: 1, col: 3, eq: {A: 15, op: '-', B: 7, C: 8}},
-        {across: true, row: 4, col: 2, eq: {A: 6, op: '×', B: 4, C: 24}},
-      ],
-      [
-        {across: true, row: 1, col: 1, eq: {A: 14, op: '+', B: 6, C: 20}},
-        {across: false, row: 0, col: 3, eq: {A: 18, op: '-', B: 4, C: 14}},
-        {across: true, row: 3, col: 2, eq: {A: 5, op: '×', B: 3, C: 15}},
-      ]
-    ],
-    4: [
-      [
-        {across: true, row: 1, col: 2, eq: {A: 9, op: '+', B: 6, C: 15}},
-        {across: false, row: 0, col: 4, eq: {A: 20, op: '-', B: 5, C: 15}},
-        {across: true, row: 3, col: 1, eq: {A: 7, op: '×', B: 3, C: 21}},
-        {across: false, row: 1, col: 1, eq: {A: 18, op: '÷', B: 2, C: 9}},
-      ],
-      [
-        {across: true, row: 2, col: 0, eq: {A: 11, op: '+', B: 9, C: 20}},
-        {across: false, row: 1, col: 2, eq: {A: 24, op: '-', B: 13, C: 11}},
-        {across: true, row: 4, col: 1, eq: {A: 8, op: '×', B: 4, C: 32}},
-        {across: false, row: 2, col: 4, eq: {A: 21, op: '÷', B: 3, C: 7}},
-      ]
-    ],
-    5: [
-      [
-        {across: true, row: 1, col: 1, eq: {A: 13, op: '+', B: 7, C: 20}},
-        {across: false, row: 0, col: 3, eq: {A: 25, op: '-', B: 12, C: 13}},
-        {across: true, row: 3, col: 0, eq: {A: 6, op: '×', B: 5, C: 30}},
-        {across: false, row: 1, col: 0, eq: {A: 16, op: '÷', B: 2, C: 8}},
-        {across: true, row: 5, col: 2, eq: {A: 9, op: '+', B: 4, C: 13}},
-      ]
-    ],
-    6: [
-      [
-        {across: true, row: 1, col: 1, eq: {A: 15, op: '+', B: 5, C: 20}},
-        {across: false, row: 0, col: 3, eq: {A: 27, op: '-', B: 12, C: 15}},
-        {across: true, row: 3, col: 0, eq: {A: 7, op: '×', B: 4, C: 28}},
-        {across: false, row: 1, col: 0, eq: {A: 18, op: '÷', B: 3, C: 6}},
-        {across: true, row: 5, col: 2, eq: {A: 11, op: '+', B: 6, C: 17}},
-        {across: false, row: 3, col: 4, eq: {A: 24, op: '÷', B: 4, C: 6}},
-      ]
-    ]
-  };
-
-  const patterns = allPatterns[numEquations] || allPatterns[4];
-  const selectedPattern = patterns[Math.floor(Math.random() * patterns.length)];
-  const grid = Array.from({length: 8}, () => Array(8).fill(null));
-
-  // Place equations
-  selectedPattern.forEach((item, id) => {
-    const {across, row, col, eq} = item;
-    const sequence = [
-      {k: 'num', ch: String(eq.A)},
-      {k: 'op', ch: eq.op},
-      {k: 'num', ch: String(eq.B)},
-      {k: 'eq', ch: '='},
-      {k: 'num', ch: String(eq.C)}
-    ];
-
-    sequence.forEach((cell, i) => {
-      const r = across ? row : row + i;
-      const c = across ? col + i : col;
-      if (r >= 0 && r < 8 && c >= 0 && c < 8) {
-        grid[r][c] = {...cell, id: id + 1};
-      }
-    });
-  });
-
-  return {grid, equations: selectedPattern};
+function getSelectedOperations() {
+  const ops = [];
+  if (opAdd.checked) ops.push('+');
+  if (opSub.checked) ops.push('-');
+  if (opMul.checked) ops.push('×');
+  if (opDiv.checked) ops.push('÷');
+  return ops.length > 0 ? ops : ['+']; // Fallback to addition if none selected
 }
 
-function drawSimpleCrossword(model, givensPercent) {
-  const {grid} = model;
+function getNumberRange() {
+  const maxNum = parseInt(rangeSelect.value) || 100;
+  return { min: 1, max: maxNum };
+}
 
-  // Collect number cells
+function validateEquation(A, B, C, op, range = null) {
+  A = parseInt(A); B = parseInt(B); C = parseInt(C);
+
+  const currentRange = range || getNumberRange();
+
+  if (A < currentRange.min || A > currentRange.max ||
+      B < currentRange.min || B > currentRange.max ||
+      C < currentRange.min || C > currentRange.max) return false;
+  if (!Number.isInteger(A) || !Number.isInteger(B) || !Number.isInteger(C)) return false;
+
+  switch (op) {
+    case '+': return A + B === C;
+    case '-': return A - B === C;
+    case '×': return A * B === C;
+    case '÷': return B !== 0 && A / B === C && A % B === 0; // Must be exact division
+    default: return false;
+  }
+}
+
+function generateRandomEquation() {
+  const operations = getSelectedOperations();
+  const range = getNumberRange();
+
+  for (let attempts = 0; attempts < 300; attempts++) {
+    const op = operations[Math.floor(Math.random() * operations.length)];
+    let A, B, C;
+
+    switch (op) {
+      case '+':
+        // Ensure A + B doesn't exceed max
+        A = Math.floor(Math.random() * Math.floor(range.max * 0.6)) + range.min;
+        B = Math.floor(Math.random() * Math.min(range.max - A, Math.floor(range.max * 0.6))) + range.min;
+        C = A + B;
+        break;
+
+      case '-':
+        // Ensure A > B and result is positive
+        A = Math.floor(Math.random() * Math.floor(range.max * 0.8)) + Math.floor(range.max * 0.3);
+        B = Math.floor(Math.random() * Math.min(A - range.min, Math.floor(range.max * 0.4))) + range.min;
+        C = A - B;
+        break;
+
+      case '×':
+        // Keep factors reasonable
+        const maxFactor = Math.min(Math.floor(Math.sqrt(range.max)), 20);
+        A = Math.floor(Math.random() * (maxFactor - 2)) + 2;
+        B = Math.floor(Math.random() * (maxFactor - 2)) + 2;
+        C = A * B;
+        break;
+
+      case '÷':
+        // Generate division by creating multiplication first
+        const maxDivisor = Math.min(Math.floor(Math.sqrt(range.max)), 20);
+        B = Math.floor(Math.random() * (maxDivisor - 2)) + 2;
+        C = Math.floor(Math.random() * Math.floor(range.max / B)) + range.min;
+        A = B * C; // Ensures exact division
+        break;
+    }
+
+    if (validateEquation(A, B, C, op, range)) {
+      return {A, B, C, op};
+    }
+  }
+
+  // Guaranteed valid fallback based on range
+  const fallbackRange = range.max <= 20 ? {A: 8, B: 4, C: 2} : {A: 12, B: 4, C: 3};
+  return {...fallbackRange, op: '÷'};
+}
+
+function getIntersectionValue(grid, r, c) {
+  return grid[r] && grid[r][c] && grid[r][c].k === 'num' ? parseInt(grid[r][c].ch) : null;
+}
+
+function findValidEquationForConstraints(constraints) {
+  // constraints: {pos0: value, pos2: value, pos4: value} where positions are 0=A, 2=B, 4=C
+  const operations = ['+', '-', '×', '÷'];
+
+  for (let attempt = 0; attempt < 1000; attempt++) {
+    const eq = generateRandomEquation();
+    const values = [eq.A, eq.B, eq.C];
+
+    let valid = true;
+    for (const [pos, requiredValue] of Object.entries(constraints)) {
+      if (values[parseInt(pos) / 2] !== requiredValue) {
+        valid = false;
+        break;
+      }
+    }
+
+    if (valid && validateEquation(eq.A, eq.B, eq.C, eq.op)) {
+      return eq;
+    }
+  }
+
+  // If no valid equation found with constraints, try to modify an equation
+  if (Object.keys(constraints).length === 1) {
+    const [pos, value] = Object.entries(constraints)[0];
+    const position = parseInt(pos) / 2;
+
+    // Try to build equation around the constraint
+    for (const op of operations) {
+      let A, B, C;
+
+      if (position === 0) { // A is constrained
+        A = value;
+        for (let i = 0; i < 50; i++) {
+          if (op === '+') {
+            B = Math.floor(Math.random() * 40) + 10;
+            C = A + B;
+            if (validateEquation(A, B, C, op)) return {A, B, C, op};
+          } else if (op === '-') {
+            B = Math.floor(Math.random() * Math.min(A - 1, 40)) + 1;
+            C = A - B;
+            if (validateEquation(A, B, C, op)) return {A, B, C, op};
+          } else if (op === '×') {
+            B = Math.floor(Math.random() * Math.min(9, Math.floor(99/A))) + 2;
+            C = A * B;
+            if (validateEquation(A, B, C, op)) return {A, B, C, op};
+          } else if (op === '÷') {
+            const divisors = [];
+            for (let d = 2; d <= Math.min(9, A); d++) {
+              if (A % d === 0) divisors.push(d);
+            }
+            if (divisors.length > 0) {
+              B = divisors[Math.floor(Math.random() * divisors.length)];
+              C = A / B;
+              if (validateEquation(A, B, C, op)) return {A, B, C, op};
+            }
+          }
+        }
+      } else if (position === 1) { // B is constrained
+        B = value;
+        for (let i = 0; i < 50; i++) {
+          if (op === '+') {
+            A = Math.floor(Math.random() * (99 - B)) + 10;
+            C = A + B;
+            if (validateEquation(A, B, C, op)) return {A, B, C, op};
+          } else if (op === '-') {
+            A = Math.floor(Math.random() * 40) + B + 10;
+            C = A - B;
+            if (validateEquation(A, B, C, op)) return {A, B, C, op};
+          } else if (op === '×') {
+            A = Math.floor(Math.random() * Math.min(9, Math.floor(99/B))) + 2;
+            C = A * B;
+            if (validateEquation(A, B, C, op)) return {A, B, C, op};
+          } else if (op === '÷') {
+            C = Math.floor(Math.random() * 10) + 2;
+            A = B * C;
+            if (validateEquation(A, B, C, op)) return {A, B, C, op};
+          }
+        }
+      } else if (position === 2) { // C is constrained
+        C = value;
+        for (let i = 0; i < 50; i++) {
+          if (op === '+') {
+            A = Math.floor(Math.random() * Math.min(C - 10, 50)) + 10;
+            B = C - A;
+            if (B >= 10 && B <= 50) return {A, B, C, op};
+          } else if (op === '-') {
+            B = Math.floor(Math.random() * Math.min(30, C - 1)) + 10;
+            A = C + B;
+            if (validateEquation(A, B, C, op)) return {A, B, C, op};
+          } else if (op === '×') {
+            const factors = [];
+            for (let f = 2; f <= Math.min(9, C); f++) {
+              if (C % f === 0 && C/f >= 2 && C/f <= 9) {
+                factors.push([f, C/f]);
+              }
+            }
+            if (factors.length > 0) {
+              const [A, B] = factors[Math.floor(Math.random() * factors.length)];
+              if (validateEquation(A, B, C, op)) return {A, B, C, op};
+            }
+          } else if (op === '÷') {
+            B = Math.floor(Math.random() * 8) + 2;
+            A = C * B;
+            if (validateEquation(A, B, C, op)) return {A, B, C, op};
+          }
+        }
+      }
+    }
+  }
+
+  return generateRandomEquation(); // Fallback
+}
+
+function createRandomCrossword(numEquations) {
+  const grid = Array.from({length: 24}, () => Array(24).fill(null));
+  const equations = [];
+  const maxAttempts = 100;
+
+  // Start with first equation in center area
+  const firstRow = Math.floor(Math.random() * 8) + 8;
+  const firstCol = Math.floor(Math.random() * 8) + 8;
+  const firstAcross = Math.random() < 0.5;
+
+  const firstEq = generateRandomEquation();
+  const firstSeq = [
+    {k: 'num', ch: String(firstEq.A)},
+    {k: 'op', ch: firstEq.op},
+    {k: 'num', ch: String(firstEq.B)},
+    {k: 'eq', ch: '='},
+    {k: 'num', ch: String(firstEq.C)}
+  ];
+
+  // Place first equation
+  for (let i = 0; i < 5; i++) {
+    const r = firstAcross ? firstRow : firstRow + i;
+    const c = firstAcross ? firstCol + i : firstCol;
+    grid[r][c] = {...firstSeq[i], id: 1};
+  }
+
+  equations.push({
+    across: firstAcross,
+    row: firstRow,
+    col: firstCol,
+    eq: firstEq
+  });
+
+  // Add remaining equations
+  for (let eqNum = 2; eqNum <= numEquations; eqNum++) {
+    let placed = false;
+
+    for (let attempt = 0; attempt < maxAttempts && !placed; attempt++) {
+      // Try to find intersection with existing equations
+      const possibleIntersections = [];
+
+      for (let r = 1; r < 23; r++) {
+        for (let c = 1; c < 23; c++) {
+          if (grid[r][c] && grid[r][c].k === 'num') {
+            // Try both orientations
+            for (const across of [true, false]) {
+              for (let pos = 0; pos < 5; pos += 2) { // Only number positions (0, 2, 4)
+                const startR = across ? r : r - pos;
+                const startC = across ? c - pos : c;
+
+                // Check if this position would work
+                if (startR >= 0 && startR < 24 && startC >= 0 && startC < 24) {
+                  let canPlace = true;
+                  const constraints = {};
+
+                  // Check all 5 positions of potential equation
+                  for (let i = 0; i < 5; i++) {
+                    const checkR = across ? startR : startR + i;
+                    const checkC = across ? startC + i : startC;
+
+                    if (checkR >= 24 || checkC >= 24) {
+                      canPlace = false;
+                      break;
+                    }
+
+                    const existing = grid[checkR][checkC];
+                    if (existing) {
+                      if (i === pos) {
+                        // This is our intersection point
+                        if (existing.k === 'num') {
+                          constraints[i] = parseInt(existing.ch);
+                        } else {
+                          canPlace = false;
+                          break;
+                        }
+                      } else {
+                        // Another cell is occupied
+                        canPlace = false;
+                        break;
+                      }
+                    }
+                  }
+
+                  if (canPlace) {
+                    possibleIntersections.push({
+                      row: startR,
+                      col: startC,
+                      across: across,
+                      constraints: constraints
+                    });
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      if (possibleIntersections.length > 0) {
+        // Pick random intersection
+        const intersection = possibleIntersections[Math.floor(Math.random() * possibleIntersections.length)];
+        const eq = findValidEquationForConstraints(intersection.constraints);
+
+        const sequence = [
+          {k: 'num', ch: String(eq.A)},
+          {k: 'op', ch: eq.op},
+          {k: 'num', ch: String(eq.B)},
+          {k: 'eq', ch: '='},
+          {k: 'num', ch: String(eq.C)}
+        ];
+
+        // Place equation
+        for (let i = 0; i < 5; i++) {
+          const r = intersection.across ? intersection.row : intersection.row + i;
+          const c = intersection.across ? intersection.col + i : intersection.col;
+          if (!grid[r][c]) {
+            grid[r][c] = {...sequence[i], id: eqNum};
+          }
+        }
+
+        equations.push({
+          across: intersection.across,
+          row: intersection.row,
+          col: intersection.col,
+          eq: eq
+        });
+
+        placed = true;
+      }
+    }
+
+    // If we couldn't place intersecting, try placing separately
+    if (!placed) {
+      for (let attempt = 0; attempt < maxAttempts && !placed; attempt++) {
+        const row = Math.floor(Math.random() * 16) + 4;
+        const col = Math.floor(Math.random() * 16) + 4;
+        const across = Math.random() < 0.5;
+
+        let canPlace = true;
+        for (let i = 0; i < 5; i++) {
+          const r = across ? row : row + i;
+          const c = across ? col + i : col;
+          if (r >= 24 || c >= 24 || grid[r][c]) {
+            canPlace = false;
+            break;
+          }
+        }
+
+        if (canPlace) {
+          const eq = generateRandomEquation();
+          const sequence = [
+            {k: 'num', ch: String(eq.A)},
+            {k: 'op', ch: eq.op},
+            {k: 'num', ch: String(eq.B)},
+            {k: 'eq', ch: '='},
+            {k: 'num', ch: String(eq.C)}
+          ];
+
+          for (let i = 0; i < 5; i++) {
+            const r = across ? row : row + i;
+            const c = across ? col + i : col;
+            grid[r][c] = {...sequence[i], id: eqNum};
+          }
+
+          equations.push({
+            across: across,
+            row: row,
+            col: col,
+            eq: eq
+          });
+
+          placed = true;
+        }
+      }
+    }
+  }
+
+  return {grid, equations};
+}
+
+function canSolvePuzzle(grid, equations, givenPositions) {
+  // Create a copy of the grid with only givens
+  const solveGrid = Array.from({length: 24}, () => Array(24).fill(null));
+
+  // Place only the given cells
+  for (let r = 0; r < 24; r++) {
+    for (let c = 0; c < 24; c++) {
+      if (grid[r][c] && givenPositions.has(`${r},${c}`)) {
+        solveGrid[r][c] = grid[r][c];
+      } else if (grid[r][c]) {
+        solveGrid[r][c] = {k: grid[r][c].k, ch: grid[r][c].k === 'num' ? null : grid[r][c].ch, id: grid[r][c].id};
+      }
+    }
+  }
+
+  // Try to solve using constraint propagation
+  let changed = true;
+  let iterations = 0;
+  const maxIterations = 50;
+
+  while (changed && iterations < maxIterations) {
+    changed = false;
+    iterations++;
+
+    for (const eq of equations) {
+      const cells = [];
+      for (let i = 0; i < 5; i++) {
+        const r = eq.across ? eq.row : eq.row + i;
+        const c = eq.across ? eq.col + i : eq.col;
+        if (r < 24 && c < 24 && solveGrid[r][c]) {
+          cells.push({r, c, cell: solveGrid[r][c], pos: i});
+        }
+      }
+
+      if (cells.length === 5) {
+        // Try to deduce missing values
+        const numCells = cells.filter(cell => cell.cell.k === 'num');
+        const opCell = cells.find(cell => cell.cell.k === 'op');
+
+        if (opCell && numCells.length >= 2) {
+          const knownValues = {};
+          const unknownPositions = [];
+
+          for (const numCell of numCells) {
+            if (numCell.cell.ch !== null) {
+              knownValues[numCell.pos] = parseInt(numCell.cell.ch);
+            } else {
+              unknownPositions.push(numCell.pos);
+            }
+          }
+
+          // If we have 2 known values, we can deduce the third
+          if (Object.keys(knownValues).length === 2 && unknownPositions.length === 1) {
+            const op = opCell.cell.ch;
+            const unknownPos = unknownPositions[0];
+            let deducedValue = null;
+
+            if (unknownPos === 0) { // Deduce A
+              const B = knownValues[2];
+              const C = knownValues[4];
+              if (op === '+') deducedValue = C - B;
+              else if (op === '-') deducedValue = C + B;
+              else if (op === '×') deducedValue = B !== 0 ? C / B : null;
+              else if (op === '÷') deducedValue = C * B;
+            } else if (unknownPos === 2) { // Deduce B
+              const A = knownValues[0];
+              const C = knownValues[4];
+              if (op === '+') deducedValue = C - A;
+              else if (op === '-') deducedValue = A - C;
+              else if (op === '×') deducedValue = A !== 0 ? C / A : null;
+              else if (op === '÷') deducedValue = A !== 0 ? A / C : null;
+            } else if (unknownPos === 4) { // Deduce C
+              const A = knownValues[0];
+              const B = knownValues[2];
+              if (op === '+') deducedValue = A + B;
+              else if (op === '-') deducedValue = A - B;
+              else if (op === '×') deducedValue = A * B;
+              else if (op === '÷') deducedValue = B !== 0 ? A / B : null;
+            }
+
+            if (deducedValue !== null && deducedValue > 0 && deducedValue <= 99 && Number.isInteger(deducedValue)) {
+              const targetCell = cells.find(cell => cell.pos === unknownPos);
+              if (targetCell && targetCell.cell.ch === null) {
+                targetCell.cell.ch = String(deducedValue);
+                changed = true;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Check if puzzle is completely solved
+  for (let r = 0; r < 24; r++) {
+    for (let c = 0; c < 24; c++) {
+      if (grid[r][c] && grid[r][c].k === 'num') {
+        if (!solveGrid[r][c] || solveGrid[r][c].ch === null) {
+          return false; // Not solvable
+        }
+      }
+    }
+  }
+
+  return true; // Puzzle is solvable
+}
+
+function getDifficultyTargets(difficulty, totalNumbers) {
+  // Define difficulty levels with much fewer clues
+  const difficultySettings = {
+    expert: { min: 0.15, max: 0.25, name: 'Expert' },
+    hard:   { min: 0.20, max: 0.30, name: 'Hard' },
+    medium: { min: 0.25, max: 0.35, name: 'Medium' },
+    easy:   { min: 0.30, max: 0.40, name: 'Easy' }
+  };
+
+  const setting = difficultySettings[difficulty] || difficultySettings.medium;
+  return {
+    minGivens: Math.ceil(totalNumbers * setting.min),
+    maxGivens: Math.ceil(totalNumbers * setting.max),
+    name: setting.name
+  };
+}
+
+function isCompleteEquation(grid, equations, givenSet) {
+  // Check if any equation has all three numbers given (making it trivial)
+  for (const eq of equations) {
+    let givenNumbers = 0;
+    for (let i = 0; i < 5; i += 2) { // Check positions 0, 2, 4 (the numbers)
+      const r = eq.across ? eq.row : eq.row + i;
+      const c = eq.across ? eq.col + i : eq.col;
+      if (r < 24 && c < 24 && givenSet.has(`${r},${c}`)) {
+        givenNumbers++;
+      }
+    }
+    if (givenNumbers >= 3) {
+      return true; // This equation is completely given
+    }
+  }
+  return false;
+}
+
+function selectOptimalGivens(grid, equations, difficulty) {
   const numCells = [];
-  for(let r = 0; r < 8; r++) {
-    for(let c = 0; c < 8; c++) {
+  for(let r = 0; r < 24; r++) {
+    for(let c = 0; c < 24; c++) {
       if(grid[r][c] && grid[r][c].k === 'num') {
         numCells.push({r, c});
       }
     }
   }
 
-  // Choose givens based on percentage
-  const shuffled = [...numCells].sort(() => Math.random() - 0.5);
-  const actualGivens = Math.round((givensPercent / 100) * numCells.length);
-  const givenSet = new Set(shuffled.slice(0, actualGivens).map(p => `${p.r},${p.c}`));
+  const difficultyTargets = getDifficultyTargets(difficulty, numCells.length);
 
-  // Set up SVG
-  const cellSize = 50;
-  const W = 8 * cellSize;
-  const H = 8 * cellSize;
+  // Start with minimal strategic givens - ensure no equation has more than 2 numbers
+  const strategicGivens = new Set();
+  for (const eq of equations) {
+    const eqNumbers = [];
+    for (let i = 0; i < 5; i += 2) { // positions 0, 2, 4 are numbers
+      const r = eq.across ? eq.row : eq.row + i;
+      const c = eq.across ? eq.col + i : eq.col;
+      if (r < 24 && c < 24) {
+        eqNumbers.push(`${r},${c}`);
+      }
+    }
+    // Add one random number from this equation as a given
+    if (eqNumbers.length > 0) {
+      const randomNum = eqNumbers[Math.floor(Math.random() * eqNumbers.length)];
+      strategicGivens.add(randomNum);
+    }
+  }
+
+  // For expert level, try to solve with minimal givens first
+  if (difficulty === 'expert' && canSolvePuzzle(grid, equations, strategicGivens)) {
+    return { givens: strategicGivens, difficulty: difficultyTargets };
+  }
+
+  // Add more givens until we reach the minimum for this difficulty
+  const remaining = numCells.filter(cell => !strategicGivens.has(`${cell.r},${cell.c}`));
+  const shuffled = remaining.sort(() => Math.random() - 0.5);
+
+  // Add givens incrementally until solvable within difficulty range
+  let currentGivens = new Set([...strategicGivens]);
+  let addedIndex = 0;
+
+  // Keep adding until we have at least minimum givens AND it's solvable
+  while (addedIndex < shuffled.length) {
+    // Add more givens if we're below minimum OR if not solvable yet
+    const needsMoreForDifficulty = currentGivens.size < difficultyTargets.minGivens;
+    const isSolvable = canSolvePuzzle(grid, equations, currentGivens);
+    const hasCompleteEquation = isCompleteEquation(grid, equations, currentGivens);
+
+    if (!needsMoreForDifficulty && isSolvable && !hasCompleteEquation) {
+      break; // We have enough givens, it's solvable, and no complete equations
+    }
+
+    if (addedIndex < shuffled.length) {
+      // Try adding this cell
+      const testGivens = new Set([...currentGivens]);
+      testGivens.add(`${shuffled[addedIndex].r},${shuffled[addedIndex].c}`);
+
+      // Only add if it doesn't create a complete equation
+      if (!isCompleteEquation(grid, equations, testGivens)) {
+        currentGivens.add(`${shuffled[addedIndex].r},${shuffled[addedIndex].c}`);
+      }
+      addedIndex++;
+    } else {
+      break; // No more cells to add
+    }
+
+    // Stop if we exceed maximum for this difficulty and meet other criteria
+    if (currentGivens.size >= difficultyTargets.maxGivens &&
+        canSolvePuzzle(grid, equations, currentGivens) &&
+        !isCompleteEquation(grid, equations, currentGivens)) {
+      break;
+    }
+  }
+
+  return { givens: currentGivens, difficulty: difficultyTargets };
+}
+
+function drawSimpleCrossword(model, difficulty) {
+  const {grid, equations} = model;
+
+  // Collect number cells
+  const numCells = [];
+  for(let r = 0; r < 24; r++) {
+    for(let c = 0; c < 24; c++) {
+      if(grid[r][c] && grid[r][c].k === 'num') {
+        numCells.push({r, c});
+      }
+    }
+  }
+
+  // Select optimal givens that ensure solvability for the chosen difficulty
+  const result = selectOptimalGivens(grid, equations, difficulty);
+  const givenSet = result.givens;
+
+  // Find bounds of used cells to crop the display
+  const usedCells = [];
+  for(let r = 0; r < 24; r++) {
+    for(let c = 0; c < 24; c++) {
+      if(grid[r][c]) {
+        usedCells.push({r, c});
+      }
+    }
+  }
+
+  const minR = Math.min(...usedCells.map(p => p.r));
+  const maxR = Math.max(...usedCells.map(p => p.r));
+  const minC = Math.min(...usedCells.map(p => p.c));
+  const maxC = Math.max(...usedCells.map(p => p.c));
+
+  const gridRows = maxR - minR + 1;
+  const gridCols = maxC - minC + 1;
+
+  // Dynamic sizing for both web and print
+  const containerWidth = Math.min(window.innerWidth - 120, 900); // Responsive to screen width
+  const containerHeight = Math.min(window.innerHeight - 400, 600); // Leave space for controls
+
+  // A4 constraints (210mm x 297mm with safe margins to prevent overflow)
+  const a4PortraitWidth = 175;  // 210mm - 35mm margins (safer)
+  const a4PortraitHeight = 250; // 297mm - 47mm margins
+  const a4LandscapeWidth = 225; // 297mm - 72mm margins (extra safe for landscape)
+  const a4LandscapeHeight = 175; // 210mm - 35mm margins (rotated)
+  const mmToPx = 3.78; // Approximate conversion
+
+  // Try both orientations and pick the best fit
+  const portraitCellSizeByWidth = Math.floor((a4PortraitWidth * mmToPx) / gridCols);
+  const portraitCellSizeByHeight = Math.floor((a4PortraitHeight * mmToPx) / gridRows);
+  const portraitCellSize = Math.min(portraitCellSizeByWidth, portraitCellSizeByHeight);
+
+  const landscapeCellSizeByWidth = Math.floor((a4LandscapeWidth * mmToPx) / gridCols);
+  const landscapeCellSizeByHeight = Math.floor((a4LandscapeHeight * mmToPx) / gridRows);
+  const landscapeCellSize = Math.min(landscapeCellSizeByWidth, landscapeCellSizeByHeight);
+
+  // Choose orientation that gives larger cells
+  const usePortrait = portraitCellSize >= landscapeCellSize;
+  const a4CellSize = Math.max(portraitCellSize, landscapeCellSize);
+
+  // Calculate cell size to fit both web and A4 constraints
+  const webCellSizeByWidth = Math.floor(containerWidth / gridCols);
+  const webCellSizeByHeight = Math.floor(containerHeight / gridRows);
+
+  // Use web constraints for screen display (separate from print sizing)
+  const cellSize = Math.min(webCellSizeByWidth, webCellSizeByHeight, 80); // Screen-optimized size
+
+  // Store orientation for print function
+  window.preferredPrintOrientation = usePortrait ? 'portrait' : 'landscape';
+
+  const W = gridCols * cellSize;
+  const H = gridRows * cellSize;
   svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
   svg.setAttribute('width', W);
   svg.setAttribute('height', H);
   svg.innerHTML = '';
 
   // Draw grid
-  for(let r = 0; r < 8; r++) {
-    for(let c = 0; c < 8; c++) {
-      const x = c * cellSize;
-      const y = r * cellSize;
+  for(let r = minR; r <= maxR; r++) {
+    for(let c = minC; c <= maxC; c++) {
+      const x = (c - minC) * cellSize;
+      const y = (r - minR) * cellSize;
       const cell = grid[r][c];
 
       if(cell) {
@@ -520,7 +1297,7 @@ function drawSimpleCrossword(model, givensPercent) {
           text = givenSet.has(`${r},${c}`) ? cell.ch : '';
         }
 
-        const fontSize = text.length >= 2 ? cellSize * 0.4 : cellSize * 0.6;
+        const fontSize = Math.max(12, text.length >= 2 ? cellSize * 0.5 : cellSize * 0.7);
         const textEl = t('text', {
           x: x + cellSize/2,
           y: y + cellSize/2 + fontSize/4,
@@ -542,21 +1319,286 @@ function drawSimpleCrossword(model, givensPercent) {
     fill: 'none', stroke: '#000', 'stroke-width': 3
   }));
 
-  return {numTotal: numCells.length};
+  // Hide SVG and generate colorful HTML version for screen
+  document.getElementById('grid').style.display = 'none';
+
+  // Generate colorful screen version
+  const screenGrid = document.getElementById('screenGrid');
+  const container = document.createElement('div');
+  container.className = 'print-grid';
+
+  // Use same cell size as calculated above for consistency
+  const gridWidth = (maxC - minC + 1) * cellSize;
+  const gridHeight = (maxR - minR + 1) * cellSize;
+  container.style.width = gridWidth + 'px';
+  container.style.height = gridHeight + 'px';
+
+  let cellCounter = 0;
+
+  // Create colorful cells for screen
+  for (let r = minR; r <= maxR; r++) {
+    for (let c = minC; c <= maxC; c++) {
+      const gridCell = grid[r][c];
+
+      if (gridCell) {
+        const cell = document.createElement('div');
+        cell.className = 'print-cell screen-view';
+
+        // Position the cell
+        const x = (c - minC) * cellSize;
+        const y = (r - minR) * cellSize;
+        cell.style.left = x + 'px';
+        cell.style.top = y + 'px';
+        cell.style.width = cellSize + 'px';
+        cell.style.height = cellSize + 'px';
+        cell.style.fontSize = Math.max(12, Math.floor(cellSize * 0.4)) + 'px';
+
+        // Add border classes for cells that need right/bottom borders
+        const hasRightNeighbor = grid[r] && grid[r][c + 1];
+        if (!hasRightNeighbor) cell.classList.add('border-right');
+
+        const hasBottomNeighbor = grid[r + 1] && grid[r + 1][c];
+        if (!hasBottomNeighbor) cell.classList.add('border-bottom');
+
+        // Set content and colors
+        let text = gridCell.ch;
+        let isGiven = false;
+
+        if (gridCell.k === 'num' && !ans.checked) {
+          isGiven = givenSet.has(`${r},${c}`);
+          text = isGiven ? gridCell.ch : '';
+        }
+
+        cell.textContent = text;
+
+        // Apply colors based on content type
+        if (gridCell.k === 'op') {
+          switch (gridCell.ch) {
+            case '+': cell.classList.add('op-add'); break;
+            case '-': cell.classList.add('op-sub'); break;
+            case '×': cell.classList.add('op-mul'); break;
+            case '÷': cell.classList.add('op-div'); break;
+          }
+        } else if (gridCell.k === 'eq') {
+          cell.classList.add('op-eq');
+        } else if (gridCell.k === 'num') {
+          if (isGiven && !ans.checked) {
+            cell.classList.add('given');
+          } else {
+            cell.classList.add(cellCounter % 2 === 0 ? 'num-even' : 'num-odd');
+          }
+          cellCounter++;
+        }
+
+        container.appendChild(cell);
+      }
+    }
+  }
+
+  screenGrid.innerHTML = '';
+  screenGrid.appendChild(container);
+
+  // Generate print version
+  generatePrintVersion(grid, givenSet, minR, maxR, minC, maxC);
+
+  return {numTotal: numCells.length, actualGivens: givenSet.size, difficulty: result.difficulty};
+}
+
+function generateScreenVersion(grid, givenSet, minR, maxR, minC, maxC) {
+  const screenGrid = document.getElementById('screenGrid');
+  const container = document.createElement('div');
+  container.className = 'print-grid';
+
+  // Calculate container size
+  const cellSize = 50;
+  const gridWidth = (maxC - minC + 1) * cellSize;
+  const gridHeight = (maxR - minR + 1) * cellSize;
+  container.style.width = gridWidth + 'px';
+  container.style.height = gridHeight + 'px';
+
+  let cellCounter = 0;
+
+  // Create colorful cells for screen
+  for (let r = minR; r <= maxR; r++) {
+    for (let c = minC; c <= maxC; c++) {
+      const gridCell = grid[r][c];
+
+      if (gridCell) {
+        const cell = document.createElement('div');
+        cell.className = 'print-cell screen-view';
+
+        // Position the cell
+        const x = (c - minC) * colorCellSize;
+        const y = (r - minR) * colorCellSize;
+        cell.style.left = x + 'px';
+        cell.style.top = y + 'px';
+        cell.style.width = '50px';
+        cell.style.height = '50px';
+        cell.style.fontSize = '18px';
+
+        // Add border classes for cells that need right/bottom borders
+        // Check if there's no cell to the right
+        const hasRightNeighbor = grid[r] && grid[r][c + 1];
+        if (!hasRightNeighbor) cell.classList.add('border-right');
+
+        // Check if there's no cell below
+        const hasBottomNeighbor = grid[r + 1] && grid[r + 1][c];
+        if (!hasBottomNeighbor) cell.classList.add('border-bottom');
+
+        // Set content and colors
+        let text = gridCell.ch;
+        let isGiven = false;
+
+        if (gridCell.k === 'num' && !ans.checked) {
+          isGiven = givenSet.has(`${r},${c}`);
+          text = isGiven ? gridCell.ch : '';
+        }
+
+        cell.textContent = text;
+
+        // Apply colors based on content type
+        if (gridCell.k === 'op') {
+          switch (gridCell.ch) {
+            case '+': cell.classList.add('op-add'); break;
+            case '-': cell.classList.add('op-sub'); break;
+            case '×': cell.classList.add('op-mul'); break;
+            case '÷': cell.classList.add('op-div'); break;
+          }
+        } else if (gridCell.k === 'eq') {
+          cell.classList.add('op-eq');
+        } else if (gridCell.k === 'num') {
+          if (isGiven && !ans.checked) {
+            cell.classList.add('given');
+          } else {
+            cell.classList.add(cellCounter % 2 === 0 ? 'num-even' : 'num-odd');
+          }
+          cellCounter++;
+        }
+
+        container.appendChild(cell);
+      }
+    }
+  }
+
+  screenGrid.innerHTML = '';
+  screenGrid.appendChild(container);
+}
+
+function generatePrintVersion(grid, givenSet, minR, maxR, minC, maxC) {
+  const printGrid = document.getElementById('printGrid');
+  const container = document.createElement('div');
+  container.className = 'print-grid';
+
+  // Calculate container size for A4 print
+  const gridRows = maxR - minR + 1;
+  const gridCols = maxC - minC + 1;
+
+  // A4 constraints - use same logic as screen version with safe margins
+  const a4PortraitWidth = 175;  // 210mm - 35mm margins (safer)
+  const a4PortraitHeight = 250; // 297mm - 47mm margins
+  const a4LandscapeWidth = 225; // 297mm - 72mm margins (extra safe for landscape)
+  const a4LandscapeHeight = 175; // 210mm - 35mm margins (rotated)
+  const mmToPx = 3.78; // Approximate conversion for print
+
+  // Try both orientations and pick the best fit
+  const portraitCellSizeByWidth = Math.floor((a4PortraitWidth * mmToPx) / gridCols);
+  const portraitCellSizeByHeight = Math.floor((a4PortraitHeight * mmToPx) / gridRows);
+  const portraitCellSize = Math.min(portraitCellSizeByWidth, portraitCellSizeByHeight);
+
+  const landscapeCellSizeByWidth = Math.floor((a4LandscapeWidth * mmToPx) / gridCols);
+  const landscapeCellSizeByHeight = Math.floor((a4LandscapeHeight * mmToPx) / gridRows);
+  const landscapeCellSize = Math.min(landscapeCellSizeByWidth, landscapeCellSizeByHeight);
+
+  // Use the orientation that gives larger cells - maximize A4 usage for print
+  const printCellSize = Math.max(portraitCellSize, landscapeCellSize, 25); // Larger minimum for print
+  const usePortrait = portraitCellSize >= landscapeCellSize;
+
+  // Store the orientation decision and print cell size
+  window.printOrientation = usePortrait ? 'portrait' : 'landscape';
+  window.printCellSize = printCellSize; // Store for print version
+
+  const gridWidth = (maxC - minC + 1) * printCellSize;
+  const gridHeight = (maxR - minR + 1) * printCellSize;
+  container.style.width = gridWidth + 'px';
+  container.style.height = gridHeight + 'px';
+
+  // Only create cells that contain puzzle content
+  for (let r = minR; r <= maxR; r++) {
+    for (let c = minC; c <= maxC; c++) {
+      const gridCell = grid[r][c];
+
+      if (gridCell) {
+        // Only create a cell if it has content
+        const cell = document.createElement('div');
+        cell.className = 'print-cell';
+
+        // Position the cell using print-optimized size
+        const printCellSize = window.printCellSize || cellSize;
+        const x = (c - minC) * printCellSize;
+        const y = (r - minR) * printCellSize;
+        cell.style.left = x + 'px';
+        cell.style.top = y + 'px';
+        cell.style.width = printCellSize + 'px';
+        cell.style.height = printCellSize + 'px';
+        cell.style.fontSize = Math.max(12, Math.floor(printCellSize * 0.4)) + 'px';
+
+        // Add border classes for cells that need right/bottom borders
+        // Check if there's no cell to the right
+        const hasRightNeighbor = grid[r] && grid[r][c + 1];
+        if (!hasRightNeighbor) cell.classList.add('border-right');
+
+        // Check if there's no cell below
+        const hasBottomNeighbor = grid[r + 1] && grid[r + 1][c];
+        if (!hasBottomNeighbor) cell.classList.add('border-bottom');
+
+        // Set the content
+        let text = gridCell.ch;
+        if (gridCell.k === 'num' && !ans.checked) {
+          text = givenSet.has(`${r},${c}`) ? gridCell.ch : '';
+        }
+        cell.textContent = text;
+
+        container.appendChild(cell);
+      }
+    }
+  }
+
+  printGrid.innerHTML = '';
+  printGrid.appendChild(container);
+}
+
+function saveSettings() {
+  setCookie('mx_eq', eqSlider.value);
+  setCookie('mx_diff', difficultySelect.value);
+  setCookie('mx_range', rangeSelect.value);
+  setCookie('mx_ops', JSON.stringify({
+    add: opAdd.checked,
+    sub: opSub.checked,
+    mul: opMul.checked,
+    div: opDiv.checked
+  }));
 }
 
 function regenerate(printAfter=false){
   stat.textContent='Generating puzzle...';
   const numEquations = parseInt(eqSlider.value) || 4;
-  const givensPercent = parseInt(givSlider.value) || 30;
-  setCookie('mx_eq', eqSlider.value);
-  setCookie('mx_gv', givSlider.value);
+  const difficulty = difficultySelect.value || 'medium';
+
+  // Check if at least one operation is selected
+  const selectedOps = getSelectedOperations();
+  if (selectedOps.length === 0) {
+    stat.textContent = '⚠️ Please select at least one operation!';
+    return;
+  }
+
+  saveSettings();
 
   try {
-    const model = createSimpleCrossword(numEquations);
-    const meta = drawSimpleCrossword(model, givensPercent);
-    const actualGivens = Math.round((givensPercent / 100) * meta.numTotal);
-    stat.textContent=`✅ Generated puzzle with ${model.equations.length} equations, showing ${actualGivens}/${meta.numTotal} numbers (${givensPercent}%)`;
+    const model = createRandomCrossword(numEquations);
+    const meta = drawSimpleCrossword(model, difficulty);
+    const percentage = Math.round((meta.actualGivens / meta.numTotal) * 100);
+    const range = getNumberRange();
+    stat.textContent=`✅ Generated ${meta.difficulty.name} puzzle (${range.min}-${range.max}) with ${model.equations.length} equations, showing ${meta.actualGivens}/${meta.numTotal} numbers (${percentage}%)`;
 
     if(printAfter) setTimeout(() => window.print(), 100);
   } catch(e) {
@@ -565,16 +1607,175 @@ function regenerate(printAfter=false){
   }
 }
 
+function printColorVersion() {
+  // Create a new window with only the colored crossword
+  const printWindow = window.open('', '_blank', 'width=800,height=600');
+
+  // Generate print-optimized colorful version
+  const printGridContent = generateColorfulPrintGrid();
+
+  // Get the orientation decision made during puzzle generation
+  const orientation = window.printOrientation || 'portrait';
+
+function generateColorfulPrintGrid() {
+  const printGrid = document.getElementById('printGrid');
+  if (!printGrid || !printGrid.firstChild) return '<div>No puzzle generated</div>';
+
+  // Clone the print grid but add color classes
+  const container = printGrid.firstChild.cloneNode(true);
+  const cells = container.querySelectorAll('.print-cell');
+
+  let cellCounter = 0;
+  cells.forEach(cell => {
+    const text = cell.textContent.trim();
+
+    // Add color classes based on content
+    if (['+', '-', '×', '÷'].includes(text)) {
+      switch (text) {
+        case '+': cell.classList.add('op-add'); break;
+        case '-': cell.classList.add('op-sub'); break;
+        case '×': cell.classList.add('op-mul'); break;
+        case '÷': cell.classList.add('op-div'); break;
+      }
+    } else if (text === '=') {
+      cell.classList.add('op-eq');
+    } else if (text && !isNaN(text)) {
+      // It's a number
+      if (cell.style.fontSize && parseInt(cell.style.fontSize) > 15) {
+        cell.classList.add('given'); // Larger font means it's a given
+      } else {
+        cell.classList.add(cellCounter % 2 === 0 ? 'num-even' : 'num-odd');
+      }
+      cellCounter++;
+    }
+  });
+
+  return container.outerHTML;
+}
+
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Math Crossword - Color Print</title>
+      <style>
+        * {
+          -webkit-print-color-adjust: exact !important;
+          color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+
+        body {
+          margin: 20px;
+          font-family: Arial, sans-serif;
+          background: white;
+        }
+
+        .print-grid {
+          position: relative;
+          margin: 0 auto;
+          font-family: Arial, sans-serif;
+        }
+
+        .print-cell {
+          position: absolute;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: bold;
+          box-sizing: border-box;
+          border-top: 1px solid #666;
+          border-left: 1px solid #666;
+        }
+
+        .print-cell.border-right {
+          border-right: 1px solid #666;
+        }
+
+        .print-cell.border-bottom {
+          border-bottom: 1px solid #666;
+        }
+
+        .print-cell.op-add {
+          background: #e8f5e8 !important;
+          color: #4a7c59 !important;
+        }
+        .print-cell.op-sub {
+          background: #fff3e0 !important;
+          color: #8d4004 !important;
+        }
+        .print-cell.op-mul {
+          background: #f3e5f5 !important;
+          color: #6a1b9a !important;
+        }
+        .print-cell.op-div {
+          background: #e3f2fd !important;
+          color: #1565c0 !important;
+        }
+        .print-cell.op-eq {
+          background: #fce4ec !important;
+          color: #ad1457 !important;
+        }
+        .print-cell.num-even {
+          background: #f8f9fa !important;
+          color: #495057 !important;
+        }
+        .print-cell.num-odd {
+          background: #f1f8e9 !important;
+          color: #2e7d32 !important;
+        }
+        .print-cell.given {
+          background: #fff8e1 !important;
+          color: #f57c00 !important;
+          font-weight: 900 !important;
+        }
+
+        @media print {
+          * {
+            -webkit-print-color-adjust: exact !important;
+            color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+
+          @page {
+            size: A4 ${orientation};
+            margin: 10mm 10mm 13.5mm 10mm; /* top right bottom left */
+          }
+        }
+      </style>
+    </head>
+    <body>
+      <h2 style="text-align: center; margin-bottom: 20px;">Math Crossword Puzzle</h2>
+      ${printGridContent}
+      <scr` + `ipt>
+        window.onload = function() {
+          setTimeout(function() {
+            window.print();
+          }, 100);
+        };
+      </scr` + `ipt>
+    </body>
+    </html>
+  `);
+
+  printWindow.document.close();
+}
+
 // UI
 document.getElementById('gen').addEventListener('click',()=>regenerate(false));
-document.getElementById('print').addEventListener('click',()=>window.print());
+document.getElementById('printColor').addEventListener('click',()=>printColorVersion());
 ans.addEventListener('change',()=>regenerate(false));
-eqSlider.addEventListener('input',()=>{eqOut.textContent=eqSlider.value; setCookie('mx_eq', eqSlider.value);});
-givSlider.addEventListener('input',()=>{givOut.textContent=givSlider.value; setCookie('mx_gv', givSlider.value);});
+eqSlider.addEventListener('input',()=>{eqOut.textContent=eqSlider.value; saveSettings();});
+difficultySelect.addEventListener('change',()=>{saveSettings(); regenerate(false);});
+rangeSelect.addEventListener('change',()=>{saveSettings(); regenerate(false);});
+opAdd.addEventListener('change',()=>{saveSettings(); regenerate(false);});
+opSub.addEventListener('change',()=>{saveSettings(); regenerate(false);});
+opMul.addEventListener('change',()=>{saveSettings(); regenerate(false);});
+opDiv.addEventListener('change',()=>{saveSettings(); regenerate(false);});
 
 // init
 syncFromCookies();
-regenerate(false);
+regenerate(false); // Fixed syntax error
 </script>
 </body>
 </html>
