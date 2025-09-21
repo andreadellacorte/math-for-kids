@@ -387,16 +387,6 @@ function syncFromCookies(){
 
 function empty(){return Array.from({length:ROWS},()=>Array(COLS).fill(null))}
 
-function makeEq(){
-  const op=pick(['+','-','×','÷']); let A,B,C;
-  for(let i=0;i<1200;i++){
-    if(op==='+'){A=R(10,79);B=R(10,79);C=A+B;if(C<=99)return{A,B,C,op}}
-    if(op==='-'){A=R(30,99);B=R(10,69);C=A-B;if(C>=1&&C<=99)return{A,B,C,op}}
-    if(op==='×'){A=R(2,9);B=R(2,9);C=A*B;if(C<=99)return{A,B,C,op}}
-    if(op==='÷'){B=R(2,9);C=R(2,9);A=B*C;if(A<=99)return{A,B,C,op}}
-  }
-  return {A:12,B:7,C:84,op:'×'};
-}
 function seq(e){return[
   {k:'num',ch:String(e.A)},
   {k:'op', ch:e.op},
@@ -495,7 +485,7 @@ function generateExact(target){
   const g=empty(), placed=[];
   // seed anywhere near center
   for(let seedTry=0; seedTry<300; seedTry++){
-    const e0=makeEq(), s0=seq(e0), d0=Math.random()<0.5?'ac':'dn';
+    const e0=generateRandomEquation(), s0=seq(e0), d0=Math.random()<0.5?'ac':'dn';
     const dr0=d0==='ac'?0:1, dc0=d0==='ac'?1:0;
     const r0=R(6,ROWS-7), c0=R(6,COLS-7);
     if(canPlace(g,r0,c0,dr0,dc0,s0,false)){
@@ -508,7 +498,7 @@ function generateExact(target){
   let id=2, tries=0;
   while(id<=target && tries<MAX_TRIES){
     tries++;
-    const e=makeEq(), s=seq(e);
+    const e=generateRandomEquation(), s=seq(e);
     let best=null;
     for(const dir of ['ac','dn']){
       const dr=dir==='ac'?0:1, dc=dir==='ac'?1:0;
@@ -619,14 +609,16 @@ function validateEquation(A, B, C, op, range = null) {
 
   const currentRange = range || getNumberRange();
 
+  // Ensure all numbers are positive and within range
   if (A < currentRange.min || A > currentRange.max ||
       B < currentRange.min || B > currentRange.max ||
       C < currentRange.min || C > currentRange.max) return false;
   if (!Number.isInteger(A) || !Number.isInteger(B) || !Number.isInteger(C)) return false;
+  if (A <= 0 || B <= 0 || C <= 0) return false; // Ensure all positive
 
   switch (op) {
     case '+': return A + B === C;
-    case '-': return A - B === C;
+    case '-': return A - B === C && C > 0; // Explicitly check result is positive
     case '×': return A * B === C;
     case '÷': return B !== 0 && A / B === C && A % B === 0; // Must be exact division
     default: return false;
