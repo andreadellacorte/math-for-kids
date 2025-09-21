@@ -175,7 +175,7 @@ function getCookie(name){
 function syncFromCookies(){
   const eqC=getCookie('mx_eq'), gvC=getCookie('mx_gv');
   eqSlider.value = clamp(parseInt(eqC)||12,10,20);
-  givSlider.value = clamp(parseInt(gvC)||20,0,200);
+  givSlider.value = clamp(parseInt(gvC)||10,0,200);  // Start with fewer givens for better success
   eqOut.textContent = eqSlider.value;
   givOut.textContent = givSlider.value;
 }
@@ -352,7 +352,7 @@ function cropBounds(g){
   const cells=[]; for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++) if(g[r][c]) cells.push([r,c]);
   const minR=Math.min(...cells.map(x=>x[0])), maxR=Math.max(...cells.map(x=>x[0]));
   const minC=Math.min(...cells.map(x=>x[1])), maxC=Math.max(...cells.map(x=>x[1]));
-  return {minR,maxR,minC,maxC,rows:maxR-minR+1,cols=maxC-minC+1};
+  return {minR,maxR,minC,maxC,rows:maxR-minR+1,cols:maxC-minC+1};
 }
 function t(tag,attrs){const n=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const k in attrs)n.setAttribute(k,attrs[k]);return n}
 
@@ -396,7 +396,7 @@ function draw(model,givensCount){
 }
 
 function regenerate(printAfter=false){
-  stat.textContent='';
+  stat.textContent='Generating puzzle...';
   const target = clamp(parseInt(eqSlider.value)||12,10,20);
   const desiredGivens = Math.max(0, parseInt(givSlider.value)||0);
   setCookie('mx_eq', target); setCookie('mx_gv', desiredGivens);
@@ -407,12 +407,15 @@ function regenerate(printAfter=false){
     if(!m) continue;
     try{
       const meta=draw(m, desiredGivens);
-      stat.textContent=`${m.placed.length} equations, ${desiredGivens}/${meta.numTotal} givens`;
+      stat.textContent=`✅ Generated puzzle with ${m.placed.length} equations, showing ${desiredGivens}/${meta.numTotal} numbers`;
       if(printAfter) setTimeout(()=>window.print(), 100);
       return;
-    }catch{ /* too many givens for this layout; try again */ }
+    }catch(e){
+      console.log('Draw failed:', e);
+      /* too many givens for this layout; try again */
+    }
   }
-  stat.textContent='error: cannot match requested equations and givens under strict checks; reduce givens or try again';
+  stat.textContent='⚠️ Could not generate puzzle with current settings. Try reducing the number of equations or givens and click "Generate New Puzzle".';
 }
 
 // UI
