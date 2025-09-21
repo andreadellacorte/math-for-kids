@@ -117,9 +117,16 @@
                 <button id="print" class="btn secondary">Print Puzzle</button>
 
                 <div class="control-group">
+                    <label>Number of equations:</label>
+                    <input id="eqSlider" type="range" min="3" max="6" step="1">
+                    <output id="eqOut"></output>
+                </div>
+
+                <div class="control-group">
                     <label>Numbers to show:</label>
-                    <input id="givSlider" type="range" min="0" max="15" step="1">
+                    <input id="givSlider" type="range" min="0" max="100" step="10">
                     <output id="givOut"></output>
+                    <span>%</span>
                 </div>
 
                 <div class="control-group checkbox-control">
@@ -149,6 +156,7 @@ const MAX_TRIES=25000;        // stronger search
 const REGEN_ATTEMPTS=250;
 
 const svg=document.getElementById('grid'), ans=document.getElementById('ans');
+const eqSlider=document.getElementById('eqSlider'), eqOut=document.getElementById('eqOut');
 const givSlider=document.getElementById('givSlider'), givOut=document.getElementById('givOut');
 const stat=document.getElementById('stat');
 
@@ -166,8 +174,10 @@ function getCookie(name){
   return m?decodeURIComponent(m.split('=')[1]):null;
 }
 function syncFromCookies(){
-  const gvC=getCookie('mx_gv');
-  givSlider.value = clamp(parseInt(gvC)||3,0,15);   // Start with a few givens
+  const eqC=getCookie('mx_eq'), gvC=getCookie('mx_gv');
+  eqSlider.value = clamp(parseInt(eqC)||4,3,6);     // Start with 4 equations
+  givSlider.value = clamp(parseInt(gvC)||30,0,100); // Start with 30%
+  eqOut.textContent = eqSlider.value;
   givOut.textContent = givSlider.value;
 }
 
@@ -386,31 +396,62 @@ function draw(model,givensCount){
   return {numTotal:numCells.length};
 }
 
-function createSimpleCrossword() {
-  // Create a simple predetermined crossword layout that always works
-  const patterns = [
-    {
-      equations: [
+function createSimpleCrossword(numEquations) {
+  // Multiple patterns for different equation counts
+  const allPatterns = {
+    3: [
+      [
         {across: true, row: 2, col: 1, eq: {A: 12, op: '+', B: 8, C: 20}},
         {across: false, row: 1, col: 3, eq: {A: 15, op: '-', B: 7, C: 8}},
         {across: true, row: 4, col: 2, eq: {A: 6, op: '×', B: 4, C: 24}},
+      ],
+      [
+        {across: true, row: 1, col: 1, eq: {A: 14, op: '+', B: 6, C: 20}},
+        {across: false, row: 0, col: 3, eq: {A: 18, op: '-', B: 4, C: 14}},
+        {across: true, row: 3, col: 2, eq: {A: 5, op: '×', B: 3, C: 15}},
       ]
-    },
-    {
-      equations: [
+    ],
+    4: [
+      [
         {across: true, row: 1, col: 2, eq: {A: 9, op: '+', B: 6, C: 15}},
         {across: false, row: 0, col: 4, eq: {A: 20, op: '-', B: 5, C: 15}},
         {across: true, row: 3, col: 1, eq: {A: 7, op: '×', B: 3, C: 21}},
         {across: false, row: 1, col: 1, eq: {A: 18, op: '÷', B: 2, C: 9}},
+      ],
+      [
+        {across: true, row: 2, col: 0, eq: {A: 11, op: '+', B: 9, C: 20}},
+        {across: false, row: 1, col: 2, eq: {A: 24, op: '-', B: 13, C: 11}},
+        {across: true, row: 4, col: 1, eq: {A: 8, op: '×', B: 4, C: 32}},
+        {across: false, row: 2, col: 4, eq: {A: 21, op: '÷', B: 3, C: 7}},
       ]
-    }
-  ];
+    ],
+    5: [
+      [
+        {across: true, row: 1, col: 1, eq: {A: 13, op: '+', B: 7, C: 20}},
+        {across: false, row: 0, col: 3, eq: {A: 25, op: '-', B: 12, C: 13}},
+        {across: true, row: 3, col: 0, eq: {A: 6, op: '×', B: 5, C: 30}},
+        {across: false, row: 1, col: 0, eq: {A: 16, op: '÷', B: 2, C: 8}},
+        {across: true, row: 5, col: 2, eq: {A: 9, op: '+', B: 4, C: 13}},
+      ]
+    ],
+    6: [
+      [
+        {across: true, row: 1, col: 1, eq: {A: 15, op: '+', B: 5, C: 20}},
+        {across: false, row: 0, col: 3, eq: {A: 27, op: '-', B: 12, C: 15}},
+        {across: true, row: 3, col: 0, eq: {A: 7, op: '×', B: 4, C: 28}},
+        {across: false, row: 1, col: 0, eq: {A: 18, op: '÷', B: 3, C: 6}},
+        {across: true, row: 5, col: 2, eq: {A: 11, op: '+', B: 6, C: 17}},
+        {across: false, row: 3, col: 4, eq: {A: 24, op: '÷', B: 4, C: 6}},
+      ]
+    ]
+  };
 
-  const pattern = patterns[Math.floor(Math.random() * patterns.length)];
+  const patterns = allPatterns[numEquations] || allPatterns[4];
+  const selectedPattern = patterns[Math.floor(Math.random() * patterns.length)];
   const grid = Array.from({length: 8}, () => Array(8).fill(null));
 
   // Place equations
-  pattern.equations.forEach((item, id) => {
+  selectedPattern.forEach((item, id) => {
     const {across, row, col, eq} = item;
     const sequence = [
       {k: 'num', ch: String(eq.A)},
@@ -429,10 +470,10 @@ function createSimpleCrossword() {
     });
   });
 
-  return {grid, equations: pattern.equations};
+  return {grid, equations: selectedPattern};
 }
 
-function drawSimpleCrossword(model, givensCount) {
+function drawSimpleCrossword(model, givensPercent) {
   const {grid} = model;
 
   // Collect number cells
@@ -445,9 +486,9 @@ function drawSimpleCrossword(model, givensCount) {
     }
   }
 
-  // Choose givens
+  // Choose givens based on percentage
   const shuffled = [...numCells].sort(() => Math.random() - 0.5);
-  const actualGivens = Math.min(givensCount, numCells.length);
+  const actualGivens = Math.round((givensPercent / 100) * numCells.length);
   const givenSet = new Set(shuffled.slice(0, actualGivens).map(p => `${p.r},${p.c}`));
 
   // Set up SVG
@@ -506,21 +547,16 @@ function drawSimpleCrossword(model, givensCount) {
 
 function regenerate(printAfter=false){
   stat.textContent='Generating puzzle...';
-  const desiredGivens = Math.max(0, parseInt(givSlider.value)||0);
+  const numEquations = parseInt(eqSlider.value) || 4;
+  const givensPercent = parseInt(givSlider.value) || 30;
+  setCookie('mx_eq', eqSlider.value);
   setCookie('mx_gv', givSlider.value);
 
   try {
-    const model = createSimpleCrossword();
-    const meta = drawSimpleCrossword(model, desiredGivens);
-    stat.textContent=`✅ Generated puzzle with ${model.equations.length} equations, showing ${Math.min(desiredGivens, meta.numTotal)}/${meta.numTotal} numbers`;
-
-    // Update givens slider max
-    givSlider.max = String(meta.numTotal);
-    if(parseInt(givSlider.value) > meta.numTotal) {
-      givSlider.value = String(meta.numTotal);
-      givOut.textContent = givSlider.value;
-      setCookie('mx_gv', givSlider.value);
-    }
+    const model = createSimpleCrossword(numEquations);
+    const meta = drawSimpleCrossword(model, givensPercent);
+    const actualGivens = Math.round((givensPercent / 100) * meta.numTotal);
+    stat.textContent=`✅ Generated puzzle with ${model.equations.length} equations, showing ${actualGivens}/${meta.numTotal} numbers (${givensPercent}%)`;
 
     if(printAfter) setTimeout(() => window.print(), 100);
   } catch(e) {
@@ -533,6 +569,7 @@ function regenerate(printAfter=false){
 document.getElementById('gen').addEventListener('click',()=>regenerate(false));
 document.getElementById('print').addEventListener('click',()=>window.print());
 ans.addEventListener('change',()=>regenerate(false));
+eqSlider.addEventListener('input',()=>{eqOut.textContent=eqSlider.value; setCookie('mx_eq', eqSlider.value);});
 givSlider.addEventListener('input',()=>{givOut.textContent=givSlider.value; setCookie('mx_gv', givSlider.value);});
 
 // init
