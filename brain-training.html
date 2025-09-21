@@ -121,6 +121,10 @@
             animation: incorrectShake 0.6s ease;
         }
 
+        .answer-btn.hint {
+            animation: hintShake 1s ease-in-out infinite;
+        }
+
         @keyframes correctFlash {
             0% { background: #28a745; transform: scale(1); }
             50% { background: #20c997; transform: scale(1.05); }
@@ -131,6 +135,12 @@
             0%, 100% { transform: translateX(0); }
             25% { transform: translateX(-10px); }
             75% { transform: translateX(10px); }
+        }
+
+        @keyframes hintShake {
+            0%, 100% { transform: scale(1) rotate(0deg); border-color: rgba(255, 255, 255, 0.3); }
+            25% { transform: scale(1.02) rotate(-1deg); border-color: #ffd700; }
+            75% { transform: scale(1.02) rotate(1deg); border-color: #ffd700; }
         }
 
         .feedback-overlay {
@@ -173,26 +183,115 @@
             margin: 30px 0;
         }
 
-        .difficulty-selector {
+        .settings-section {
             background: rgba(255, 255, 255, 0.2);
             border-radius: 15px;
-            padding: 20px;
+            padding: 25px;
             margin-bottom: 20px;
+            backdrop-filter: blur(10px);
         }
 
-        .difficulty-selector label {
+        .settings-section h3 {
             color: white;
             font-weight: bold;
-            margin-right: 15px;
+            margin-bottom: 20px;
+            font-size: 1.3em;
         }
 
-        .difficulty-selector select {
-            padding: 10px 15px;
-            border-radius: 10px;
-            border: none;
+        .setting-group {
+            margin-bottom: 25px;
+        }
+
+        .setting-group label {
+            color: white;
+            font-weight: bold;
+            display: block;
+            margin-bottom: 10px;
             font-size: 1.1em;
-            background: white;
+        }
+
+        .difficulty-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .difficulty-btn {
+            background: rgba(255, 255, 255, 0.9);
             color: #333;
+            border: 3px solid transparent;
+            padding: 15px 20px;
+            border-radius: 15px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .difficulty-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .difficulty-btn.selected {
+            background: #ffd700;
+            border-color: #ffed4e;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
+        }
+
+        .time-selector {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .time-input {
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid transparent;
+            border-radius: 10px;
+            padding: 10px 15px;
+            font-size: 1.1em;
+            width: 80px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .time-input:focus {
+            outline: none;
+            border-color: #ffd700;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+        }
+
+        .checkbox-setting {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px 20px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .checkbox-setting:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .checkbox-setting input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            transform: scale(1.2);
+        }
+
+        .checkbox-setting label {
+            margin: 0;
+            cursor: pointer;
+            font-size: 1.1em;
         }
 
         .start-btn {
@@ -317,6 +416,36 @@
             .brain-training-container {
                 padding: 20px;
             }
+
+            .difficulty-buttons {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .difficulty-btn {
+                padding: 12px 15px;
+                font-size: 0.9em;
+            }
+
+            .settings-section {
+                padding: 20px;
+            }
+
+            .setting-group {
+                margin-bottom: 20px;
+            }
+
+            .time-selector {
+                justify-content: center;
+            }
+
+            .checkbox-setting {
+                padding: 12px 15px;
+            }
+
+            .checkbox-setting label {
+                font-size: 1em;
+            }
         }
     </style>
 </head>
@@ -330,16 +459,43 @@
         <div class="brain-training-container">
             <div id="setupScreen">
                 <h2>Train Your Brain with Speed Math!</h2>
-                <p>Solve as many problems as you can in 60 seconds. How young is your brain? 🤔</p>
+                <p>Solve as many problems as you can. How young is your brain? 🤔</p>
 
-                <div class="difficulty-selector">
-                    <label for="difficulty">Difficulty Level:</label>
-                    <select id="difficulty">
-                        <option value="easy">Easy (1-digit + 1-digit)</option>
-                        <option value="medium" selected>Medium (2-digit + 1-digit)</option>
-                        <option value="hard">Hard (2-digit + 2-digit)</option>
-                        <option value="expert">Expert (3-digit mixed operations)</option>
-                    </select>
+                <div class="settings-section">
+                    <h3>⚙️ Game Settings</h3>
+
+                    <div class="setting-group">
+                        <label>Difficulty Level:</label>
+                        <div class="difficulty-buttons">
+                            <button class="difficulty-btn" data-difficulty="easy">
+                                Easy<br><small>1-digit + 1-digit</small>
+                            </button>
+                            <button class="difficulty-btn selected" data-difficulty="medium">
+                                Medium<br><small>2-digit + 1-digit</small>
+                            </button>
+                            <button class="difficulty-btn" data-difficulty="hard">
+                                Hard<br><small>2-digit + 2-digit</small>
+                            </button>
+                            <button class="difficulty-btn" data-difficulty="expert">
+                                Expert<br><small>3-digit mixed ops</small>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="setting-group">
+                        <label>Time Limit:</label>
+                        <div class="time-selector">
+                            <input type="number" id="timeLimit" class="time-input" value="60" min="30" max="300">
+                            <span style="color: white; font-weight: bold;">seconds</span>
+                        </div>
+                    </div>
+
+                    <div class="setting-group">
+                        <div class="checkbox-setting">
+                            <input type="checkbox" id="assistedMode">
+                            <label for="assistedMode">Assisted Mode (correct answer shakes when taking too long)</label>
+                        </div>
+                    </div>
                 </div>
 
                 <button id="startBtn" class="start-btn">Start Brain Training!</button>
@@ -419,7 +575,9 @@
                 this.setupScreen = document.getElementById('setupScreen');
                 this.gameScreen = document.getElementById('gameScreen');
                 this.resultsScreen = document.getElementById('resultsScreen');
-                this.difficultySelect = document.getElementById('difficulty');
+                this.difficultyButtons = document.querySelectorAll('.difficulty-btn');
+                this.timeLimitInput = document.getElementById('timeLimit');
+                this.assistedModeCheckbox = document.getElementById('assistedMode');
                 this.startBtn = document.getElementById('startBtn');
                 this.timer = document.getElementById('timer');
                 this.problemCounter = document.getElementById('problemCounter');
@@ -468,7 +626,7 @@
             }
 
             resetGame() {
-                this.timeLeft = 60;
+                this.timeLeft = parseInt(this.timeLimitInput.value) || 60;
                 this.currentProblem = 0;
                 this.correctAnswers = 0;
                 this.totalProblems = 0;
@@ -477,6 +635,9 @@
                 this.responseTimes = [];
                 this.gameActive = false;
                 this.currentAnswer = null;
+                this.hintTimer = null;
+                this.assistedMode = this.assistedModeCheckbox.checked;
+                this.selectedDifficulty = document.querySelector('.difficulty-btn.selected')?.dataset.difficulty || 'medium';
             }
 
             bindEvents() {
@@ -484,10 +645,18 @@
                 this.playAgainBtn.addEventListener('click', () => this.showSetup());
                 this.skipBtn.addEventListener('click', () => this.skipProblem());
                 this.shareSocreBtn.addEventListener('click', () => this.shareScore());
+
+                // Difficulty button selection
+                this.difficultyButtons.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        this.difficultyButtons.forEach(b => b.classList.remove('selected'));
+                        btn.classList.add('selected');
+                    });
+                });
             }
 
             generateProblem() {
-                const difficulty = this.difficultySelect.value;
+                const difficulty = this.selectedDifficulty;
                 let num1, num2, operation, answer;
 
                 switch (difficulty) {
@@ -545,6 +714,12 @@
                 this.currentAnswer = problem.answer;
                 this.mathProblem.textContent = `${problem.num1} ${problem.operation} ${problem.num2} = ?`;
 
+                // Clear any existing hint timer
+                if (this.hintTimer) {
+                    clearTimeout(this.hintTimer);
+                    this.hintTimer = null;
+                }
+
                 // Generate multiple choice options
                 const options = this.generateOptions(problem.answer);
                 this.answerOptions.innerHTML = '';
@@ -554,10 +729,25 @@
                     button.className = 'answer-btn';
                     button.textContent = option;
                     button.addEventListener('click', () => this.selectAnswer(option, button));
+
+                    // Store reference to correct answer button for assisted mode
+                    if (option === this.currentAnswer) {
+                        this.correctAnswerButton = button;
+                    }
+
                     this.answerOptions.appendChild(button);
                 });
 
                 this.problemStartTime = Date.now();
+
+                // Start hint timer for assisted mode
+                if (this.assistedMode) {
+                    this.hintTimer = setTimeout(() => {
+                        if (this.correctAnswerButton && this.gameActive) {
+                            this.correctAnswerButton.classList.add('hint');
+                        }
+                    }, 3000); // Start hinting after 3 seconds
+                }
             }
 
             generateOptions(correctAnswer) {
@@ -585,6 +775,15 @@
 
             selectAnswer(answer, button) {
                 if (!this.gameActive) return;
+
+                // Clear hint timer and remove hint animation
+                if (this.hintTimer) {
+                    clearTimeout(this.hintTimer);
+                    this.hintTimer = null;
+                }
+                document.querySelectorAll('.answer-btn.hint').forEach(btn => {
+                    btn.classList.remove('hint');
+                });
 
                 const isCorrect = answer === this.currentAnswer;
                 const responseTime = Date.now() - this.problemStartTime;
@@ -691,7 +890,7 @@
                     'medium': 1.0,
                     'hard': 0.8,
                     'expert': 0.6
-                }[this.difficultySelect.value];
+                }[this.selectedDifficulty];
 
                 // Base age calculation (lower is better)
                 let brainAge = 20;
@@ -732,18 +931,32 @@
                 this.gameActive = false;
                 clearInterval(this.gameTimer);
 
+                // Clear hint timer
+                if (this.hintTimer) {
+                    clearTimeout(this.hintTimer);
+                    this.hintTimer = null;
+                }
+
                 // Calculate results
                 const brainAge = this.calculateBrainAge();
                 const accuracy = this.totalProblems > 0 ? Math.round((this.correctAnswers / this.totalProblems) * 100) : 0;
                 const avgTime = this.responseTimes.length > 0 ?
                     (this.responseTimes.reduce((a, b) => a + b, 0) / this.responseTimes.length / 1000).toFixed(1) : '0.0';
 
+                // Get difficulty name
+                const difficultyNames = {
+                    'easy': 'Easy (1-digit + 1-digit)',
+                    'medium': 'Medium (2-digit + 1-digit)',
+                    'hard': 'Hard (2-digit + 2-digit)',
+                    'expert': 'Expert (3-digit mixed ops)'
+                };
+
                 // Show results
                 document.getElementById('brainAge').textContent = `Brain Age: ${brainAge}`;
                 document.getElementById('finalProblems').textContent = this.totalProblems;
                 document.getElementById('finalAccuracy').textContent = `${accuracy}%`;
                 document.getElementById('avgTime').textContent = `${avgTime}s`;
-                document.getElementById('finalDifficulty').textContent = this.difficultySelect.options[this.difficultySelect.selectedIndex].text;
+                document.getElementById('finalDifficulty').textContent = difficultyNames[this.selectedDifficulty];
 
                 this.showScreen('results');
             }
