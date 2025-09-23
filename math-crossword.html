@@ -1114,6 +1114,69 @@ function isCompleteEquation(grid, equations, givenSet) {
   return false;
 }
 
+function hasAnyIsolatedEquations(grid, equations, givenSet) {
+  // Check if any equation has only 1 given number with no intersecting constraints
+  for (const eq of equations) {
+    const eqPositions = [];
+    for (let i = 0; i < 5; i += 2) { // Check positions 0, 2, 4 (the numbers)
+      const r = eq.across ? eq.row : eq.row + i;
+      const c = eq.across ? eq.col + i : eq.col;
+      if (r < 24 && c < 24) {
+        eqPositions.push({r, c, pos: i});
+      }
+    }
+
+    // Count givens in this equation
+    const givenCount = eqPositions.filter(pos => givenSet.has(`${pos.r},${pos.c}`)).length;
+
+    // If only 1 given, check if there are intersecting constraints
+    if (givenCount === 1) {
+      let hasIntersectingConstraints = false;
+
+      // Check each number position for intersections with other equations
+      for (const pos of eqPositions) {
+        if (!givenSet.has(`${pos.r},${pos.c}`)) {
+          // This position is not given, check if it intersects with other equations that have constraints
+          for (const otherEq of equations) {
+            if (otherEq === eq) continue; // Skip same equation
+
+            // Check if this position intersects with the other equation
+            for (let j = 0; j < 5; j += 2) {
+              const otherR = otherEq.across ? otherEq.row : otherEq.row + j;
+              const otherC = otherEq.across ? otherEq.col + j : otherEq.col;
+
+              if (otherR === pos.r && otherC === pos.c) {
+                // Found intersection! Check if other equation has enough constraints
+                const otherPositions = [];
+                for (let k = 0; k < 5; k += 2) {
+                  const checkR = otherEq.across ? otherEq.row : otherEq.row + k;
+                  const checkC = otherEq.across ? otherEq.col + k : otherEq.col;
+                  if (checkR < 24 && checkC < 24) {
+                    otherPositions.push(`${checkR},${checkC}`);
+                  }
+                }
+                const otherGivenCount = otherPositions.filter(p => givenSet.has(p)).length;
+                if (otherGivenCount >= 2) {
+                  hasIntersectingConstraints = true;
+                  break;
+                }
+              }
+            }
+            if (hasIntersectingConstraints) break;
+          }
+          if (hasIntersectingConstraints) break;
+        }
+      }
+
+      // If no intersecting constraints found, this equation is isolated
+      if (!hasIntersectingConstraints) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 function selectOptimalGivens(grid, equations, difficulty) {
   const numCells = [];
   for(let r = 0; r < 24; r++) {
@@ -1126,7 +1189,7 @@ function selectOptimalGivens(grid, equations, difficulty) {
 
   const difficultyTargets = getDifficultyTargets(difficulty, numCells.length);
 
-  // Start with minimal strategic givens - ensure no equation has more than 2 numbers
+  // Start with strategic givens - ensure each equation has at least 2 numbers for solvability
   const strategicGivens = new Set();
   for (const eq of equations) {
     const eqNumbers = [];
@@ -1137,39 +1200,70 @@ function selectOptimalGivens(grid, equations, difficulty) {
         eqNumbers.push(`${r},${c}`);
       }
     }
-    // Add one random number from this equation as a given
-    if (eqNumbers.length > 0) {
-      const randomNum = eqNumbers[Math.floor(Math.random() * eqNumbers.length)];
-      strategicGivens.add(randomNum);
+
+    // Add at least 2 numbers from each equation to ensure solvability
+    if (eqNumbers.length >= 2) {
+      // Shuffle and take first 2 to ensure each equation is solvable
+      const shuffledNumbers = eqNumbers.sort(() => Math.random() - 0.5);
+      strategicGivens.add(shuffledNumbers[0]);
+      strategicGivens.add(shuffledNumbers[1]);
+    } else if (eqNumbers.length > 0) {
+      // Fallback: add at least one if equation is malformed
+      strategicGivens.add(eqNumbers[0]);
     }
   }
 
-  // For expert level, try to solve with minimal givens first
-  if (difficulty === 'expert' && canSolvePuzzle(grid, equations, strategicGivens)) {
-    return { givens: strategicGivens, difficulty: difficultyTargets };
+  // Ensure no equation has insufficient information (< 2 givens)
+  for (const eq of equations) {
+    const eqNumbers = [];
+    for (let i = 0; i < 5; i += 2) {
+      const r = eq.across ? eq.row : eq.row + i;
+      const c = eq.across ? eq.col + i : eq.col;
+      if (r < 24 && c < 24) {
+        eqNumbers.push(`${r},${c}`);
+      }
+    }
+
+    // Count how many givens this equation already has
+    const givenCount = eqNumbers.filter(pos => strategicGivens.has(pos)).length;
+
+    // If less than 2 givens, add more until we have at least 2
+    if (givenCount < 2) {
+      const ungiven = eqNumbers.filter(pos => !strategicGivens.has(pos));
+      const needed = 2 - givenCount;
+      for (let i = 0; i < Math.min(needed, ungiven.length); i++) {
+        strategicGivens.add(ungiven[i]);
+      }
+    }
+  }
+
+  // For expert level, only proceed if we have enough constraint propagation
+  if (difficulty === 'expert') {
+    // Expert level requires that we can solve with strict constraints
+    if (canSolvePuzzle(grid, equations, strategicGivens) && !hasAnyIsolatedEquations(grid, equations, strategicGivens)) {
+      return { givens: strategicGivens, difficulty: difficultyTargets };
+    }
   }
 
   // Add more givens until we reach the minimum for this difficulty
   const remaining = numCells.filter(cell => !strategicGivens.has(`${cell.r},${cell.c}`));
   const shuffled = remaining.sort(() => Math.random() - 0.5);
 
-  // Add givens incrementally until solvable within difficulty range
   let currentGivens = new Set([...strategicGivens]);
   let addedIndex = 0;
 
-  // Keep adding until we have at least minimum givens AND it's solvable
+  // Keep adding until we have enough givens and it's properly solvable
   while (addedIndex < shuffled.length) {
-    // Add more givens if we're below minimum OR if not solvable yet
     const needsMoreForDifficulty = currentGivens.size < difficultyTargets.minGivens;
     const isSolvable = canSolvePuzzle(grid, equations, currentGivens);
     const hasCompleteEquation = isCompleteEquation(grid, equations, currentGivens);
+    const hasIsolated = hasAnyIsolatedEquations(grid, equations, currentGivens);
 
-    if (!needsMoreForDifficulty && isSolvable && !hasCompleteEquation) {
-      break; // We have enough givens, it's solvable, and no complete equations
+    if (!needsMoreForDifficulty && isSolvable && !hasCompleteEquation && !hasIsolated) {
+      break; // We have enough givens, it's solvable, no complete equations, and no isolated ones
     }
 
     if (addedIndex < shuffled.length) {
-      // Try adding this cell
       const testGivens = new Set([...currentGivens]);
       testGivens.add(`${shuffled[addedIndex].r},${shuffled[addedIndex].c}`);
 
@@ -1179,13 +1273,14 @@ function selectOptimalGivens(grid, equations, difficulty) {
       }
       addedIndex++;
     } else {
-      break; // No more cells to add
+      break;
     }
 
-    // Stop if we exceed maximum for this difficulty and meet other criteria
+    // Stop if we exceed maximum for this difficulty and meet all criteria
     if (currentGivens.size >= difficultyTargets.maxGivens &&
         canSolvePuzzle(grid, equations, currentGivens) &&
-        !isCompleteEquation(grid, equations, currentGivens)) {
+        !isCompleteEquation(grid, equations, currentGivens) &&
+        !hasAnyIsolatedEquations(grid, equations, currentGivens)) {
       break;
     }
   }
