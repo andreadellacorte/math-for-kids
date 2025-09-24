@@ -358,6 +358,24 @@ h1 {
     color: #666;
 }
 
+.contact-info {
+    font-size: 0.9em;
+    margin-top: 10px;
+    color: #888;
+}
+
+.contact-info a {
+    color: #667eea;
+    text-decoration: none;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+.contact-info a:hover {
+    color: #764ba2;
+    text-decoration: underline;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .container {

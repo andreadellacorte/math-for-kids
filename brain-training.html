@@ -65,19 +65,147 @@
             50% { transform: scale(1.05); }
         }
 
-        .math-problem {
+        .equations-container {
             background: white;
             color: #333;
             border-radius: 20px;
-            padding: 50px;
+            padding: 20px;
             margin: 30px 0;
-            font-size: 4em;
-            font-weight: bold;
-            min-height: 200px;
+            min-height: 400px;
             display: flex;
-            align-items: center;
+            flex-direction: column;
             justify-content: center;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .equation-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 30px;
+            margin: 5px 0;
+            border-radius: 15px;
+            transition: all 0.4s ease;
+            min-height: 60px;
+        }
+
+        .equation-item.completed {
+            background: rgba(40, 167, 69, 0.1);
+            color: #28a745;
+            opacity: 0.7;
+            transform: scale(0.95);
+        }
+
+        .equation-item.completed .equation-text {
+            font-size: 1.8em;
+            font-weight: bold;
+        }
+
+        .equation-item.completed .equation-status {
+            font-size: 2em;
+            color: #28a745;
+        }
+
+        .equation-item.current {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transform: scale(1.05);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+            animation: currentPulse 2s ease-in-out infinite;
+        }
+
+        .equation-item.current .equation-text {
+            font-size: 2.5em;
+            font-weight: bold;
+        }
+
+        .equation-item.current .equation-status {
+            font-size: 2.5em;
+            animation: currentArrow 1.5s ease-in-out infinite;
+        }
+
+        .equation-item.future {
+            background: rgba(108, 117, 125, 0.1);
+            color: #6c757d;
+            opacity: 0.6;
+            transform: scale(0.9);
+        }
+
+        .equation-item.future .equation-text {
+            font-size: 1.6em;
+            font-weight: normal;
+        }
+
+        .equation-item.future .equation-status {
+            font-size: 1.5em;
+            color: #6c757d;
+        }
+
+        @keyframes currentPulse {
+            0%, 100% { box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4); }
+            50% { box-shadow: 0 12px 35px rgba(102, 126, 234, 0.6); }
+        }
+
+        @keyframes currentArrow {
+            0%, 100% { transform: translateX(0); }
+            50% { transform: translateX(10px); }
+        }
+
+        .equation-text {
+            flex: 1;
+            text-align: left;
+        }
+
+        .equation-status {
+            margin-left: 20px;
+        }
+
+        .equations-container.transitioning .equation-item {
+            animation: gentleScroll 0.4s ease-out;
+        }
+
+        @keyframes gentleScroll {
+            0% {
+                transform: translateY(0);
+            }
+            100% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .keyboard-input {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            align-items: center;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .keyboard-input input {
+            font-size: 2em;
+            padding: 15px 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            font-weight: bold;
+            text-align: center;
+            min-width: 150px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .keyboard-input input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .keyboard-input button {
+            font-size: 1.5em;
+            padding: 15px 25px;
+            min-width: 120px;
         }
 
         .answer-options {
@@ -293,7 +421,7 @@
             text-align: center;
         }
 
-        .checkbox-setting {
+        .checkbox-setting, .radio-setting {
             display: flex;
             align-items: center;
             gap: 12px;
@@ -304,21 +432,35 @@
             transition: all 0.3s ease;
         }
 
-        .checkbox-setting:hover {
+        .checkbox-setting:hover, .radio-setting:hover {
             background: rgba(255, 255, 255, 0.2);
         }
 
-        .checkbox-setting input[type="checkbox"] {
+        .checkbox-setting input[type="checkbox"], .radio-setting input[type="radio"] {
             width: 20px;
             height: 20px;
             cursor: pointer;
             transform: scale(1.2);
         }
 
-        .checkbox-setting label {
+        .checkbox-setting label, .radio-setting label {
             margin: 0;
             cursor: pointer;
             font-size: 1.1em;
+        }
+
+        .input-mode-group {
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+
+        .input-mode-group h4 {
+            margin: 0 0 15px 0;
+            font-size: 1.1em;
+            color: #ffd700;
+            text-align: center;
         }
 
         .start-btn {
@@ -406,9 +548,21 @@
         }
 
         @media (max-width: 768px) {
-            .math-problem {
-                font-size: 2.5em;
-                padding: 30px;
+            .equations-container {
+                min-height: 300px;
+                padding: 15px;
+            }
+
+            .equation-item.current .equation-text {
+                font-size: 2em;
+            }
+
+            .equation-item.completed .equation-text {
+                font-size: 1.4em;
+            }
+
+            .equation-item.future .equation-text {
+                font-size: 1.2em;
             }
 
             .answer-options {
@@ -472,11 +626,11 @@
                 min-width: 100%;
             }
 
-            .checkbox-setting {
+            .checkbox-setting, .radio-setting {
                 padding: 12px 15px;
             }
 
-            .checkbox-setting label {
+            .checkbox-setting label, .radio-setting label {
                 font-size: 1em;
             }
         }
@@ -500,10 +654,10 @@
                     <div class="setting-group">
                         <label>Difficulty Level:</label>
                         <div class="difficulty-buttons">
-                            <button class="difficulty-btn" data-difficulty="easy">
+                            <button class="difficulty-btn selected" data-difficulty="easy">
                                 Easy<br><small>1-digit + 1-digit</small>
                             </button>
-                            <button class="difficulty-btn selected" data-difficulty="medium">
+                            <button class="difficulty-btn" data-difficulty="medium">
                                 Medium<br><small>2-digit + 1-digit</small>
                             </button>
                             <button class="difficulty-btn" data-difficulty="hard">
@@ -524,9 +678,20 @@
                     </div>
 
                     <div class="setting-group">
-                        <div class="checkbox-setting">
-                            <input type="checkbox" id="assistedMode">
-                            <label for="assistedMode">Assisted Mode (correct answer shakes when taking too long)</label>
+                        <div class="input-mode-group">
+                            <h4>Input Mode</h4>
+                            <div class="radio-setting">
+                                <input type="radio" id="buttonMode" name="inputMode" value="button" checked>
+                                <label for="buttonMode">Button Mode (click answer buttons)</label>
+                            </div>
+                            <div class="radio-setting">
+                                <input type="radio" id="assistedMode" name="inputMode" value="assisted">
+                                <label for="assistedMode">Assisted Mode (buttons + correct answer shakes when taking too long)</label>
+                            </div>
+                            <div class="radio-setting">
+                                <input type="radio" id="keyboardInputMode" name="inputMode" value="keyboard">
+                                <label for="keyboardInputMode">Keyboard Mode (type answers instead of clicking buttons)</label>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -545,17 +710,38 @@
                     <div class="progress-fill" id="progressFill"></div>
                 </div>
 
-                <div class="math-problem" id="mathProblem">
-                    Get Ready...
+                <div class="equations-container" id="equationsContainer">
+                    <div class="equation-item current" id="equation-0">
+                        <div class="equation-text">Get Ready...</div>
+                        <div class="equation-status">❯</div>
+                    </div>
+                    <div class="equation-item future" id="equation-1">
+                        <div class="equation-text">Get Ready...</div>
+                        <div class="equation-status">⋯</div>
+                    </div>
+                    <div class="equation-item future" id="equation-2">
+                        <div class="equation-text">Get Ready...</div>
+                        <div class="equation-status">⋯</div>
+                    </div>
+                    <div class="equation-item future" id="equation-3">
+                        <div class="equation-text">Get Ready...</div>
+                        <div class="equation-status">⋯</div>
+                    </div>
+                    <div class="equation-item future" id="equation-4">
+                        <div class="equation-text">Get Ready...</div>
+                        <div class="equation-status">⋯</div>
+                    </div>
                 </div>
 
                 <div class="answer-options" id="answerOptions">
                     <!-- Answer buttons will be generated here -->
                 </div>
 
-                <div class="game-controls">
-                    <button id="skipBtn" class="btn secondary">Skip Problem</button>
+                <div class="keyboard-input" id="keyboardInput" style="display: none;">
+                    <input type="number" id="answerInput" placeholder="Type your answer..." autocomplete="off">
+                    <button id="submitBtn" class="btn">Submit</button>
                 </div>
+
             </div>
 
             <div id="resultsScreen" class="hidden">
@@ -611,15 +797,23 @@
                 this.difficultyButtons = document.querySelectorAll('.difficulty-btn');
                 this.timeLimitSlider = document.getElementById('timeLimit');
                 this.timeDisplay = document.getElementById('timeDisplay');
-                this.assistedModeCheckbox = document.getElementById('assistedMode');
+                this.buttonModeRadio = document.getElementById('buttonMode');
+                this.assistedModeRadio = document.getElementById('assistedMode');
+                this.keyboardModeRadio = document.getElementById('keyboardInputMode');
                 this.startBtn = document.getElementById('startBtn');
                 this.timer = document.getElementById('timer');
                 this.problemCounter = document.getElementById('problemCounter');
                 this.accuracy = document.getElementById('accuracy');
                 this.progressFill = document.getElementById('progressFill');
-                this.mathProblem = document.getElementById('mathProblem');
+                this.equationsContainer = document.getElementById('equationsContainer');
+                this.equationItems = [];
+                for (let i = 0; i < 5; i++) {
+                    this.equationItems[i] = document.getElementById(`equation-${i}`);
+                }
+                this.keyboardInput = document.getElementById('keyboardInput');
+                this.answerInput = document.getElementById('answerInput');
+                this.submitBtn = document.getElementById('submitBtn');
                 this.answerOptions = document.getElementById('answerOptions');
-                this.skipBtn = document.getElementById('skipBtn');
                 this.playAgainBtn = document.getElementById('playAgainBtn');
                 this.shareSocreBtn = document.getElementById('shareSocreBtn');
                 this.feedbackOverlay = document.getElementById('feedbackOverlay');
@@ -670,27 +864,360 @@
                 this.gameActive = false;
                 this.currentAnswer = null;
                 this.hintTimer = null;
-                this.assistedMode = this.assistedModeCheckbox.checked;
-                this.selectedDifficulty = document.querySelector('.difficulty-btn.selected')?.dataset.difficulty || 'medium';
+
+                // Initialize equation queue
+                this.equationQueue = [];
+                this.currentEquationIndex = 0; // Start at first equation
+                this.completedProblems = [];
+                this.keyboardMode = false;
+
+                // Pre-generate initial equations
+                this.initializeEquationQueue();
+                this.assistedMode = this.assistedModeRadio.checked;
+                this.keyboardMode = this.keyboardModeRadio.checked;
+                this.selectedDifficulty = document.querySelector('.difficulty-btn.selected')?.dataset.difficulty || 'easy';
+
+                // Load settings from cookies
+                this.loadSettings();
+            }
+
+            setCookie(name, value, days = 365) {
+                const d = new Date();
+                d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
+                document.cookie = `${name}=${encodeURIComponent(value)};expires=${d.toUTCString()};path=/;SameSite=Lax`;
+            }
+
+            getCookie(name) {
+                const match = document.cookie.split(';').map(s => s.trim()).find(s => s.startsWith(name + '='));
+                return match ? decodeURIComponent(match.split('=')[1]) : null;
+            }
+
+            loadSettings() {
+                // Load input mode
+                const inputMode = this.getCookie('inputMode');
+                if (inputMode !== null) {
+                    // Uncheck all radio buttons first
+                    this.buttonModeRadio.checked = false;
+                    this.assistedModeRadio.checked = false;
+                    this.keyboardModeRadio.checked = false;
+
+                    // Check the correct radio button
+                    switch(inputMode) {
+                        case 'button':
+                            this.buttonModeRadio.checked = true;
+                            this.assistedMode = false;
+                            this.keyboardMode = false;
+                            break;
+                        case 'assisted':
+                            this.assistedModeRadio.checked = true;
+                            this.assistedMode = true;
+                            this.keyboardMode = false;
+                            break;
+                        case 'keyboard':
+                            this.keyboardModeRadio.checked = true;
+                            this.assistedMode = false;
+                            this.keyboardMode = true;
+                            break;
+                        default:
+                            this.buttonModeRadio.checked = true;
+                            this.assistedMode = false;
+                            this.keyboardMode = false;
+                    }
+                }
+
+                // Load time limit
+                const timeLimit = this.getCookie('timeLimit');
+                if (timeLimit !== null) {
+                    this.timeLimitSlider.value = timeLimit;
+                    this.timeDisplay.textContent = `${timeLimit}s`;
+                }
+
+                // Load difficulty
+                const difficulty = this.getCookie('difficulty');
+                if (difficulty !== null) {
+                    // Remove selected class from all buttons
+                    this.difficultyButtons.forEach(btn => btn.classList.remove('selected'));
+                    // Add selected class to the saved difficulty
+                    const savedBtn = document.querySelector(`[data-difficulty="${difficulty}"]`);
+                    if (savedBtn) {
+                        savedBtn.classList.add('selected');
+                        this.selectedDifficulty = difficulty;
+                    }
+                }
+
+                // Initialize input mode display
+                this.updateInputModeDisplay();
+            }
+
+            saveSettings() {
+                // Save input mode based on which radio button is checked
+                let inputMode = 'button';
+                if (this.assistedModeRadio.checked) {
+                    inputMode = 'assisted';
+                } else if (this.keyboardModeRadio.checked) {
+                    inputMode = 'keyboard';
+                }
+                this.setCookie('inputMode', inputMode);
+                this.setCookie('timeLimit', this.timeLimitSlider.value);
+                this.setCookie('difficulty', this.selectedDifficulty);
+            }
+
+            initializeEquationQueue() {
+                // Generate initial 5 equations
+                this.equationQueue = [];
+                for (let i = 0; i < 5; i++) {
+                    this.equationQueue.push(this.generateProblem());
+                }
+
+                // Generate additional equations ahead of time
+                for (let i = 0; i < 10; i++) {
+                    this.equationQueue.push(this.generateProblem());
+                }
+
+                this.updateEquationDisplay();
+            }
+
+            updateEquationDisplay() {
+                for (let i = 0; i < 5; i++) {
+                    const equationItem = this.equationItems[i];
+                    const equationText = equationItem.querySelector('.equation-text');
+                    const equationStatus = equationItem.querySelector('.equation-status');
+
+                    // Remove all state classes
+                    equationItem.classList.remove('completed', 'current', 'future');
+
+                    // Determine which equation to show in each slot
+                    let equationIndex;
+
+                    if (this.currentProblem < 3) {
+                        // First 3 problems: show equations 0-4
+                        equationIndex = i;
+                    } else {
+                        // After 3rd problem: scrolling window
+                        equationIndex = (this.currentProblem - 2) + i;
+                    }
+
+                    const equation = this.equationQueue[equationIndex];
+
+                    if (equationIndex < this.currentProblem) {
+                        // Completed equation
+                        equationItem.classList.add('completed');
+                        if (equation) {
+                            equationText.textContent = `${equation.num1} ${equation.operation} ${equation.num2} = ${equation.answer}`;
+                            // Check if this was answered correctly
+                            const wasCorrect = this.completedProblems[equationIndex]?.correct ?? true;
+                            equationStatus.textContent = wasCorrect ? '✓' : '✗';
+                            equationStatus.style.color = wasCorrect ? '#28a745' : '#dc3545';
+                        }
+                    } else if (equationIndex === this.currentProblem) {
+                        // Current equation
+                        equationItem.classList.add('current');
+                        if (equation) {
+                            equationText.textContent = `${equation.num1} ${equation.operation} ${equation.num2} = ?`;
+                            equationStatus.textContent = '❯';
+                        } else {
+                            equationText.textContent = 'Get Ready...';
+                            equationStatus.textContent = '❯';
+                        }
+                    } else {
+                        // Future equation
+                        equationItem.classList.add('future');
+                        if (equation) {
+                            equationText.textContent = `${equation.num1} ${equation.operation} ${equation.num2} = ?`;
+                        } else {
+                            equationText.textContent = 'Loading...';
+                        }
+                        equationStatus.textContent = '⋯';
+                    }
+                }
+            }
+
+            moveToNextEquation() {
+                // Store the completed problem result
+                this.completedProblems[this.currentProblem] = {
+                    correct: this.lastAnswerCorrect || false
+                };
+
+                // Move to next problem
+                this.currentProblem++;
+
+                // Generate new equations if needed
+                while (this.equationQueue.length <= this.currentProblem + 5) {
+                    this.equationQueue.push(this.generateProblem());
+                }
+
+                // Update current answer immediately to the next problem
+                const nextProblem = this.equationQueue[this.currentProblem];
+                if (nextProblem) {
+                    this.currentAnswer = nextProblem.answer;
+                }
+
+                // Clear input field and refocus for keyboard mode
+                if (this.keyboardMode) {
+                    this.answerInput.value = '';
+                    setTimeout(() => {
+                        this.answerInput.focus();
+                        this.answerInput.select();
+                    }, 100);
+                }
+
+                // Add smooth scrolling animation
+                this.animateEquationScroll();
+            }
+
+            animateEquationScroll() {
+                // Add gentle transition animation
+                this.equationsContainer.classList.add('transitioning');
+
+                // Update content after brief animation
+                setTimeout(() => {
+                    this.updateEquationDisplay();
+                    this.equationsContainer.classList.remove('transitioning');
+                }, 200);
+            }
+
+            updateInputModeDisplay() {
+                if (this.keyboardMode) {
+                    this.answerOptions.style.display = 'none';
+                    this.keyboardInput.style.display = 'flex';
+                } else {
+                    this.answerOptions.style.display = 'grid';
+                    this.keyboardInput.style.display = 'none';
+                }
+            }
+
+            toggleInputMode() {
+                this.keyboardMode = !this.keyboardMode;
+
+                if (this.keyboardMode) {
+                    this.answerOptions.style.display = 'none';
+                    this.keyboardInput.style.display = 'flex';
+                    this.toggleInputBtn.textContent = 'Use Buttons';
+                    this.answerInput.focus();
+                } else {
+                    this.answerOptions.style.display = 'grid';
+                    this.keyboardInput.style.display = 'none';
+                    this.toggleInputBtn.textContent = 'Use Keyboard';
+                }
+
+                // Clear input field when switching modes
+                this.answerInput.value = '';
+            }
+
+            submitKeyboardAnswer() {
+                if (!this.gameActive || !this.keyboardMode) return;
+
+                const userAnswer = parseInt(this.answerInput.value);
+                if (isNaN(userAnswer)) {
+                    this.answerInput.focus();
+                    return;
+                }
+
+                // Ensure both values are numbers for comparison
+                const correctAnswer = parseInt(this.currentAnswer);
+                const isCorrect = userAnswer === correctAnswer;
+
+                // Debug logging
+                console.log('Keyboard - User answer:', userAnswer, typeof userAnswer, 'Correct answer:', correctAnswer, typeof correctAnswer, 'Original this.currentAnswer:', this.currentAnswer, typeof this.currentAnswer, 'Match:', isCorrect);
+
+                this.handleAnswer(isCorrect);
+
+                // Clear input for next problem
+                this.answerInput.value = '';
+                this.answerInput.focus();
+            }
+
+            handleAnswer(isCorrect) {
+                if (!this.gameActive) return;
+
+                // Record response time
+                const responseTime = Date.now() - this.problemStartTime;
+                this.responseTimes.push(responseTime);
+
+                // Show feedback
+                this.showFeedback(isCorrect);
+
+                // Play sound
+                if (isCorrect) {
+                    this.playSound(523, 0.2); // C5
+                } else {
+                    // Error sound sequence
+                    setTimeout(() => this.playSound(250, 0.1), 100);
+                    setTimeout(() => this.playSound(200, 0.2), 200);
+                }
+
+                if (isCorrect) {
+                    this.correctAnswers++;
+                }
+
+                this.totalProblems++;
+                this.lastAnswerCorrect = isCorrect;
+
+                // Move to next equation in the display
+                this.moveToNextEquation();
+
+                this.updateUI();
+
+                // Move to next problem after delay
+                setTimeout(() => {
+                    if (this.timeLeft > 0 && this.gameActive) {
+                        this.showProblem();
+                    }
+                }, 800);
             }
 
             bindEvents() {
                 this.startBtn.addEventListener('click', () => this.startGame());
                 this.playAgainBtn.addEventListener('click', () => this.showSetup());
-                this.skipBtn.addEventListener('click', () => this.skipProblem());
                 this.shareSocreBtn.addEventListener('click', () => this.shareScore());
+                this.submitBtn.addEventListener('click', () => this.submitKeyboardAnswer());
+
+                // Enter key handling for keyboard input
+                this.answerInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        this.submitKeyboardAnswer();
+                    }
+                });
 
                 // Difficulty button selection
                 this.difficultyButtons.forEach(btn => {
                     btn.addEventListener('click', () => {
                         this.difficultyButtons.forEach(b => b.classList.remove('selected'));
                         btn.classList.add('selected');
+                        // Update the selectedDifficulty immediately
+                        this.selectedDifficulty = btn.dataset.difficulty;
+                        this.saveSettings();
                     });
                 });
+
+                // Settings checkboxes
+                // Radio button event handlers
+                [this.buttonModeRadio, this.assistedModeRadio, this.keyboardModeRadio].forEach(radio => {
+                    radio.addEventListener('change', () => {
+                        if (radio.checked) {
+                            // Update mode variables
+                            this.assistedMode = this.assistedModeRadio.checked;
+                            this.keyboardMode = this.keyboardModeRadio.checked;
+
+                            // Update input display
+                            this.updateInputModeDisplay();
+
+                            // Focus input if switching to keyboard mode
+                            if (this.keyboardMode && this.gameActive) {
+                                setTimeout(() => this.answerInput.focus(), 100);
+                            }
+
+                            // Save settings
+                            this.saveSettings();
+                        }
+                    });
+                });
+
 
                 // Time slider update
                 this.timeLimitSlider.addEventListener('input', () => {
                     this.timeDisplay.textContent = `${this.timeLimitSlider.value}s`;
+                    this.saveSettings();
                 });
             }
 
@@ -700,9 +1227,13 @@
 
                 switch (difficulty) {
                     case 'easy':
-                        num1 = Math.floor(Math.random() * 9) + 1;
-                        num2 = Math.floor(Math.random() * 9) + 1;
-                        operation = Math.random() < 0.7 ? '+' : '-';
+                        num1 = Math.floor(Math.random() * 9) + 1;  // 1-9
+                        num2 = Math.floor(Math.random() * 9) + 1;  // 1-9
+                        operation = Math.random() < 0.8 ? '+' : '-';  // Mostly addition
+                        // For subtraction, ensure first number is larger to avoid negative results
+                        if (operation === '-' && num1 < num2) {
+                            [num1, num2] = [num2, num1];
+                        }
                         break;
                     case 'medium':
                         num1 = Math.floor(Math.random() * 90) + 10;
@@ -728,7 +1259,10 @@
                         answer = num1 + num2;
                         break;
                     case '-':
-                        if (num1 < num2) [num1, num2] = [num2, num1];
+                        // For non-easy modes, ensure first number is larger
+                        if (difficulty !== 'easy' && num1 < num2) {
+                            [num1, num2] = [num2, num1];
+                        }
                         answer = num1 - num2;
                         break;
                     case '×':
@@ -749,9 +1283,18 @@
             }
 
             showProblem() {
-                const problem = this.generateProblem();
+                const problem = this.equationQueue[this.currentProblem];
+                if (!problem) return;
+
                 this.currentAnswer = problem.answer;
-                this.mathProblem.textContent = `${problem.num1} ${problem.operation} ${problem.num2} = ?`;
+
+                // Update input mode display
+                this.updateInputModeDisplay();
+
+                // Focus input field if in keyboard mode
+                if (this.keyboardMode) {
+                    setTimeout(() => this.answerInput.focus(), 100);
+                }
 
                 // Clear any existing hint timer
                 if (this.hintTimer) {
@@ -824,9 +1367,13 @@
                     btn.classList.remove('hint');
                 });
 
-                const isCorrect = answer === this.currentAnswer;
-                const responseTime = Date.now() - this.problemStartTime;
-                this.responseTimes.push(responseTime);
+                // Ensure both values are numbers for comparison
+                const userAnswer = parseInt(answer);
+                const correctAnswer = parseInt(this.currentAnswer);
+                const isCorrect = userAnswer === correctAnswer;
+
+                // Debug logging
+                console.log('Button - User answer:', userAnswer, typeof userAnswer, 'Correct answer:', correctAnswer, typeof correctAnswer, 'Original this.currentAnswer:', this.currentAnswer, typeof this.currentAnswer, 'Match:', isCorrect);
 
                 // Visual feedback on button
                 button.classList.add(isCorrect ? 'correct' : 'incorrect');
@@ -835,36 +1382,7 @@
                 const allButtons = this.answerOptions.querySelectorAll('.answer-btn');
                 allButtons.forEach(btn => btn.style.pointerEvents = 'none');
 
-                // Show overlay feedback
-                this.showFeedback(isCorrect);
-
-                // Play sound
-                if (isCorrect) {
-                    // Happy sound: rising tones
-                    this.playSound(523, 0.1); // C5
-                    setTimeout(() => this.playSound(659, 0.1), 100); // E5
-                    setTimeout(() => this.playSound(784, 0.2), 200); // G5
-                } else {
-                    // Error sound: descending buzz
-                    this.playSound(300, 0.1);
-                    setTimeout(() => this.playSound(250, 0.1), 100);
-                    setTimeout(() => this.playSound(200, 0.2), 200);
-                }
-
-                if (isCorrect) {
-                    this.correctAnswers++;
-                }
-
-                this.totalProblems++;
-                this.currentProblem++;
-                this.updateUI();
-
-                // Move to next problem after delay
-                setTimeout(() => {
-                    if (this.timeLeft > 0 && this.gameActive) {
-                        this.showProblem();
-                    }
-                }, 800);
+                this.handleAnswer(isCorrect);
             }
 
             showFeedback(isCorrect) {
@@ -883,7 +1401,11 @@
             skipProblem() {
                 if (!this.gameActive) return;
                 this.totalProblems++;
-                this.currentProblem++;
+                this.lastAnswerCorrect = false;
+
+                // Move to next equation in the display
+                this.moveToNextEquation();
+
                 this.responseTimes.push(10000); // Penalty time
                 this.updateUI();
 
@@ -959,11 +1481,18 @@
                     this.audioContext.resume();
                 }
 
-                // Start countdown
+                // Start the game immediately
                 this.gameTimer = setInterval(() => this.updateTimer(), 1000);
-
-                // Show first problem
+                this.updateEquationDisplay();
                 this.showProblem();
+
+                // Focus input if in keyboard mode
+                if (this.keyboardMode) {
+                    setTimeout(() => {
+                        this.answerInput.focus();
+                        this.answerInput.select();
+                    }, 100);
+                }
             }
 
             endGame() {
