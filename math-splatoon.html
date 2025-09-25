@@ -1,0 +1,1795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mathoon - 3D Math Paint Combat Game</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            overflow: hidden;
+            color: white;
+        }
+
+        #gameContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #hud {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        #mathPanel {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            min-width: 300px;
+        }
+
+        #equation {
+            font-size: 28px;
+            font-weight: bold;
+            color: #ffd700;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        #shootPrompt {
+            position: absolute;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            color: #ffd700;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        @keyframes correctAnswer {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
+        @keyframes incorrectAnswer {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 20px;
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        #crosshair::before, #crosshair::after {
+            content: '';
+            position: absolute;
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        #crosshair::before {
+            width: 20px;
+            height: 2px;
+            top: 9px;
+            left: 0;
+        }
+
+        #crosshair::after {
+            width: 2px;
+            height: 20px;
+            top: 0;
+            left: 9px;
+        }
+
+        #instructions {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 14px;
+            max-width: 250px;
+        }
+
+        #loadingScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            border-top: 5px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .back-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1001;
+            text-decoration: none;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 10px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            background: rgba(0, 0, 0, 0.9);
+            transform: translateX(-5px);
+        }
+    </style>
+</head>
+<body>
+    <div id="loadingScreen">
+        <div class="loading-spinner"></div>
+        <h2>Loading Mathoon...</h2>
+        <p>Preparing 3D battlefield...</p>
+    </div>
+
+    <div id="gameContainer">
+        <a href="index.html" class="back-btn">← Back Home</a>
+
+        <div id="crosshair"></div>
+
+        <div id="hud">
+            <div>Score: <span id="score">0</span></div>
+            <div style="color: #4834d4;">Blue Splats: <span id="playerSplats">0</span></div>
+            <div style="color: #ff6b6b;">Red Splats: <span id="enemySplats">0</span></div>
+            <div>Time Left: <span id="timer">2:00</span></div>
+            <div style="color: #ffd700;">Paint Ammo: <span id="paintAmmo">100</span>/100</div>
+        </div>
+
+        <div id="instructions">
+            <strong>How to Play:</strong><br>
+            • Hold mouse to spray paint continuously<br>
+            • Correct answers = bonus blue splats<br>
+            • Wrong answers = red penalty splats<br>
+            • WASD to move, mouse to look<br>
+            • Watch your paint ammo!<br>
+            • Most splats wins when time runs out!
+        </div>
+
+        <div id="mathPanel">
+            <div id="equation">5 + 3 = ?</div>
+        </div>
+
+        <div id="shootPrompt">
+            🎯 Shoot the correct answer box!
+        </div>
+    </div>
+
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <script>
+        // Game state
+        let scene, camera, renderer, raycaster, mouse;
+        let gameRunning = false;
+        let score = 0;
+        let currentEquation = null;
+        let startTime = Date.now();
+        let gameTimeLimit = 120; // 2 minutes
+        let timeLeft = gameTimeLimit;
+
+        // Splat counting
+        let playerSplats = 0; // Blue team
+        let enemySplats = 0;  // Red team
+
+        // Game objects
+        let arena, paintSplats = [];
+        let answerBoxes = [];
+        let paintBlobs = []; // Flying paint blobs
+        let playerColors = [0x4834d4, 0xff6b6b]; // Blue (player) vs Red (enemy)
+        let currentColor = playerColors[0]; // Player starts with blue
+        let enemyColor = playerColors[1]; // Red for wrong answers
+
+        // AI Bots
+        let aiBots = [];
+        let botShootInterval = 2000; // Bots shoot every 2 seconds
+        let lastBotShoot = 0;
+
+        // Paint Gun System
+        let paintGun = null;
+        let paintAmmo = 100; // Current paint amount
+        let maxPaintAmmo = 100; // Maximum paint capacity
+        let paintRegenRate = 20; // Paint regen per second when not shooting
+        let lastPaintRegen = 0;
+        let isShooting = false;
+        let autoShootInterval = null;
+        let paintStreams = []; // Multiple paint streams for continuous effect
+
+        // Movement
+        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
+        let velocity = new THREE.Vector3();
+        let direction = new THREE.Vector3();
+        let isMoving = false;
+        let lastStepTime = 0;
+
+        // Physics
+        let playerCollisionObjects = []; // Objects to check collision against
+        let groundLevel = 0;
+        let isOnGround = false;
+
+        // Audio
+        let audioContext;
+        let stepSoundTimer;
+
+        class MathSplatoonGame {
+            constructor() {
+                this.initThreeJS();
+                this.createArena();
+                this.setupControls();
+                this.setupGameLoop();
+                this.generateEquation();
+
+                // Initialize audio
+                this.initAudio();
+
+                // Hide loading screen after 2 seconds
+                setTimeout(() => {
+                    document.getElementById('loadingScreen').style.display = 'none';
+                    gameRunning = true;
+                    startTime = Date.now();
+                }, 2000);
+            }
+
+            initThreeJS() {
+                // Scene setup
+                scene = new THREE.Scene();
+                scene.background = new THREE.Color(0x87ceeb);
+                scene.fog = new THREE.Fog(0x87ceeb, 50, 200);
+
+                // Camera setup - wider FOV for less cramped feeling
+                camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.1, 2000);
+                camera.position.set(0, 8, 15);
+
+                // Renderer setup
+                renderer = new THREE.WebGLRenderer({ antialias: true });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.shadowMap.enabled = true;
+                renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                document.getElementById('gameContainer').appendChild(renderer.domElement);
+
+                // Raycaster for shooting
+                raycaster = new THREE.Raycaster();
+                mouse = new THREE.Vector2();
+
+                // Warsow-style lighting setup
+                const ambientLight = new THREE.AmbientLight(0x7777bb, 0.4); // Cool ambient
+                scene.add(ambientLight);
+
+                // Main directional light (sun)
+                const directionalLight = new THREE.DirectionalLight(0xffffdd, 1.2);
+                directionalLight.position.set(100, 150, 100);
+                directionalLight.castShadow = true;
+                directionalLight.shadow.mapSize.width = 4096;
+                directionalLight.shadow.mapSize.height = 4096;
+                directionalLight.shadow.camera.near = 1;
+                directionalLight.shadow.camera.far = 500;
+                directionalLight.shadow.camera.left = -150;
+                directionalLight.shadow.camera.right = 150;
+                directionalLight.shadow.camera.top = 150;
+                directionalLight.shadow.camera.bottom = -150;
+                directionalLight.shadow.bias = -0.0005;
+                scene.add(directionalLight);
+
+                // Rim lighting for cel-shaded effect
+                const rimLight = new THREE.DirectionalLight(0xaaccff, 0.6);
+                rimLight.position.set(-100, 100, -100);
+                scene.add(rimLight);
+
+                // Fill light
+                const fillLight = new THREE.DirectionalLight(0xffddaa, 0.3);
+                fillLight.position.set(0, 50, -100);
+                scene.add(fillLight);
+            }
+
+            initAudio() {
+                try {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                } catch (e) {
+                    console.log('Audio not supported');
+                }
+            }
+
+            playShootSound() {
+                if (!audioContext) return;
+
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                // Shooting sound - quick "pew" sound
+                oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(200, audioContext.currentTime + 0.1);
+
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+
+                oscillator.type = 'square';
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.1);
+            }
+
+            playStepSound() {
+                if (!audioContext) return;
+
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                // Step sound - short thump
+                oscillator.frequency.setValueAtTime(150, audioContext.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(50, audioContext.currentTime + 0.1);
+
+                gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+
+                oscillator.type = 'triangle';
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.1);
+            }
+
+            playExplosionSound() {
+                if (!audioContext) return;
+
+                // Create white noise for explosion
+                const bufferSize = audioContext.sampleRate * 0.5;
+                const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+                const data = buffer.getChannelData(0);
+
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
+
+                const noise = audioContext.createBufferSource();
+                const gainNode = audioContext.createGain();
+                const filter = audioContext.createBiquadFilter();
+
+                noise.buffer = buffer;
+                noise.connect(filter);
+                filter.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(1500, audioContext.currentTime);
+                filter.frequency.exponentialRampToValueAtTime(150, audioContext.currentTime + 0.5);
+
+                gainNode.gain.setValueAtTime(0.6, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+
+                noise.start(audioContext.currentTime);
+                noise.stop(audioContext.currentTime + 0.5);
+            }
+
+            playSuccessSound() {
+                if (!audioContext) return;
+
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                // Success ding - ascending notes
+                oscillator.frequency.setValueAtTime(523, audioContext.currentTime); // C5
+                oscillator.frequency.setValueAtTime(659, audioContext.currentTime + 0.1); // E5
+                oscillator.frequency.setValueAtTime(784, audioContext.currentTime + 0.2); // G5
+
+                gainNode.gain.setValueAtTime(0.4, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+
+                oscillator.type = 'sine';
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.4);
+            }
+
+            playErrorSound() {
+                if (!audioContext) return;
+
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                // Error buzz - descending harsh sound
+                oscillator.frequency.setValueAtTime(300, audioContext.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(150, audioContext.currentTime + 0.3);
+
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+
+                oscillator.type = 'sawtooth';
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.3);
+            }
+
+            createArena() {
+                // Create much larger arena floor
+                const arenaGeometry = new THREE.PlaneGeometry(200, 200, 100, 100);
+                const arenaMaterial = new THREE.MeshToonMaterial({
+                    color: 0xe8e8e8,
+                    transparent: false
+                });
+                arena = new THREE.Mesh(arenaGeometry, arenaMaterial);
+                arena.rotation.x = -Math.PI / 2;
+                arena.receiveShadow = true;
+                scene.add(arena);
+
+                // Create arena walls
+                this.createWalls();
+
+                // Create some obstacles
+                this.createObstacles();
+
+                // Create AI bots
+                this.createAIBots();
+
+                // Create paint gun
+                this.createPaintGun();
+
+                // Add floor to collision objects
+                playerCollisionObjects.push(arena);
+            }
+
+            createWalls() {
+                const wallMaterial = new THREE.MeshToonMaterial({
+                    color: 0x888888,
+                    gradientMap: this.createGradientTexture()
+                });
+                const wallHeight = 25;
+                const arenaSize = 200;
+                this.arenaWalls = []; // Store walls for paint collision
+
+                // Front and back walls
+                for (let i = 0; i < 2; i++) {
+                    const wallGeometry = new THREE.BoxGeometry(arenaSize, wallHeight, 4);
+                    const wall = new THREE.Mesh(wallGeometry, wallMaterial);
+                    wall.position.set(0, wallHeight/2, i === 0 ? -arenaSize/2 : arenaSize/2);
+                    wall.castShadow = true;
+                    wall.receiveShadow = true;
+                    wall.userData = { isPaintable: true, isWall: true };
+                    scene.add(wall);
+                    this.arenaWalls.push(wall);
+                    playerCollisionObjects.push(wall);
+                }
+
+                // Left and right walls
+                for (let i = 0; i < 2; i++) {
+                    const wallGeometry = new THREE.BoxGeometry(4, wallHeight, arenaSize);
+                    const wall = new THREE.Mesh(wallGeometry, wallMaterial);
+                    wall.position.set(i === 0 ? -arenaSize/2 : arenaSize/2, wallHeight/2, 0);
+                    wall.castShadow = true;
+                    wall.receiveShadow = true;
+                    wall.userData = { isPaintable: true, isWall: true };
+                    scene.add(wall);
+                    this.arenaWalls.push(wall);
+                    playerCollisionObjects.push(wall);
+                }
+            }
+
+            createGradientTexture() {
+                // Create cel-shading gradient texture
+                const canvas = document.createElement('canvas');
+                canvas.width = 2;
+                canvas.height = 256;
+                const context = canvas.getContext('2d');
+
+                const gradient = context.createLinearGradient(0, 0, 0, 256);
+                gradient.addColorStop(0, '#ffffff');
+                gradient.addColorStop(0.3, '#dddddd');
+                gradient.addColorStop(0.7, '#aaaaaa');
+                gradient.addColorStop(1, '#666666');
+
+                context.fillStyle = gradient;
+                context.fillRect(0, 0, 2, 256);
+
+                return new THREE.CanvasTexture(canvas);
+            }
+
+            createObstacles() {
+                // Create multi-level arena with ramps and platforms
+                this.createMainStructures();
+            }
+
+            createMainStructures() {
+                const structureMaterial = new THREE.MeshToonMaterial({
+                    color: 0x9999aa,
+                    gradientMap: this.createGradientTexture()
+                });
+
+                // Central raised platform
+                const centralPlatform = new THREE.BoxGeometry(40, 8, 40);
+                const centralMesh = new THREE.Mesh(centralPlatform, structureMaterial);
+                centralMesh.position.set(0, 4, 0);
+                centralMesh.castShadow = true;
+                centralMesh.receiveShadow = true;
+                centralMesh.userData = { isPaintable: true, isStructure: true };
+                scene.add(centralMesh);
+                this.arenaWalls.push(centralMesh);
+                playerCollisionObjects.push(centralMesh);
+
+                // Create 4 corner platforms at different heights
+                const cornerPositions = [
+                    { x: 60, z: 60, height: 12 },
+                    { x: -60, z: 60, height: 16 },
+                    { x: 60, z: -60, height: 10 },
+                    { x: -60, z: -60, height: 14 }
+                ];
+
+                cornerPositions.forEach((pos, index) => {
+                    // Platform
+                    const platformGeometry = new THREE.BoxGeometry(30, pos.height, 30);
+                    const platform = new THREE.Mesh(platformGeometry, structureMaterial);
+                    platform.position.set(pos.x, pos.height/2, pos.z);
+                    platform.castShadow = true;
+                    platform.receiveShadow = true;
+                    platform.userData = { isPaintable: true, isStructure: true };
+                    scene.add(platform);
+                    this.arenaWalls.push(platform);
+                    playerCollisionObjects.push(platform);
+
+                    // Ramp connecting to main area
+                    this.createRamp(pos.x/2, 0, pos.z/2, pos.x, pos.height, pos.z, structureMaterial);
+                });
+
+                // Create connecting bridges between some platforms
+                this.createBridge(60, 12, 60, -60, 14, -60, structureMaterial); // Top platforms
+                this.createBridge(-60, 16, 60, 60, 10, -60, structureMaterial); // Cross bridge
+
+                // Add some strategic walls for cover
+                this.createStrategicWalls(structureMaterial);
+            }
+
+            createRamp(startX, startY, startZ, endX, endY, endZ, material) {
+                const distance = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endZ - startZ, 2));
+                const angle = Math.atan2(endZ - startZ, endX - startX);
+                const rampHeight = Math.abs(endY - startY);
+
+                const rampGeometry = new THREE.BoxGeometry(distance, 2, 15);
+                const ramp = new THREE.Mesh(rampGeometry, material);
+
+                // Position and rotate ramp
+                ramp.position.set(
+                    (startX + endX) / 2,
+                    (startY + endY) / 2,
+                    (startZ + endZ) / 2
+                );
+                ramp.rotation.y = angle;
+                ramp.rotation.z = Math.atan2(rampHeight, distance);
+
+                ramp.castShadow = true;
+                ramp.receiveShadow = true;
+                ramp.userData = { isPaintable: true, isRamp: true };
+                scene.add(ramp);
+                this.arenaWalls.push(ramp);
+                playerCollisionObjects.push(ramp);
+            }
+
+            createBridge(x1, y1, z1, x2, y2, z2, material) {
+                const distance = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(z2 - z1, 2));
+                const angle = Math.atan2(z2 - z1, x2 - x1);
+
+                const bridgeGeometry = new THREE.BoxGeometry(distance, 3, 8);
+                const bridge = new THREE.Mesh(bridgeGeometry, material);
+
+                bridge.position.set(
+                    (x1 + x2) / 2,
+                    Math.max(y1, y2) + 1.5,
+                    (z1 + z2) / 2
+                );
+                bridge.rotation.y = angle;
+
+                bridge.castShadow = true;
+                bridge.receiveShadow = true;
+                bridge.userData = { isPaintable: true, isBridge: true };
+                scene.add(bridge);
+                this.arenaWalls.push(bridge);
+                playerCollisionObjects.push(bridge);
+            }
+
+            createStrategicWalls(material) {
+                // Add some strategic cover walls around the arena
+                const wallPositions = [
+                    { x: 30, y: 6, z: 0, width: 3, height: 12, depth: 20 },
+                    { x: -30, y: 6, z: 0, width: 3, height: 12, depth: 20 },
+                    { x: 0, y: 6, z: 30, width: 20, height: 12, depth: 3 },
+                    { x: 0, y: 6, z: -30, width: 20, height: 12, depth: 3 }
+                ];
+
+                wallPositions.forEach(pos => {
+                    const wallGeometry = new THREE.BoxGeometry(pos.width, pos.height, pos.depth);
+                    const wall = new THREE.Mesh(wallGeometry, material);
+                    wall.position.set(pos.x, pos.y, pos.z);
+                    wall.castShadow = true;
+                    wall.receiveShadow = true;
+                    wall.userData = { isPaintable: true, isWall: true };
+                    scene.add(wall);
+                    this.arenaWalls.push(wall);
+                    playerCollisionObjects.push(wall);
+                });
+            }
+
+
+            createPaintGun() {
+                // Create Quake-style paint gun visible on screen
+                const gunGroup = new THREE.Group();
+
+                // Gun barrel
+                const barrelGeometry = new THREE.CylinderGeometry(0.15, 0.2, 3);
+                const gunMaterial = new THREE.MeshPhongMaterial({
+                    color: 0x444444,
+                    shininess: 30,
+                    specular: 0x222222
+                });
+                const barrel = new THREE.Mesh(barrelGeometry, gunMaterial);
+                barrel.rotation.z = Math.PI / 2;
+                barrel.position.set(1.5, 0, 0);
+
+                // Gun body
+                const bodyGeometry = new THREE.BoxGeometry(1, 0.8, 0.3);
+                const body = new THREE.Mesh(bodyGeometry, gunMaterial);
+                body.position.set(0.5, -0.2, 0);
+
+                // Paint tank (shows current paint color)
+                const tankGeometry = new THREE.SphereGeometry(0.3);
+                const tankMaterial = new THREE.MeshPhongMaterial({
+                    color: currentColor,
+                    shininess: 100,
+                    transparent: true,
+                    opacity: 0.8
+                });
+                const tank = new THREE.Mesh(tankGeometry, tankMaterial);
+                tank.position.set(-0.2, 0, 0);
+
+                gunGroup.add(barrel, body, tank);
+
+                // Position gun in bottom right of screen (more visible)
+                gunGroup.position.set(1.8, -1.2, -2.5);
+                gunGroup.rotation.y = -0.2;
+                gunGroup.rotation.x = 0.1;
+
+                camera.add(gunGroup);
+                paintGun = {
+                    group: gunGroup,
+                    tank: tank,
+                    originalPosition: gunGroup.position.clone(),
+                    bobTime: 0
+                };
+            }
+
+            createAIBots() {
+                const numBots = Math.floor(Math.random() * 3) + 2; // 2-4 bots per game
+
+                for (let i = 0; i < numBots; i++) {
+                    // Create visible bot (using CylinderGeometry since CapsuleGeometry isn't available in r128)
+                    const botGeometry = new THREE.CylinderGeometry(1, 1, 3);
+                    const botMaterial = new THREE.MeshLambertMaterial({
+                        color: enemyColor,
+                        transparent: true,
+                        opacity: 0.8
+                    });
+                    const botMesh = new THREE.Mesh(botGeometry, botMaterial);
+
+                    // Random spawn position (away from player spawn)
+                    const angle = (i / numBots) * Math.PI * 2;
+                    const distance = 15 + Math.random() * 10;
+                    botMesh.position.set(
+                        Math.cos(angle) * distance,
+                        2,
+                        Math.sin(angle) * distance
+                    );
+
+                    botMesh.castShadow = true;
+                    scene.add(botMesh);
+
+                    // Create bot AI object
+                    const bot = {
+                        mesh: botMesh,
+                        position: botMesh.position.clone(),
+                        target: new THREE.Vector3(),
+                        speed: 0.05,
+                        shootCooldown: 0,
+                        moveDirection: new THREE.Vector3(),
+                        lastDirectionChange: 0,
+                        intelligence: Math.random() * 0.7 + 0.3, // 30-100% accuracy
+                    };
+
+                    aiBots.push(bot);
+                }
+            }
+
+            updateAIBots() {
+                const now = Date.now();
+
+                aiBots.forEach((bot, index) => {
+                    // Move bots around randomly
+                    if (now - bot.lastDirectionChange > 3000) { // Change direction every 3 seconds
+                        bot.moveDirection.set(
+                            (Math.random() - 0.5) * 2,
+                            0,
+                            (Math.random() - 0.5) * 2
+                        ).normalize();
+                        bot.lastDirectionChange = now;
+                    }
+
+                    // Move bot
+                    const newPosition = bot.position.clone().add(
+                        bot.moveDirection.clone().multiplyScalar(bot.speed)
+                    );
+
+                    // Keep bots within arena bounds
+                    newPosition.x = Math.max(-18, Math.min(18, newPosition.x));
+                    newPosition.z = Math.max(-18, Math.min(18, newPosition.z));
+
+                    bot.position.copy(newPosition);
+                    bot.mesh.position.copy(bot.position);
+
+                    // Bot shooting logic
+                    if (now - bot.shootCooldown > botShootInterval) {
+                        this.botShoot(bot);
+                        bot.shootCooldown = now;
+                    }
+                });
+            }
+
+            botShoot(bot) {
+                // Bots shoot at random locations to spread red paint
+                const targetX = (Math.random() - 0.5) * 40;
+                const targetZ = (Math.random() - 0.5) * 40;
+                const targetY = 0;
+
+                const shootDirection = new THREE.Vector3(
+                    targetX - bot.position.x,
+                    targetY - bot.position.y,
+                    targetZ - bot.position.z
+                ).normalize();
+
+                // Create bot paint blob
+                this.createPaintBlob(bot.position.clone(), shootDirection, enemyColor);
+
+                // Create immediate paint splat at target with some randomness
+                setTimeout(() => {
+                    // Bot accuracy - sometimes miss
+                    if (Math.random() < bot.intelligence) {
+                        this.paintFloor(new THREE.Vector3(targetX, 0, targetZ), enemyColor, false);
+                    } else {
+                        // Miss - paint nearby instead
+                        const missX = targetX + (Math.random() - 0.5) * 10;
+                        const missZ = targetZ + (Math.random() - 0.5) * 10;
+                        this.paintFloor(new THREE.Vector3(missX, 0, missZ), enemyColor, false);
+                    }
+                }, 400);
+            }
+
+            setupControls() {
+                // Mouse controls
+                let mouseX = 0, mouseY = 0;
+                let isMouseLocked = false;
+
+                document.addEventListener('mousemove', (event) => {
+                    if (!isMouseLocked) return;
+
+                    mouseX -= event.movementX * 0.002; // Inverted horizontal
+                    mouseY -= event.movementY * 0.002;
+                    mouseY = Math.max(-Math.PI/2, Math.min(Math.PI/2, mouseY));
+
+                    camera.rotation.order = 'YXZ';
+                    camera.rotation.y = mouseX;
+                    camera.rotation.x = mouseY;
+                });
+
+                // Click to lock mouse
+                renderer.domElement.addEventListener('click', () => {
+                    renderer.domElement.requestPointerLock();
+                });
+
+                document.addEventListener('pointerlockchange', () => {
+                    isMouseLocked = document.pointerLockElement === renderer.domElement;
+                });
+
+                // Keyboard controls
+                document.addEventListener('keydown', (event) => {
+                    switch(event.code) {
+                        case 'KeyW': moveForward = true; break;
+                        case 'KeyS': moveBackward = true; break;
+                        case 'KeyA': moveLeft = true; break;
+                        case 'KeyD': moveRight = true; break;
+                    }
+                });
+
+                document.addEventListener('keyup', (event) => {
+                    switch(event.code) {
+                        case 'KeyW': moveForward = false; break;
+                        case 'KeyS': moveBackward = false; break;
+                        case 'KeyA': moveLeft = false; break;
+                        case 'KeyD': moveRight = false; break;
+                    }
+                });
+
+                // Continuous shooting with mouse hold
+                renderer.domElement.addEventListener('mousedown', (event) => {
+                    if (!gameRunning) return;
+                    this.startShooting();
+                });
+
+                renderer.domElement.addEventListener('mouseup', (event) => {
+                    if (!gameRunning) return;
+                    this.stopShooting();
+                });
+
+                // Stop shooting if mouse leaves canvas
+                renderer.domElement.addEventListener('mouseleave', (event) => {
+                    if (!gameRunning) return;
+                    this.stopShooting();
+                });
+            }
+
+            startShooting() {
+                if (isShooting) return;
+                isShooting = true;
+
+                // Immediate first shot
+                this.continuousShoot();
+
+                // Set up continuous shooting every 100ms for liquid spray effect
+                autoShootInterval = setInterval(() => {
+                    if (isShooting && gameRunning) {
+                        this.continuousShoot();
+                    }
+                }, 100);
+            }
+
+            stopShooting() {
+                isShooting = false;
+                if (autoShootInterval) {
+                    clearInterval(autoShootInterval);
+                    autoShootInterval = null;
+                }
+            }
+
+            continuousShoot() {
+                // Check ammo
+                if (paintAmmo <= 0) {
+                    this.stopShooting();
+                    return;
+                }
+
+                // Consume ammo
+                paintAmmo = Math.max(0, paintAmmo - 2);
+
+                // Enable audio context on first user interaction
+                if (audioContext && audioContext.state === 'suspended') {
+                    audioContext.resume();
+                }
+
+                // Play shooting sound
+                this.playShootSound();
+
+                // Add spray randomness for more realistic continuous fire
+                const spread = 0.3; // Spray spread
+                const spreadX = (Math.random() - 0.5) * spread;
+                const spreadY = (Math.random() - 0.5) * spread;
+
+                mouse.x = spreadX;
+                mouse.y = spreadY;
+
+                // Create ray from camera forward direction with spread
+                raycaster.setFromCamera(mouse, camera);
+
+                // Get camera direction for blob trajectory
+                const cameraDirection = new THREE.Vector3();
+                camera.getWorldDirection(cameraDirection);
+
+                // Add spread to shooting direction
+                cameraDirection.x += spreadX * 0.5;
+                cameraDirection.y += spreadY * 0.5;
+                cameraDirection.normalize();
+
+                // Create multiple paint blobs for liquid effect
+                for (let i = 0; i < 2; i++) {
+                    const randomDir = cameraDirection.clone();
+                    randomDir.x += (Math.random() - 0.5) * 0.2;
+                    randomDir.y += (Math.random() - 0.5) * 0.2;
+                    randomDir.z += (Math.random() - 0.5) * 0.2;
+                    randomDir.normalize();
+
+                    this.createPaintBlob(camera.position.clone(), randomDir, currentColor);
+                }
+
+                // Get all objects in the scene (boxes, floor, walls, and obstacles)
+                const allObjects = [arena, ...answerBoxes.map(box => box.mesh), ...this.arenaWalls];
+                const intersects = raycaster.intersectObjects(allObjects);
+
+                if (intersects.length > 0) {
+                    const hitObject = intersects[0].object;
+                    const hitPoint = intersects[0].point;
+
+                    // Check if we hit a box
+                    const clickedBox = answerBoxes.find(box => box.mesh === hitObject);
+
+                    if (clickedBox) {
+                        // Delay the answer check slightly so the blob can fly there first
+                        setTimeout(() => {
+                            this.checkAnswer(clickedBox, hitPoint);
+                        }, 200);
+                    } else if (hitObject.userData && hitObject.userData.isPaintable) {
+                        // Hit a wall or obstacle - paint on surface
+                        setTimeout(() => {
+                            this.paintSurface(hitPoint, intersects[0].face.normal, currentColor, true);
+                        }, 200);
+                    } else {
+                        // Hit the floor - delay paint so blob reaches destination
+                        setTimeout(() => {
+                            this.paintFloor(hitPoint, currentColor, true);
+                        }, 200);
+                    }
+                } else {
+                    // No hit - still spray paint in that direction for area coverage
+                    const estimatedHitPoint = camera.position.clone().add(cameraDirection.multiplyScalar(20));
+                    setTimeout(() => {
+                        this.paintFloor(estimatedHitPoint, currentColor, true);
+                    }, 200);
+                }
+
+                // Update gun animation
+                if (paintGun) {
+                    paintGun.group.rotation.z += (Math.random() - 0.5) * 0.05; // Gun recoil
+                    paintGun.tank.material.color.setHex(currentColor);
+                }
+            }
+
+            updatePaintSystem() {
+                const now = Date.now();
+
+                // Regenerate paint ammo when not shooting
+                if (!isShooting && paintAmmo < maxPaintAmmo) {
+                    if (now - lastPaintRegen > 50) { // Regen every 50ms
+                        paintAmmo = Math.min(maxPaintAmmo, paintAmmo + 1);
+                        lastPaintRegen = now;
+                    }
+                }
+
+                // Update gun tank visual based on ammo level and add bobbing
+                if (paintGun) {
+                    const ammoRatio = paintAmmo / maxPaintAmmo;
+                    paintGun.tank.material.opacity = 0.4 + (ammoRatio * 0.6);
+                    paintGun.tank.scale.setScalar(0.5 + (ammoRatio * 0.5));
+
+                    // Gun bobbing animation when moving
+                    if (isMoving) {
+                        paintGun.bobTime += 0.15;
+                        const bobY = Math.sin(paintGun.bobTime) * 0.05;
+                        const bobX = Math.cos(paintGun.bobTime * 0.5) * 0.02;
+                        paintGun.group.position.copy(paintGun.originalPosition);
+                        paintGun.group.position.y += bobY;
+                        paintGun.group.position.x += bobX;
+                    } else {
+                        // Smoothly return to original position when not moving
+                        paintGun.group.position.lerp(paintGun.originalPosition, 0.1);
+                        paintGun.bobTime *= 0.95;
+                    }
+                }
+            }
+
+            updateMovement() {
+                const wasMoving = isMoving;
+                isMoving = moveForward || moveBackward || moveLeft || moveRight;
+
+                if (!isMoving) return;
+
+                // Calculate movement direction based on camera rotation
+                const forward = new THREE.Vector3();
+                camera.getWorldDirection(forward);
+                forward.y = 0; // Keep movement horizontal
+                forward.normalize();
+
+                const right = new THREE.Vector3();
+                right.crossVectors(forward, camera.up).normalize();
+
+                const moveVector = new THREE.Vector3();
+                const moveSpeed = 0.8;
+
+                if (moveForward) moveVector.add(forward.clone().multiplyScalar(moveSpeed));
+                if (moveBackward) moveVector.add(forward.clone().multiplyScalar(-moveSpeed));
+                if (moveLeft) moveVector.add(right.clone().multiplyScalar(-moveSpeed));
+                if (moveRight) moveVector.add(right.clone().multiplyScalar(moveSpeed));
+
+                // Store current position
+                const oldPosition = camera.position.clone();
+
+                // Try to move
+                const newPosition = oldPosition.clone().add(moveVector);
+
+                // Check collisions and adjust height
+                const collisionResult = this.checkCollisions(newPosition);
+
+                if (!collisionResult.blocked) {
+                    camera.position.copy(collisionResult.position);
+                }
+
+                // Boundary constraints - much larger arena
+                camera.position.x = Math.max(-90, Math.min(90, camera.position.x));
+                camera.position.z = Math.max(-90, Math.min(90, camera.position.z));
+                camera.position.y = Math.max(3, Math.min(30, camera.position.y));
+
+                // Step sounds
+                if (isMoving && gameRunning) {
+                    const now = Date.now();
+                    if (now - lastStepTime > 400) { // Step every 400ms
+                        this.playStepSound();
+                        lastStepTime = now;
+                    }
+                }
+            }
+
+            checkCollisions(targetPosition) {
+                const playerRadius = 2.0; // Player collision radius
+                const playerHeight = 4.0; // Player height
+                const stepHeight = 1.5; // Maximum step up height
+
+                let finalPosition = targetPosition.clone();
+                let blocked = false;
+                let groundHeight = 0;
+                let onPlatform = false;
+
+                // Create raycaster for ground detection
+                const downRay = new THREE.Raycaster();
+                downRay.set(
+                    new THREE.Vector3(finalPosition.x, finalPosition.y + 10, finalPosition.z),
+                    new THREE.Vector3(0, -1, 0)
+                );
+
+                const groundIntersects = downRay.intersectObjects(playerCollisionObjects);
+
+                if (groundIntersects.length > 0) {
+                    const groundHit = groundIntersects[0];
+                    groundHeight = groundHit.point.y;
+                    onPlatform = true;
+
+                    // Check if we can step up to this platform
+                    const heightDiff = groundHeight - camera.position.y;
+                    if (Math.abs(heightDiff) <= stepHeight) {
+                        finalPosition.y = groundHeight + 3; // Player height above ground
+                    } else if (heightDiff > stepHeight) {
+                        // Platform too high, block horizontal movement
+                        blocked = true;
+                    }
+                } else {
+                    // No ground found, fall to ground level
+                    finalPosition.y = Math.max(3, finalPosition.y - 0.5); // Gravity
+                }
+
+                // Check horizontal collisions (walls, pillars)
+                const horizontalRay = new THREE.Raycaster();
+                const rayDirection = new THREE.Vector3(
+                    finalPosition.x - camera.position.x,
+                    0,
+                    finalPosition.z - camera.position.z
+                ).normalize();
+
+                if (rayDirection.length() > 0) {
+                    horizontalRay.set(
+                        new THREE.Vector3(camera.position.x, camera.position.y, camera.position.z),
+                        rayDirection
+                    );
+
+                    const horizontalIntersects = horizontalRay.intersectObjects(playerCollisionObjects);
+
+                    for (const intersect of horizontalIntersects) {
+                        const distance = intersect.distance;
+                        const hitObject = intersect.object;
+
+                        // Check if we're hitting a vertical wall (not a platform we can walk on)
+                        const normal = intersect.face.normal.clone();
+                        normal.transformDirection(hitObject.matrixWorld);
+
+                        const isVerticalWall = Math.abs(normal.y) < 0.7; // Not a walkable surface
+
+                        if (distance < playerRadius && isVerticalWall) {
+                            // Block movement into walls
+                            blocked = true;
+                            break;
+                        }
+                    }
+                }
+
+                return {
+                    position: finalPosition,
+                    blocked: blocked,
+                    onGround: onPlatform
+                };
+            }
+
+            generateEquation() {
+                const operations = ['+', '-', '×'];
+                const operation = operations[Math.floor(Math.random() * operations.length)];
+
+                let num1, num2, correctAnswer;
+
+                switch(operation) {
+                    case '+':
+                        num1 = Math.floor(Math.random() * 20) + 1;
+                        num2 = Math.floor(Math.random() * 20) + 1;
+                        correctAnswer = num1 + num2;
+                        break;
+                    case '-':
+                        num1 = Math.floor(Math.random() * 20) + 10;
+                        num2 = Math.floor(Math.random() * num1) + 1;
+                        correctAnswer = num1 - num2;
+                        break;
+                    case '×':
+                        num1 = Math.floor(Math.random() * 12) + 1;
+                        num2 = Math.floor(Math.random() * 12) + 1;
+                        correctAnswer = num1 * num2;
+                        break;
+                }
+
+                currentEquation = {
+                    text: `${num1} ${operation} ${num2} = ?`,
+                    answer: correctAnswer
+                };
+
+                // Generate answer options
+                const answers = [correctAnswer];
+                while (answers.length < 4) {
+                    let wrongAnswer;
+                    if (operation === '+') {
+                        wrongAnswer = correctAnswer + Math.floor(Math.random() * 10) - 5;
+                    } else if (operation === '-') {
+                        wrongAnswer = correctAnswer + Math.floor(Math.random() * 10) - 5;
+                    } else {
+                        wrongAnswer = correctAnswer + Math.floor(Math.random() * 20) - 10;
+                    }
+
+                    if (wrongAnswer > 0 && !answers.includes(wrongAnswer)) {
+                        answers.push(wrongAnswer);
+                    }
+                }
+
+                // Shuffle answers
+                for (let i = answers.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [answers[i], answers[j]] = [answers[j], answers[i]];
+                }
+
+                // Update UI
+                document.getElementById('equation').textContent = currentEquation.text;
+
+                // Create 3D answer boxes
+                this.createAnswerBoxes(answers);
+            }
+
+            createAnswerBoxes(answers) {
+                // Clear existing answer boxes
+                answerBoxes.forEach(box => {
+                    scene.remove(box.mesh);
+                    if (box.textMesh) scene.remove(box.textMesh);
+                });
+                answerBoxes = [];
+
+                // Generate random positions for answer boxes across the arena
+                const positions = [];
+                for (let i = 0; i < 4; i++) {
+                    let x, z, attempts = 0;
+                    do {
+                        x = (Math.random() - 0.5) * 160; // Spread across arena
+                        z = (Math.random() - 0.5) * 160;
+                        attempts++;
+                    } while (attempts < 20 && (Math.abs(x) < 20 && Math.abs(z) < 20)); // Avoid center spawn area
+
+                    // Choose height based on nearby structures
+                    let y = 3;
+                    if (Math.abs(x) < 25 && Math.abs(z) < 25) y = 8; // On central platform
+                    else if (Math.abs(x) > 50 && Math.abs(z) > 50) y = Math.random() > 0.5 ? 12 : 16; // Corner platforms
+
+                    positions.push({ x, y, z });
+                }
+
+                answers.forEach((answer, index) => {
+                    // Create YELLOW box like Super Mario
+                    const boxGeometry = new THREE.BoxGeometry(6, 6, 6);
+                    const boxMaterial = new THREE.MeshLambertMaterial({
+                        color: 0xffd700 // Bright yellow/gold like Super Mario
+                    });
+                    const boxMesh = new THREE.Mesh(boxGeometry, boxMaterial);
+
+                    const pos = positions[index];
+                    boxMesh.position.set(pos.x, pos.y, pos.z);
+                    boxMesh.castShadow = true;
+                    boxMesh.receiveShadow = true;
+
+                    scene.add(boxMesh);
+
+                    // Create BIG BLACK text on the box faces
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    canvas.width = 512;
+                    canvas.height = 512;
+
+                    // Clear canvas
+                    context.fillStyle = '#ffd700';
+                    context.fillRect(0, 0, 512, 512);
+
+                    // Draw big black number
+                    context.fillStyle = '#000000';
+                    context.font = 'bold 300px Arial';
+                    context.textAlign = 'center';
+                    context.textBaseline = 'middle';
+                    context.fillText(answer.toString(), 256, 256);
+
+                    const texture = new THREE.CanvasTexture(canvas);
+
+                    // Apply texture to all faces
+                    const materials = [];
+                    for (let i = 0; i < 6; i++) {
+                        materials.push(new THREE.MeshLambertMaterial({ map: texture }));
+                    }
+                    boxMesh.material = materials;
+
+                    answerBoxes.push({
+                        mesh: boxMesh,
+                        textMesh: null, // No separate text mesh needed
+                        answer: answer,
+                        isCorrect: answer === currentEquation.answer
+                    });
+                });
+            }
+
+
+            createPaintBlob(startPos, direction, color) {
+                // Create a large, heavy-looking paint blob sphere with metallic gel-like appearance
+                const blobGeometry = new THREE.SphereGeometry(0.6, 16, 12); // Smoother sphere
+                const blobMaterial = new THREE.MeshPhongMaterial({
+                    color: color,
+                    shininess: 150,
+                    specular: 0x666666,
+                    transparent: true,
+                    opacity: 0.95,
+                    reflectivity: 0.4
+                });
+
+                const paintBlob = new THREE.Mesh(blobGeometry, blobMaterial);
+
+                // Start position slightly in front of camera to avoid clipping
+                paintBlob.position.copy(startPos);
+                paintBlob.position.add(direction.clone().multiplyScalar(2));
+
+                // Set trajectory
+                const speed = 25; // Fast but visible
+                paintBlob.velocity = direction.clone().multiplyScalar(speed);
+                paintBlob.gravity = -30; // Heavy blob falls down
+                paintBlob.lifetime = 0;
+
+                scene.add(paintBlob);
+                paintBlobs.push(paintBlob);
+            }
+
+            updatePaintBlobs() {
+                for (let i = paintBlobs.length - 1; i >= 0; i--) {
+                    const blob = paintBlobs[i];
+
+                    // Update position
+                    blob.position.add(blob.velocity.clone().multiplyScalar(0.016)); // 16ms frame time
+
+                    // Apply gravity
+                    blob.velocity.y += blob.gravity * 0.016;
+
+                    // Update lifetime
+                    blob.lifetime += 0.016;
+
+                    // Remove blob if it hits ground or lives too long
+                    if (blob.position.y <= 0.5 || blob.lifetime > 2) {
+                        scene.remove(blob);
+                        paintBlobs.splice(i, 1);
+                    }
+                }
+            }
+
+            checkAnswer(clickedBox, hitPoint) {
+                const userAnswer = clickedBox.answer;
+                const isCorrect = userAnswer === currentEquation.answer;
+
+                // Always create BIG explosion
+                this.playExplosionSound();
+                this.createBigExplosion(clickedBox.mesh.position, isCorrect);
+
+                if (isCorrect) {
+                    // Play success sound
+                    this.playSuccessSound();
+
+                    // Make box explode and paint nearby area with player color
+                    this.paintArea(clickedBox.mesh.position, currentColor, true);
+                    this.paintFloor(hitPoint, currentColor, true);
+                    score += 10;
+
+                    // Generate new equation after explosion
+                    setTimeout(() => {
+                        this.generateEquation();
+                    }, 1500);
+                } else {
+                    // Play error sound
+                    this.playErrorSound();
+
+                    // Wrong answer - paint with enemy color (penalty!)
+                    this.paintFloor(hitPoint, enemyColor, false);
+                    this.paintArea(clickedBox.mesh.position, enemyColor, false);
+
+                    // Respawn wrong box at new random location after explosion
+                    setTimeout(() => {
+                        this.respawnBox(clickedBox);
+                    }, 1500);
+                }
+
+                // Hide the box immediately
+                clickedBox.mesh.visible = false;
+                this.updateHUD();
+            }
+
+            createBigExplosion(position, isSuccess) {
+                const particleCount = isSuccess ? 30 : 20;
+                const explosionColor = isSuccess ? 0x00ff00 : 0xff4444;
+
+                // Create explosion particles
+                for (let i = 0; i < particleCount; i++) {
+                    const particleGeometry = new THREE.SphereGeometry(0.3, 8, 6);
+                    const particleMaterial = new THREE.MeshPhongMaterial({
+                        color: explosionColor,
+                        emissive: explosionColor,
+                        emissiveIntensity: 0.5
+                    });
+                    const particle = new THREE.Mesh(particleGeometry, particleMaterial);
+
+                    particle.position.copy(position);
+
+                    // Random explosion velocity
+                    const velocity = new THREE.Vector3(
+                        (Math.random() - 0.5) * 20,
+                        Math.random() * 15 + 5,
+                        (Math.random() - 0.5) * 20
+                    );
+
+                    particle.velocity = velocity;
+                    particle.life = 1.0;
+
+                    scene.add(particle);
+
+                    // Animate particle
+                    const animateParticle = () => {
+                        particle.position.add(particle.velocity.clone().multiplyScalar(0.016));
+                        particle.velocity.y -= 0.8; // Gravity
+                        particle.velocity.multiplyScalar(0.98); // Air resistance
+                        particle.life -= 0.02;
+
+                        // Fade out
+                        particle.material.opacity = particle.life;
+                        particle.scale.setScalar(particle.life);
+
+                        if (particle.life > 0 && particle.position.y > -5) {
+                            requestAnimationFrame(animateParticle);
+                        } else {
+                            scene.remove(particle);
+                        }
+                    };
+                    animateParticle();
+                }
+
+                // Create shockwave ring
+                const ringGeometry = new THREE.RingGeometry(0, 1, 32);
+                const ringMaterial = new THREE.MeshBasicMaterial({
+                    color: explosionColor,
+                    transparent: true,
+                    opacity: 0.8
+                });
+                const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+                ring.position.copy(position);
+                ring.position.y += 0.1;
+                ring.rotation.x = -Math.PI / 2;
+
+                scene.add(ring);
+
+                // Animate shockwave
+                let ringScale = 0;
+                const animateRing = () => {
+                    ringScale += 0.5;
+                    ring.scale.setScalar(ringScale);
+                    ring.material.opacity = Math.max(0, 0.8 - ringScale * 0.1);
+
+                    if (ring.material.opacity > 0) {
+                        requestAnimationFrame(animateRing);
+                    } else {
+                        scene.remove(ring);
+                    }
+                };
+                animateRing();
+            }
+
+            respawnBox(boxToRespawn) {
+                // Generate new random position for wrong answer box
+                let x, z, attempts = 0;
+                do {
+                    x = (Math.random() - 0.5) * 160;
+                    z = (Math.random() - 0.5) * 160;
+                    attempts++;
+                } while (attempts < 20 && (Math.abs(x) < 20 && Math.abs(z) < 20));
+
+                let y = 3;
+                if (Math.abs(x) < 25 && Math.abs(z) < 25) y = 8;
+                else if (Math.abs(x) > 50 && Math.abs(z) > 50) y = Math.random() > 0.5 ? 12 : 16;
+
+                boxToRespawn.mesh.position.set(x, y, z);
+                boxToRespawn.mesh.visible = true;
+
+                // Flash spawn effect
+                boxToRespawn.mesh.material.forEach(mat => {
+                    mat.emissive.setHex(0x444400);
+                });
+
+                setTimeout(() => {
+                    boxToRespawn.mesh.material.forEach(mat => {
+                        mat.emissive.setHex(0x000000);
+                    });
+                }, 300);
+            }
+
+            paintFloor(position, color, isPlayerTeam) {
+                // Check for existing paint splats to override
+                this.checkPaintOverride(position, color, isPlayerTeam);
+
+                // Create liquid-looking paint splat on floor with metallic shine
+                const splatSize = Math.random() * 3 + 2; // Random size between 2-5
+                const paintGeometry = new THREE.CircleGeometry(splatSize, 16);
+                const paintMaterial = new THREE.MeshPhongMaterial({
+                    color: color,
+                    shininess: 100,
+                    specular: 0x444444,
+                    transparent: true,
+                    opacity: 0.9,
+                    reflectivity: 0.3
+                });
+
+                const paintSplat = new THREE.Mesh(paintGeometry, paintMaterial);
+                paintSplat.rotation.x = -Math.PI / 2;
+                paintSplat.position.set(position.x, 0.01, position.z);
+
+                // Add slight randomness to avoid Z-fighting
+                paintSplat.position.y += Math.random() * 0.005;
+
+                // Store team info on the paint splat for override detection
+                paintSplat.userData = {
+                    isPlayerTeam: isPlayerTeam,
+                    color: color,
+                    creationTime: Date.now()
+                };
+
+                scene.add(paintSplat);
+                paintSplats.push(paintSplat);
+
+                // Count splats for teams
+                if (isPlayerTeam) {
+                    playerSplats++;
+                } else {
+                    enemySplats++;
+                }
+
+                // Create additional smaller splats around main splat for liquid effect
+                for (let i = 0; i < 3; i++) {
+                    const smallSplatGeometry = new THREE.CircleGeometry(Math.random() * 1 + 0.5, 8);
+                    const smallPaintMaterial = new THREE.MeshPhongMaterial({
+                        color: color,
+                        shininess: 80,
+                        specular: 0x333333,
+                        transparent: true,
+                        opacity: 0.8,
+                        reflectivity: 0.2
+                    });
+                    const smallSplat = new THREE.Mesh(smallSplatGeometry, smallPaintMaterial);
+                    smallSplat.rotation.x = -Math.PI / 2;
+                    smallSplat.position.set(
+                        position.x + (Math.random() - 0.5) * 6,
+                        0.01 + Math.random() * 0.005,
+                        position.z + (Math.random() - 0.5) * 6
+                    );
+
+                    // Store team info on small splats too
+                    smallSplat.userData = {
+                        isPlayerTeam: isPlayerTeam,
+                        color: color,
+                        creationTime: Date.now()
+                    };
+
+                    scene.add(smallSplat);
+                    paintSplats.push(smallSplat);
+
+                    // Count smaller splats too
+                    if (isPlayerTeam) {
+                        playerSplats++;
+                    } else {
+                        enemySplats++;
+                    }
+                }
+            }
+
+            paintSurface(position, normal, color, isPlayerTeam) {
+                // Create paint splat on walls and surfaces
+                const splatSize = Math.random() * 2 + 1.5; // Smaller splats on walls
+                const paintGeometry = new THREE.CircleGeometry(splatSize, 12);
+                const paintMaterial = new THREE.MeshPhongMaterial({
+                    color: color,
+                    shininess: 120,
+                    specular: 0x555555,
+                    transparent: true,
+                    opacity: 0.85,
+                    reflectivity: 0.3
+                });
+
+                const paintSplat = new THREE.Mesh(paintGeometry, paintMaterial);
+                paintSplat.position.copy(position);
+
+                // Orient the splat to the surface normal
+                paintSplat.lookAt(position.clone().add(normal));
+
+                // Offset slightly from surface to avoid z-fighting
+                paintSplat.position.add(normal.clone().multiplyScalar(0.01));
+
+                // Store team info on the paint splat
+                paintSplat.userData = {
+                    isPlayerTeam: isPlayerTeam,
+                    color: color,
+                    creationTime: Date.now(),
+                    isSurfacePaint: true
+                };
+
+                scene.add(paintSplat);
+                paintSplats.push(paintSplat);
+
+                // Count splats for teams
+                if (isPlayerTeam) {
+                    playerSplats++;
+                } else {
+                    enemySplats++;
+                }
+
+                // Create additional smaller drips for liquid effect on walls
+                for (let i = 0; i < 2; i++) {
+                    const dripGeometry = new THREE.CircleGeometry(Math.random() * 0.8 + 0.3, 8);
+                    const dripMaterial = new THREE.MeshPhongMaterial({
+                        color: color,
+                        shininess: 100,
+                        specular: 0x444444,
+                        transparent: true,
+                        opacity: 0.8,
+                        reflectivity: 0.2
+                    });
+
+                    const drip = new THREE.Mesh(dripGeometry, dripMaterial);
+
+                    // Position drips randomly around the main splat
+                    const randomOffset = new THREE.Vector3(
+                        (Math.random() - 0.5) * 3,
+                        (Math.random() - 0.5) * 3,
+                        (Math.random() - 0.5) * 3
+                    );
+
+                    drip.position.copy(position).add(randomOffset);
+                    drip.lookAt(drip.position.clone().add(normal));
+                    drip.position.add(normal.clone().multiplyScalar(0.015));
+
+                    drip.userData = {
+                        isPlayerTeam: isPlayerTeam,
+                        color: color,
+                        creationTime: Date.now(),
+                        isSurfacePaint: true
+                    };
+
+                    scene.add(drip);
+                    paintSplats.push(drip);
+
+                    // Count drips too
+                    if (isPlayerTeam) {
+                        playerSplats++;
+                    } else {
+                        enemySplats++;
+                    }
+                }
+            }
+
+            checkPaintOverride(position, newColor, isPlayerTeam) {
+                const overrideRadius = 4; // Radius to check for paint override
+
+                // Find paint splats within override radius
+                for (let i = paintSplats.length - 1; i >= 0; i--) {
+                    const splat = paintSplats[i];
+                    const distance = splat.position.distanceTo(position);
+
+                    if (distance <= overrideRadius && splat.userData) {
+                        // Check if this is enemy paint being overridden
+                        if (splat.userData.isPlayerTeam !== isPlayerTeam) {
+                            // Convert enemy paint to our team's paint
+                            splat.material.color.setHex(newColor);
+                            splat.userData.color = newColor;
+                            splat.userData.isPlayerTeam = isPlayerTeam;
+
+                            // Update splat counts - remove from enemy, add to our team
+                            if (isPlayerTeam) {
+                                enemySplats = Math.max(0, enemySplats - 1);
+                                playerSplats++;
+                            } else {
+                                playerSplats = Math.max(0, playerSplats - 1);
+                                enemySplats++;
+                            }
+
+                            // Add conversion effect - make it slightly brighter temporarily
+                            const originalColor = splat.material.color.clone();
+                            splat.material.color.multiplyScalar(1.5);
+                            splat.material.opacity = 1.0;
+
+                            setTimeout(() => {
+                                splat.material.color.copy(originalColor);
+                                splat.material.opacity = 0.8;
+                            }, 200);
+                        }
+                    }
+                }
+            }
+
+
+            paintArea(boxPosition, color) {
+                // Create multiple paint splats around the box position
+                for (let i = 0; i < 5; i++) {
+                    const paintGeometry = new THREE.CircleGeometry(4, 16);
+                    const paintMaterial = new THREE.MeshLambertMaterial({
+                        color: color,
+                        transparent: true,
+                        opacity: 0.7
+                    });
+
+                    const paintSplat = new THREE.Mesh(paintGeometry, paintMaterial);
+                    paintSplat.rotation.x = -Math.PI / 2;
+                    paintSplat.position.set(
+                        boxPosition.x + (Math.random() - 0.5) * 12,
+                        0.02,
+                        boxPosition.z + (Math.random() - 0.5) * 12
+                    );
+
+                    scene.add(paintSplat);
+                    paintSplats.push(paintSplat);
+                }
+
+                // Calculate area painted
+                areaPainted = Math.min(100, (paintSplats.length / 80) * 100);
+
+                // No win condition here - game ends when timer runs out
+            }
+
+            gameEnd() {
+                gameRunning = false;
+
+                let resultMessage;
+                if (playerSplats > enemySplats) {
+                    resultMessage = `🎉 VICTORY! You Win!\n\nBlue Team: ${playerSplats} splats\nRed Team: ${enemySplats} splats\nFinal Score: ${score}`;
+                } else if (enemySplats > playerSplats) {
+                    resultMessage = `😞 DEFEAT! Enemy Wins!\n\nRed Team: ${enemySplats} splats\nBlue Team: ${playerSplats} splats\nFinal Score: ${score}`;
+                } else {
+                    resultMessage = `🤝 TIE GAME!\n\nBoth Teams: ${playerSplats} splats\nFinal Score: ${score}`;
+                }
+
+                resultMessage += `\n\nTime: ${this.formatTime(Date.now() - startTime)}`;
+                alert(resultMessage);
+            }
+
+            updateHUD() {
+                // Update splat counts
+                document.getElementById('playerSplats').textContent = playerSplats;
+                document.getElementById('enemySplats').textContent = enemySplats;
+                document.getElementById('score').textContent = score;
+
+                // Update paint ammo
+                document.getElementById('paintAmmo').textContent = Math.floor(paintAmmo);
+
+                // Update timer
+                timeLeft = Math.max(0, gameTimeLimit - Math.floor((Date.now() - startTime) / 1000));
+                const minutes = Math.floor(timeLeft / 60);
+                const seconds = timeLeft % 60;
+                document.getElementById('timer').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+                // Check if time is up
+                if (timeLeft <= 0 && gameRunning) {
+                    this.gameEnd();
+                }
+            }
+
+            formatTime(ms) {
+                const seconds = Math.floor(ms / 1000);
+                const minutes = Math.floor(seconds / 60);
+                return `${minutes}:${(seconds % 60).toString().padStart(2, '0')}`;
+            }
+
+            setupGameLoop() {
+                const animate = () => {
+                    requestAnimationFrame(animate);
+
+                    if (gameRunning) {
+                        this.updateMovement();
+                        this.updatePaintBlobs();
+                        this.updateAIBots();
+                        this.updatePaintSystem();
+                        this.updateHUD();
+                    }
+
+                    renderer.render(scene, camera);
+                };
+                animate();
+            }
+        }
+
+        // Start the game when page loads
+        window.addEventListener('load', () => {
+            new MathSplatoonGame();
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
