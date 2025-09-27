@@ -1,7 +1,7 @@
 title: "Math Fun for Kids!"
 description: "Educational math and music games for children"
-baseurl: ""
-url: "https://andreadellacorte.github.io/math-for-kids"
+baseurl: "/math-for-kids"
+url: "https://andreadellacorte.github.io"
 
 markdown: kramdown
 highlighter: rouge
