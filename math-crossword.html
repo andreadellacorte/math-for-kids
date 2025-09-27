@@ -296,15 +296,8 @@ custom_css: |
                         <option value="0-10">0-10</option>
                         <option value="0-20" selected>0-20</option>
                         <option value="0-50">0-50</option>
-                        <option value="10-20">10-20</option>
-                        <option value="custom">Custom…</option>
+                        <option value="0-100">0-100</option>
                     </select>
-                    <span id="customRange" style="display:none;">
-                        <label style="margin-left:8px;">Min</label>
-                        <input type="number" id="minRange" value="0" min="0" max="999" style="width:80px;">
-                        <label style="margin-left:8px;">Max</label>
-                        <input type="number" id="maxRange" value="20" min="1" max="999" style="width:80px;">
-                    </span>
                 </div>
                 
 
@@ -354,9 +347,6 @@ const svg=document.getElementById('grid'), ans=document.getElementById('ans');
 const eqSlider=document.getElementById('eqSlider'), eqOut=document.getElementById('eqOut');
 const difficultySelect=document.getElementById('difficultySelect');
 const rangePreset=document.getElementById('rangePreset');
-const customRange=document.getElementById('customRange');
-const minRange=document.getElementById('minRange');
-const maxRange=document.getElementById('maxRange');
 const opAdd=document.getElementById('opAdd'), opSub=document.getElementById('opSub');
 const opMul=document.getElementById('opMul'), opDiv=document.getElementById('opDiv');
 const stat=document.getElementById('stat');
@@ -377,8 +367,6 @@ function getCookie(name){
 function syncFromCookies(){
   const eqC=getCookie('mx_eq'), diffC=getCookie('mx_diff');
   const rangeC=getCookie('mx_range');
-  const rangeMinC=getCookie('mx_range_min');
-  const rangeMaxC=getCookie('mx_range_max');
   const opsC=getCookie('mx_ops');
 
   eqSlider.value = clamp(parseInt(eqC)||4,3,30);    // Start with 4 equations
@@ -388,13 +376,7 @@ function syncFromCookies(){
   } else {
     rangePreset.value = '0-20';
   }
-  if(rangePreset.value==='custom'){
-    customRange.style.display='inline-block';
-    minRange.value = clamp(parseInt(rangeMinC)||0,0,999);
-    maxRange.value = clamp(parseInt(rangeMaxC)||20,1,999);
-  } else {
-    customRange.style.display='none';
-  }
+  // no custom range UI
   eqOut.textContent = eqSlider.value;
 
   // Restore operation settings
@@ -622,11 +604,7 @@ function getSelectedOperations() {
 function getNumberRange() {
   let min=0, max=20;
   const preset = rangePreset.value;
-  if(preset==='custom'){
-    min = clamp(parseInt(minRange.value)||0,0,999);
-    max = clamp(parseInt(maxRange.value)||20,1,999);
-    if(max<min) [min,max]=[max,min];
-  } else if(/^(\d+)-(\d+)$/.test(preset)){
+  if(/^(\d+)-(\d+)$/.test(preset)){
     const m=preset.match(/^(\d+)-(\d+)$/);
     min = parseInt(m[1]);
     max = parseInt(m[2]);
@@ -1792,10 +1770,7 @@ function saveSettings() {
   setCookie('mx_eq', eqSlider.value);
   setCookie('mx_diff', difficultySelect.value);
   setCookie('mx_range', rangePreset.value);
-  if (rangePreset.value === 'custom') {
-    setCookie('mx_range_min', minRange.value);
-    setCookie('mx_range_max', maxRange.value);
-  }
+  // no custom range cookies
   setCookie('mx_ops', JSON.stringify({
     add: opAdd.checked,
     sub: opSub.checked,
@@ -1992,13 +1967,7 @@ document.getElementById('printColor').addEventListener('click',()=>printColorVer
 ans.addEventListener('change',()=>regenerate(false));
 eqSlider.addEventListener('input',()=>{eqOut.textContent=eqSlider.value; saveSettings();});
 difficultySelect.addEventListener('change',()=>{saveSettings(); regenerate(false);});
-rangePreset.addEventListener('change',()=>{
-  customRange.style.display = (rangePreset.value==='custom') ? 'inline-block' : 'none';
-  saveSettings();
-  regenerate(false);
-});
-minRange.addEventListener('input',()=>{saveSettings();});
-maxRange.addEventListener('input',()=>{saveSettings();});
+rangePreset.addEventListener('change',()=>{ saveSettings(); regenerate(false); });
 opAdd.addEventListener('change',()=>{saveSettings(); regenerate(false);});
 opSub.addEventListener('change',()=>{saveSettings(); regenerate(false);});
 opMul.addEventListener('change',()=>{saveSettings(); regenerate(false);});
