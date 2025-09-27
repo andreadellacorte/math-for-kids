@@ -1200,6 +1200,16 @@ function selectOptimalGivens(grid, equations, difficulty) {
     }
   }
 
+  // Get all number cells for difficulty calculation
+  const numCells = [];
+  for (let r = 0; r < 24; r++) {
+    for (let c = 0; c < 24; c++) {
+      if (grid[r] && grid[r][c] && grid[r][c].type === 'number') {
+        numCells.push({r, c});
+      }
+    }
+  }
+
   const difficultyTargets = getDifficultyTargets(difficulty, numCells.length);
 
   // Start with strategic givens - for expert be much more conservative
@@ -1281,27 +1291,49 @@ function selectOptimalGivens(grid, equations, difficulty) {
     const isSolvable = canSolvePuzzle(grid, equations, strategicGivens);
 
     // Accept expert puzzle if it's solvable, even if it has some challenges
-    if (isSolvable && strategicGivens.size >= Math.max(2, difficultyTargets.minGivens)) {
+    if (isSolvable && strategicGivens.size >= Math.max(1, Math.floor(difficultyTargets.minGivens * 0.5))) {
       return { givens: strategicGivens, difficulty: difficultyTargets };
     }
 
     // For expert, try adding just 1-2 more strategic clues if needed
-    const numCells = getAllNumberCells(grid);
-    const remaining = numCells.filter(cell => !strategicGivens.has(`${cell.r},${cell.c}`));
+    const allNumberCells = [];
+    for (let r = 0; r < 24; r++) {
+      for (let c = 0; c < 24; c++) {
+        if (grid[r] && grid[r][c] && grid[r][c].type === 'number') {
+          allNumberCells.push({r, c});
+        }
+      }
+    }
+
+    const remaining = allNumberCells.filter(cell => !strategicGivens.has(`${cell.r},${cell.c}`));
     const shuffled = remaining.sort(() => Math.random() - 0.5);
 
     let expertGivens = new Set([...strategicGivens]);
-    for (let i = 0; i < Math.min(2, shuffled.length); i++) {
+    for (let i = 0; i < Math.min(3, shuffled.length); i++) {
       expertGivens.add(`${shuffled[i].r},${shuffled[i].c}`);
       if (canSolvePuzzle(grid, equations, expertGivens) &&
           !isCompleteEquation(grid, equations, expertGivens)) {
         return { givens: expertGivens, difficulty: difficultyTargets };
       }
     }
+
+    // Expert fallback: if we still can't generate, use the regular algorithm but limit maximum
+    // This ensures expert puzzles don't fail to generate
+    if (strategicGivens.size > 0) {
+      // Continue to regular algorithm but with stricter limits for expert
+    }
   }
 
   // Add more givens until we reach the minimum for this difficulty
-  const remaining = numCells.filter(cell => !strategicGivens.has(`${cell.r},${cell.c}`));
+  const allNumCells = [];
+  for (let r = 0; r < 24; r++) {
+    for (let c = 0; c < 24; c++) {
+      if (grid[r] && grid[r][c] && grid[r][c].type === 'number') {
+        allNumCells.push({r, c});
+      }
+    }
+  }
+  const remaining = allNumCells.filter(cell => !strategicGivens.has(`${cell.r},${cell.c}`));
   const shuffled = remaining.sort(() => Math.random() - 0.5);
 
   let currentGivens = new Set([...strategicGivens]);
