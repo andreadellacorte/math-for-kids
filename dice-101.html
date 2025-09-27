@@ -1,0 +1,364 @@
+---
+title: "Dice 101 - Math Fun for Kids!"
+custom_css: |
+  .dice101-container {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 20px;
+    padding: 30px;
+    color: white;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  }
+
+  .game-wrap {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 20px;
+    align-items: stretch;
+  }
+
+  .table-area {
+    background: radial-gradient(circle at 50% 30%, #2f855a, #22543d);
+    border-radius: 16px;
+    position: relative;
+    min-height: 360px;
+    box-shadow: inset 0 10px 30px rgba(0,0,0,0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .dice {
+    width: 120px;
+    height: 120px;
+    background: #fff;
+    border-radius: 18px;
+    position: relative;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.35), inset 0 0 0 4px #e2e8f0;
+    transform-style: preserve-3d;
+  }
+
+  .pip {
+    width: 18px;
+    height: 18px;
+    background: #1a202c;
+    border-radius: 50%;
+    position: absolute;
+  }
+
+  /* Pips positions (3x3 grid) */
+  .p-1 { top: 50%; left: 50%; transform: translate(-50%, -50%); }
+  .p-2 { top: 20%; left: 20%; }
+  .p-3 { top: 80%; left: 80%; transform: translate(-50%, -50%); }
+  .p-4 { top: 20%; left: 80%; transform: translate(-50%, -50%); }
+  .p-5 { top: 80%; left: 20%; transform: translate(-50%, -50%); }
+  .p-6 { top: 50%; left: 20%; transform: translateY(-50%); }
+  .p-7 { top: 50%; left: 80%; transform: translate(-50%, -50%); }
+  .p-8 { top: 20%; left: 50%; transform: translateX(-50%); }
+  .p-9 { top: 80%; left: 50%; transform: translate(-50%, -50%); }
+
+  .dice.shake {
+    animation: rollShake 0.9s ease-in-out;
+  }
+
+  @keyframes rollShake {
+    0%   { transform: translateY(-8px) rotate(0deg); }
+    20%  { transform: translateY(-40px) rotate(15deg); }
+    40%  { transform: translateY(-10px) rotate(-10deg); }
+    60%  { transform: translateY(-30px) rotate(8deg); }
+    80%  { transform: translateY(-6px) rotate(-6deg); }
+    100% { transform: translateY(0) rotate(0deg); }
+  }
+
+  .score-panel {
+    background: rgba(255,255,255,0.12);
+    border-radius: 16px;
+    padding: 18px;
+    backdrop-filter: blur(8px);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .stat {
+    background: rgba(255,255,255,0.12);
+    border: 2px solid rgba(255,255,255,0.25);
+    border-radius: 12px;
+    padding: 12px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 700;
+  }
+
+  .controls {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+
+  .btn {
+    background: #ffd700;
+    color: #111827;
+    border: none;
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: transform 0.1s ease, box-shadow 0.2s ease;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  }
+  .btn:hover { transform: translateY(-1px); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn.secondary { background: #e2e8f0; color: #1a202c; }
+  .btn.danger { background: #fecaca; color: #7f1d1d; }
+
+  .choice-row {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 14px;
+  }
+
+  .status {
+    text-align: center;
+    font-weight: 800;
+    font-size: 1.1em;
+    background: rgba(255,255,255,0.15);
+    border-radius: 12px;
+    padding: 10px 12px;
+  }
+
+  .muted-toggle {
+    display: flex; align-items: center; gap: 8px; justify-content: center;
+    font-weight: 700;
+  }
+
+  @media (max-width: 900px) {
+    .game-wrap { grid-template-columns: 1fr; }
+    .table-area { min-height: 300px; }
+    .dice { width: 100px; height: 100px; }
+    .controls { grid-template-columns: repeat(2, 1fr); }
+  }
+---
+<div class="container">
+  <div class="header">
+    <a href="index.html" class="back-btn">← Back Home</a>
+    <h1>🎲 Dice 101</h1>
+  </div>
+
+  <div class="dice101-container">
+    <p style="margin-top:0">Get as close as you can to 101 without going over. Roll the dice, then choose to Add the roll or Multiply it by 10.</p>
+
+    <div class="game-wrap">
+      <div class="table-area">
+        <div id="dice" class="dice" aria-label="die" role="img"></div>
+      </div>
+
+      <div class="score-panel">
+        <div class="stat"><span>👤 Player</span><span id="playerNameLabel">Guest</span></div>
+        <div class="stat"><span>🎯 Target</span><span>101</span></div>
+        <div class="stat"><span>🎲 Last Roll</span><span id="lastRoll">-</span></div>
+        <div class="stat"><span>➕ Total</span><span id="total">0</span></div>
+        <div class="status" id="status">Press Roll to start</div>
+
+        <div class="controls">
+          <button id="rollBtn" class="btn">Roll</button>
+          <button id="holdBtn" class="btn secondary">Hold</button>
+          <button id="resetBtn" class="btn danger">Reset</button>
+        </div>
+
+        <div class="choice-row" id="choiceRow" style="display:none;">
+          <button id="addBtn" class="btn">Add</button>
+          <button id="mulBtn" class="btn secondary">Multiply by 10</button>
+        </div>
+
+        <div class="muted-toggle">
+          <input type="checkbox" id="muteToggle">
+          <label for="muteToggle">Mute sounds</label>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const dice = document.getElementById('dice');
+  const rollBtn = document.getElementById('rollBtn');
+  const addBtn = document.getElementById('addBtn');
+  const mulBtn = document.getElementById('mulBtn');
+  const holdBtn = document.getElementById('holdBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const choiceRow = document.getElementById('choiceRow');
+  const lastRollEl = document.getElementById('lastRoll');
+  const totalEl = document.getElementById('total');
+  const statusEl = document.getElementById('status');
+  const playerNameLabel = document.getElementById('playerNameLabel');
+  const muteToggle = document.getElementById('muteToggle');
+
+  let total = 0;
+  let lastRoll = 0;
+  let rolling = false;
+  let chooseOpen = false;
+  let ended = false;
+
+  function setCookie(name, value, days=365){
+    const d = new Date(); d.setTime(d.getTime() + days*24*60*60*1000);
+    document.cookie = name + '=' + encodeURIComponent(value) + ';expires=' + d.toUTCString() + ';path=/;SameSite=Lax';
+  }
+  function getCookie(name){
+    const m = document.cookie.split(';').map(s=>s.trim()).find(s=>s.startsWith(name+'='));
+    return m ? decodeURIComponent(m.split('=')[1]) : null;
+  }
+
+  // Load player name from shared cookie
+  const savedName = getCookie('playerName');
+  if (savedName) playerNameLabel.textContent = savedName;
+
+  function playBeep(freq=440, ms=120, vol=0.1){
+    if (muteToggle.checked) return;
+    try{
+      const ctx = new (window.AudioContext||window.webkitAudioContext)();
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.frequency.value = freq; o.type = 'sine';
+      g.gain.setValueAtTime(0, ctx.currentTime);
+      g.gain.linearRampToValueAtTime(vol, ctx.currentTime + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + ms/1000);
+      o.start(); o.stop(ctx.currentTime + ms/1000 + 0.02);
+    }catch{}
+  }
+
+  function clearDice(){ dice.innerHTML = ''; }
+
+  function renderFace(n){
+    clearDice();
+    // Map die value to pip positions (1..9 grid indexes)
+    const layouts = {
+      1: [5],
+      2: [1,9],
+      3: [1,5,9],
+      4: [1,3,7,9],
+      5: [1,3,5,7,9],
+      6: [1,3,4,6,7,9]
+    };
+    const cells = layouts[n] || [5];
+    for (const idx of cells){
+      const pip = document.createElement('div');
+      pip.className = 'pip p-' + idx;
+      dice.appendChild(pip);
+    }
+  }
+
+  function randomInt(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
+
+  function canContinue(){ return !ended && !rolling && !chooseOpen; }
+
+  function updateUI(){
+    lastRollEl.textContent = lastRoll || '-';
+    totalEl.textContent = total;
+    rollBtn.disabled = !canContinue();
+    holdBtn.disabled = ended || rolling || chooseOpen || total===0;
+    addBtn.disabled = mulBtn.disabled = !chooseOpen;
+    resetBtn.disabled = rolling;
+  }
+
+  function checkEnd(){
+    if (total === 101){
+      statusEl.textContent = '🎉 Exact 101! You win!';
+      ended = true; playBeep(880, 200); playBeep(988, 200); playBeep(1046, 300);
+    } else if (total > 101){
+      statusEl.textContent = `💥 Bust! You went over by ${total-101}.`;
+      ended = true; playBeep(200, 200); playBeep(160, 250);
+    }
+    updateUI();
+  }
+
+  function openChoice(){
+    chooseOpen = true;
+    choiceRow.style.display = '';
+    statusEl.textContent = 'Choose: Add or Multiply by 10?';
+    updateUI();
+  }
+  function closeChoice(){
+    chooseOpen = false;
+    choiceRow.style.display = 'none';
+    updateUI();
+  }
+
+  function doRoll(){
+    if (rolling || ended) return;
+    rolling = true; updateUI();
+    statusEl.textContent = 'Rolling...';
+    dice.classList.add('shake');
+
+    // Rapid face shuffle to simulate roll
+    const start = performance.now();
+    let t = 0; let handle;
+    function tick(now){
+      t = now - start;
+      const n = randomInt(1,6);
+      renderFace(n);
+      if (t < 800){ handle = requestAnimationFrame(tick); }
+      else {
+        dice.classList.remove('shake');
+        // Final result
+        lastRoll = randomInt(1,6);
+        renderFace(lastRoll);
+        playBeep(440 + lastRoll*40, 120);
+        rolling = false;
+        openChoice();
+      }
+    }
+    handle = requestAnimationFrame(tick);
+  }
+
+  function applyAdd(){
+    if (!chooseOpen || ended) return;
+    total += lastRoll;
+    statusEl.textContent = `+${lastRoll} added.`;
+    closeChoice();
+    checkEnd();
+  }
+  function applyMul(){
+    if (!chooseOpen || ended) return;
+    total += lastRoll * 10;
+    statusEl.textContent = `+${lastRoll*10} (×10) added.`;
+    closeChoice();
+    checkEnd();
+  }
+
+  function hold(){
+    if (ended || rolling || chooseOpen) return;
+    const diff = 101 - total;
+    if (diff < 0) {
+      statusEl.textContent = `💥 Bust! Over by ${-diff}.`;
+    } else if (diff === 0) {
+      statusEl.textContent = '🎉 Exact 101! You win!';
+    } else {
+      statusEl.textContent = `🛑 Stopped at ${total}. You are ${diff} away.`;
+    }
+    ended = true; updateUI();
+  }
+
+  function reset(){
+    total = 0; lastRoll = 0; rolling = false; chooseOpen = false; ended = false;
+    statusEl.textContent = 'Press Roll to start';
+    clearDice();
+    updateUI();
+  }
+
+  // Initial render
+  renderFace(5); // neutral
+  updateUI();
+
+  // Events
+  rollBtn.addEventListener('click', doRoll);
+  addBtn.addEventListener('click', applyAdd);
+  mulBtn.addEventListener('click', applyMul);
+  holdBtn.addEventListener('click', hold);
+  resetBtn.addEventListener('click', reset);
+})();
+</script>
