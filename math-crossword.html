@@ -292,11 +292,26 @@ custom_css: |
 
                 <div class="control-group">
                     <label>Number Range:</label>
-                    <select id="rangeSelect">
-                        <option value="20">0-20 (Easy numbers)</option>
-                        <option value="100" selected>0-100 (Standard)</option>
-                        <option value="500">0-500 (Larger numbers)</option>
-                        <option value="1000">0-1000 (Challenge)</option>
+                    <select id="rangePreset">
+                        <option value="0-10">0-10</option>
+                        <option value="0-20" selected>0-20</option>
+                        <option value="0-50">0-50</option>
+                        <option value="10-20">10-20</option>
+                        <option value="custom">Custom…</option>
+                    </select>
+                    <span id="customRange" style="display:none;">
+                        <label style="margin-left:8px;">Min</label>
+                        <input type="number" id="minRange" value="0" min="0" max="999" style="width:80px;">
+                        <label style="margin-left:8px;">Max</label>
+                        <input type="number" id="maxRange" value="20" min="1" max="999" style="width:80px;">
+                    </span>
+                </div>
+                <div class="control-group">
+                    <label>Digits:</label>
+                    <select id="digitsSelect">
+                        <option value="auto" selected>Auto</option>
+                        <option value="1">1 digit</option>
+                        <option value="2">2 digits</option>
                     </select>
                 </div>
 
@@ -345,7 +360,11 @@ const REGEN_ATTEMPTS=250;
 const svg=document.getElementById('grid'), ans=document.getElementById('ans');
 const eqSlider=document.getElementById('eqSlider'), eqOut=document.getElementById('eqOut');
 const difficultySelect=document.getElementById('difficultySelect');
-const rangeSelect=document.getElementById('rangeSelect');
+const rangePreset=document.getElementById('rangePreset');
+const customRange=document.getElementById('customRange');
+const minRange=document.getElementById('minRange');
+const maxRange=document.getElementById('maxRange');
+const digitsSelect=document.getElementById('digitsSelect');
 const opAdd=document.getElementById('opAdd'), opSub=document.getElementById('opSub');
 const opMul=document.getElementById('opMul'), opDiv=document.getElementById('opDiv');
 const stat=document.getElementById('stat');
@@ -366,11 +385,26 @@ function getCookie(name){
 function syncFromCookies(){
   const eqC=getCookie('mx_eq'), diffC=getCookie('mx_diff');
   const rangeC=getCookie('mx_range');
+  const rangeMinC=getCookie('mx_range_min');
+  const rangeMaxC=getCookie('mx_range_max');
+  const digitsC=getCookie('mx_digits');
   const opsC=getCookie('mx_ops');
 
   eqSlider.value = clamp(parseInt(eqC)||4,3,30);    // Start with 4 equations
   difficultySelect.value = diffC || 'medium';       // Start with medium difficulty
-  rangeSelect.value = rangeC || '100';              // Start with 0-100 range
+  if(rangeC){
+    rangePreset.value = rangeC;
+  } else {
+    rangePreset.value = '0-20';
+  }
+  if(rangePreset.value==='custom'){
+    customRange.style.display='inline-block';
+    minRange.value = clamp(parseInt(rangeMinC)||0,0,999);
+    maxRange.value = clamp(parseInt(rangeMaxC)||20,1,999);
+  } else {
+    customRange.style.display='none';
+  }
+  digitsSelect.value = digitsC || 'auto';
   eqOut.textContent = eqSlider.value;
 
   // Restore operation settings
@@ -596,8 +630,23 @@ function getSelectedOperations() {
 }
 
 function getNumberRange() {
-  const maxNum = parseInt(rangeSelect.value) || 100;
-  return { min: 1, max: maxNum };
+  let min=0, max=20;
+  const preset = rangePreset.value;
+  if(preset==='custom'){
+    min = clamp(parseInt(minRange.value)||0,0,999);
+    max = clamp(parseInt(maxRange.value)||20,1,999);
+    if(max<min) [min,max]=[max,min];
+  } else if(/^(\d+)-(\d+)$/.test(preset)){
+    const m=preset.match(/^(\d+)-(\d+)$/);
+    min = parseInt(m[1]);
+    max = parseInt(m[2]);
+  }
+  // Enforce digits setting (if selected)
+  const digits = digitsSelect.value;
+  if(digits==='1'){ min = Math.max(min, 0); max = Math.min(max, 9); }
+  if(digits==='2'){ min = Math.max(min, 10); max = Math.min(max, 99); }
+  // Ensure positive non-zero results where needed
+  return { min, max };
 }
 
 function validateEquation(A, B, C, op, range = null) {
@@ -624,41 +673,55 @@ function validateEquation(A, B, C, op, range = null) {
 function generateRandomEquation() {
   const operations = getSelectedOperations();
   const range = getNumberRange();
+  const digits = digitsSelect.value;
 
   for (let attempts = 0; attempts < 300; attempts++) {
     const op = operations[Math.floor(Math.random() * operations.length)];
     let A, B, C;
 
     switch (op) {
-      case '+':
-        // Ensure A + B doesn't exceed max
-        A = Math.floor(Math.random() * Math.floor(range.max * 0.6)) + range.min;
-        B = Math.floor(Math.random() * Math.min(range.max - A, Math.floor(range.max * 0.6))) + range.min;
+      case '+': {
+        // Choose A in range; choose B so that C stays in range
+        A = R(range.min, Math.max(range.min, range.max));
+        const bMax = range.max - A;
+        if (bMax < range.min) continue;
+        B = R(range.min, bMax);
+        // Optional digits enforcement
+        if (digits==='1' && (A>9 || B>9)) continue;
+        if (digits==='2' && (A<10 || B<10)) continue;
         C = A + B;
-        break;
+        break; }
 
-      case '-':
-        // Ensure A > B and result is positive
-        A = Math.floor(Math.random() * Math.floor(range.max * 0.8)) + Math.floor(range.max * 0.3);
-        B = Math.floor(Math.random() * Math.min(A - range.min, Math.floor(range.max * 0.4))) + range.min;
+      case '-': {
+        // Ensure A >= B and all in range
+        A = R(Math.max(range.min, 1), range.max);
+        B = R(range.min, A);
+        if (digits==='1' && (A>9 || B>9)) continue;
+        if (digits==='2' && (A<10 || B<10)) continue;
         C = A - B;
-        break;
+        if (C < range.min || C > range.max) continue;
+        break; }
 
-      case '×':
-        // Keep factors reasonable
+      case '×': {
         const maxFactor = Math.min(Math.floor(Math.sqrt(range.max)), 20);
-        A = Math.floor(Math.random() * (maxFactor - 2)) + 2;
-        B = Math.floor(Math.random() * (maxFactor - 2)) + 2;
+        A = R(2, Math.max(2, maxFactor));
+        B = R(2, Math.max(2, maxFactor));
+        if (digits==='1' && (A>9 || B>9)) continue;
+        if (digits==='2' && (A<10 || B<10)) continue;
         C = A * B;
-        break;
+        if (C < range.min || C > range.max) continue;
+        break; }
 
-      case '÷':
-        // Generate division by creating multiplication first
+      case '÷': {
+        // Generate exact division within range
         const maxDivisor = Math.min(Math.floor(Math.sqrt(range.max)), 20);
-        B = Math.floor(Math.random() * (maxDivisor - 2)) + 2;
-        C = Math.floor(Math.random() * Math.floor(range.max / B)) + range.min;
-        A = B * C; // Ensures exact division
-        break;
+        B = R(2, Math.max(2, maxDivisor));
+        C = R(Math.max(range.min, 1), Math.max(range.min, Math.floor(range.max / B)));
+        A = B * C;
+        if (A < range.min || A > range.max) continue;
+        if (digits==='1' && (A>9 || B>9 || C>9)) continue;
+        if (digits==='2' && ((A<10 && A!==0) || (B<10 && B!==0) || (C<10 && C!==0))) continue;
+        break; }
     }
 
     if (validateEquation(A, B, C, op, range)) {
@@ -1750,7 +1813,12 @@ function generatePrintVersion(grid, givenSet, minR, maxR, minC, maxC) {
 function saveSettings() {
   setCookie('mx_eq', eqSlider.value);
   setCookie('mx_diff', difficultySelect.value);
-  setCookie('mx_range', rangeSelect.value);
+  setCookie('mx_range', rangePreset.value);
+  if (rangePreset.value === 'custom') {
+    setCookie('mx_range_min', minRange.value);
+    setCookie('mx_range_max', maxRange.value);
+  }
+  setCookie('mx_digits', digitsSelect.value);
   setCookie('mx_ops', JSON.stringify({
     add: opAdd.checked,
     sub: opSub.checked,
@@ -1947,7 +2015,14 @@ document.getElementById('printColor').addEventListener('click',()=>printColorVer
 ans.addEventListener('change',()=>regenerate(false));
 eqSlider.addEventListener('input',()=>{eqOut.textContent=eqSlider.value; saveSettings();});
 difficultySelect.addEventListener('change',()=>{saveSettings(); regenerate(false);});
-rangeSelect.addEventListener('change',()=>{saveSettings(); regenerate(false);});
+rangePreset.addEventListener('change',()=>{
+  customRange.style.display = (rangePreset.value==='custom') ? 'inline-block' : 'none';
+  saveSettings();
+  regenerate(false);
+});
+minRange.addEventListener('input',()=>{saveSettings();});
+maxRange.addEventListener('input',()=>{saveSettings();});
+digitsSelect.addEventListener('change',()=>{saveSettings(); regenerate(false);});
 opAdd.addEventListener('change',()=>{saveSettings(); regenerate(false);});
 opSub.addEventListener('change',()=>{saveSettings(); regenerate(false);});
 opMul.addEventListener('change',()=>{saveSettings(); regenerate(false);});

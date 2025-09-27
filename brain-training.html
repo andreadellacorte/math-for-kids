@@ -491,6 +491,72 @@ custom_css: |
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     }
 
+    /* Certificate styles */
+    .certificate {
+        background: #fff;
+        border: 6px double #2d3748;
+        border-radius: 16px;
+        padding: 30px;
+        margin-top: 20px;
+        text-align: center;
+        position: relative;
+    }
+    .certificate h3 {
+        font-size: 1.4em;
+        color: #2d3748;
+        margin: 0 0 10px 0;
+        font-weight: 800;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+    }
+    .certificate .cert-title {
+        font-size: 2.2em;
+        font-weight: 900;
+        color: #667eea;
+        margin: 10px 0 20px 0;
+    }
+    .certificate .cert-name {
+        font-size: 2.4em;
+        font-weight: 800;
+        color: #111827;
+        margin: 10px 0 0 0;
+    }
+    .certificate .cert-name-input {
+        font-size: 1.4em;
+        padding: 10px 14px;
+        border: 2px solid #cbd5e0;
+        border-radius: 10px;
+        width: min(420px, 90%);
+        text-align: center;
+        margin: 10px auto 0 auto;
+    }
+    .certificate .cert-details {
+        margin-top: 12px;
+        color: #4a5568;
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    .certificate .badge {
+        display: inline-block;
+        background: #f7fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 8px 12px;
+        font-weight: 700;
+        color: #2d3748;
+        min-width: 120px;
+    }
+    .certificate .cert-footer {
+        margin-top: 18px;
+        color: #718096;
+        font-size: 0.95em;
+    }
+    .print-cert-btn {
+        margin-top: 18px;
+    }
+
     .brain-age {
         font-size: 3em;
         font-weight: bold;
@@ -762,6 +828,25 @@ custom_css: |
                         </div>
                     </div>
 
+                    <div class="certificate" id="certificate">
+                        <h3>Certificate of Achievement</h3>
+                        <div class="cert-title">Brain Training Speed Math</div>
+                        <div id="certNameWrapper">
+                            <input id="playerNameInput" class="cert-name-input" type="text" placeholder="Type your name...">
+                            <div id="playerNameDisplay" class="cert-name" style="display:none;"></div>
+                        </div>
+                        <div class="cert-details">
+                            <span class="badge">Brain Age: <span id="certAge">–</span></span>
+                            <span class="badge">Solved: <span id="certProblems">–</span></span>
+                            <span class="badge">Accuracy: <span id="certAccuracy">–</span></span>
+                            <span class="badge">Avg Time: <span id="certAvg">–</span></span>
+                            <span class="badge">Level: <span id="certLevel">–</span></span>
+                            <span class="badge">Date: <span id="certDate">–</span></span>
+                        </div>
+                        <div class="cert-footer">Well done! Keep practicing to get even faster and smarter!</div>
+                        <button id="printCertificateBtn" class="btn secondary print-cert-btn">Print Certificate</button>
+                    </div>
+
                     <div class="game-controls">
                         <button id="playAgainBtn" class="btn">Play Again</button>
                         <button id="shareSocreBtn" class="btn secondary">Share Score</button>
@@ -810,6 +895,10 @@ custom_css: |
                 this.playAgainBtn = document.getElementById('playAgainBtn');
                 this.shareSocreBtn = document.getElementById('shareSocreBtn');
                 this.feedbackOverlay = document.getElementById('feedbackOverlay');
+                // Certificate elements
+                this.playerNameInput = document.getElementById('playerNameInput');
+                this.playerNameDisplay = document.getElementById('playerNameDisplay');
+                this.printCertificateBtn = document.getElementById('printCertificateBtn');
                 this.setupAudio();
             }
 
@@ -940,6 +1029,12 @@ custom_css: |
 
                 // Initialize input mode display
                 this.updateInputModeDisplay();
+
+                // Load player name (shared across games)
+                const savedName = this.getCookie('playerName');
+                if (savedName) {
+                    this.playerNameInput.value = savedName;
+                }
             }
 
             saveSettings() {
@@ -953,6 +1048,9 @@ custom_css: |
                 this.setCookie('inputMode', inputMode);
                 this.setCookie('timeLimit', this.timeLimitSlider.value);
                 this.setCookie('difficulty', this.selectedDifficulty);
+                // Save player name if present
+                const name = (this.playerNameInput?.value || '').trim();
+                if (name) this.setCookie('playerName', name);
             }
 
             initializeEquationQueue() {
@@ -1164,6 +1262,11 @@ custom_css: |
                 this.playAgainBtn.addEventListener('click', () => this.showSetup());
                 this.shareSocreBtn.addEventListener('click', () => this.shareScore());
                 this.submitBtn.addEventListener('click', () => this.submitKeyboardAnswer());
+                this.printCertificateBtn.addEventListener('click', () => this.printCertificate());
+                this.playerNameInput.addEventListener('input', () => {
+                    // Persist live as kids type
+                    this.setCookie('playerName', this.playerNameInput.value);
+                });
 
                 // Enter key handling for keyboard input
                 this.answerInput.addEventListener('keypress', (e) => {
@@ -1519,7 +1622,57 @@ custom_css: |
                 document.getElementById('avgTime').textContent = `${avgTime}s`;
                 document.getElementById('finalDifficulty').textContent = difficultyNames[this.selectedDifficulty];
 
+                // Populate certificate
+                const name = (this.playerNameInput.value || '').trim();
+                if (name) {
+                    this.playerNameDisplay.textContent = name;
+                    this.playerNameDisplay.style.display = '';
+                    this.playerNameInput.style.display = 'none';
+                } else {
+                    this.playerNameDisplay.style.display = 'none';
+                    this.playerNameInput.style.display = '';
+                }
+                document.getElementById('certAge').textContent = brainAge;
+                document.getElementById('certProblems').textContent = this.totalProblems;
+                document.getElementById('certAccuracy').textContent = `${accuracy}%`;
+                document.getElementById('certAvg').textContent = `${avgTime}s`;
+                document.getElementById('certLevel').textContent = difficultyNames[this.selectedDifficulty];
+                try {
+                    const dateStr = new Date().toLocaleDateString(undefined, {year: 'numeric', month: 'short', day: 'numeric'});
+                    document.getElementById('certDate').textContent = dateStr;
+                } catch {}
+
                 this.showScreen('results');
+            }
+
+            printCertificate() {
+                // Open a clean print view of the certificate only
+                const cert = document.getElementById('certificate');
+                if (!cert) return;
+                const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Brain Training Certificate</title>
+  <style>
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    body { margin: 16mm; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .certificate { ${'border: 6px double #2d3748; border-radius: 16px; padding: 30px;'} }
+    @page { size: A4; margin: 12mm; }
+  </style>
+  <link rel="stylesheet" href="${location.origin + location.pathname.replace(/\/[^/]*$/, '/') + 'styles.css'}">
+  <style>${document.querySelector('style')?.textContent || ''}</style>
+  </head>
+<body>
+  ${cert.outerHTML}
+  <script>window.onload = function(){ setTimeout(function(){ window.print(); }, 100); };</script>
+</body>
+</html>`;
+                const w = window.open('', '_blank');
+                if (!w) return;
+                w.document.open();
+                w.document.write(html);
+                w.document.close();
             }
 
             shareScore() {
