@@ -32,8 +32,7 @@ custom_css: |
   .note, .coin { background: #fff; color: #111827; border-radius: 8px; padding: 6px 8px; font-weight: 800; cursor: pointer; border: 2px solid transparent; }
   .note:hover, .coin:hover { border-color: #e5e7eb; }
   .slot { background: #0f172a; color: #fff; border-radius: 10px; padding: 10px; text-align: center; font-weight: 700; }
-  .queue { display: flex; gap: 10px; margin-top: 14px; }
-  .cust { background: rgba(255,255,255,0.15); border-radius: 9999px; padding: 6px 10px; font-weight: 800; }
+  /* queue removed */
 
   .status { background: rgba(255,255,255,0.18); border-radius: 12px; padding: 10px; text-align: center; font-weight: 800; }
   .actions { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-top: 10px; }
@@ -93,11 +92,10 @@ custom_css: |
             <div id="hintMsg" style="margin-top:6px; font-weight:700;"></div>
           </div>
         </div>
-        <div class="status" id="status">Welcome! Click Start to begin.</div>
+        <div class="status" id="status">Welcome! Click New Order to begin.</div>
         <div class="actions">
-          <button id="startBtn" class="btn">Start</button>
-          <button id="finishBtn" class="btn secondary">Finish Order</button>
-          <button id="nextBtn" class="btn secondary">Next Customer</button>
+          <button id="startBtn" class="btn">New Order</button>
+          <button id="finishBtn" class="btn secondary">Evaluate</button>
         </div>
       </div>
 
@@ -110,7 +108,6 @@ custom_css: |
           <div class="coin-row" id="coins"></div>
         </div>
         <div class="slot" id="cashSlot">Insert payment here</div>
-        <div class="queue" id="queue"></div>
       </div>
     </div>
   </div>
@@ -124,11 +121,11 @@ custom_css: |
   const notesEl = document.getElementById('notes');
   const coinsEl = document.getElementById('coins');
   const cashSlot = document.getElementById('cashSlot');
-  const queueEl = document.getElementById('queue');
+  // queue removed
   const statusEl = document.getElementById('status');
   const startBtn = document.getElementById('startBtn');
   const finishBtn = document.getElementById('finishBtn');
-  const nextBtn = document.getElementById('nextBtn');
+  // next removed
 
   const padDisplay = document.getElementById('padDisplay');
   const checkDiscountBtn = document.getElementById('checkDiscountBtn');
@@ -136,7 +133,7 @@ custom_css: |
   const helpBtn = document.getElementById('helpBtn');
   const hintMsg = document.getElementById('hintMsg');
 
-  let currentCustomer = 0;
+  // queue removed
   let cart = [];
   let selected = null;
   let subtotal = 0;
@@ -144,7 +141,7 @@ custom_css: |
   let timerStart = 0;
 
   const NOTE_VALUES = [50, 20, 10, 5];
-  const COIN_VALUES = [2, 1, 0.5, 0.2, 0.1];
+  const COIN_VALUES = [2, 1, 0.5, 0.2, 0.1, 0.05, 0.01];
 
   const CATALOG = [
     { name: 'Milk', price: 1.20, barcode: 'M-001' },
@@ -158,11 +155,7 @@ custom_css: |
     { name: 'Yogurt', price: 0.80, barcode: 'Y-009' }
   ];
 
-  const CUSTOMERS = [
-    { id: 1, items: ['Milk','Bread','Eggs'] },
-    { id: 2, items: ['Cereal','Apples','Juice','Yogurt'] },
-    { id: 3, items: ['Cheese','Pasta'] }
-  ];
+  // queue removed
 
   function format(n){ return n.toFixed(2); }
 
@@ -170,16 +163,17 @@ custom_css: |
     cart = []; subtotal = 0; payments = 0; selected = null; receiptEl.innerHTML = ''; discountMsg.textContent = ''; hintMsg.textContent = '';
   }
 
-  function populateQueue(){
-    queueEl.innerHTML='';
-    CUSTOMERS.forEach((c,i)=>{
-      const el = document.createElement('div'); el.className = 'cust'; el.textContent = 'Customer #' + c.id + (i===currentCustomer ? ' (now)' : '');
-      queueEl.appendChild(el);
-    });
-  }
+  // queue removed
 
-  function spawnItemsForCustomer(idx){
-    const list = CUSTOMERS[idx].items.map(name => CATALOG.find(it=>it.name===name));
+  function spawnItems(){
+    // Random basket of 3-5 items
+    const count = Math.floor(Math.random()*3)+3;
+    const pool = [...CATALOG];
+    const list = [];
+    for(let i=0;i<count;i++){
+      const pick = pool.splice(Math.floor(Math.random()*pool.length),1)[0];
+      list.push(pick);
+    }
     itemsEl.innerHTML = '';
     list.forEach((it)=>{
       const el = document.createElement('div');
@@ -258,8 +252,9 @@ custom_css: |
   }
 
   function start(){
-    reset(); currentCustomer = 0; populateQueue(); spawnItemsForCustomer(currentCustomer); renderCash();
-    statusEl.textContent = 'Customer #' + CUSTOMERS[currentCustomer].id + ' started. Click items to add.';
+    reset(); spawnItems(); renderCash();
+    cashSlot.textContent = 'Insert payment here';
+    statusEl.textContent = 'New order started. Click items to add.';
     timerStart = performance.now();
   }
 
@@ -267,15 +262,7 @@ custom_css: |
     evaluateOrder();
   }
 
-  function next(){
-    if (currentCustomer < CUSTOMERS.length - 1){
-      currentCustomer++; reset(); populateQueue(); spawnItemsForCustomer(currentCustomer);
-      statusEl.textContent = 'Next customer started.'; timerStart = performance.now();
-      cashSlot.textContent = 'Insert payment here';
-    } else {
-      statusEl.textContent = 'All customers finished! Great work!';
-    }
-  }
+  // next removed
 
   // Pad logic (basic calculator for practice)
   (function initPad(){
@@ -300,7 +287,7 @@ custom_css: |
   // Events
   startBtn.addEventListener('click', start);
   finishBtn.addEventListener('click', finish);
-  nextBtn.addEventListener('click', next);
+  // next removed
   checkDiscountBtn.addEventListener('click', applyRandomDiscount);
   helpBtn.addEventListener('click', showHint);
 })();
