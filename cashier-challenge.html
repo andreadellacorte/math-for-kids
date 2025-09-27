@@ -12,6 +12,9 @@ custom_css: |
   .item:hover { border-color: #e5e7eb; transform: translateY(-1px); }
   .item .price { font-weight: 800; color: #2563eb; }
   .barcode { font-size: 0.8em; color: #6b7280; }
+  .discounts { margin-top: 12px; background: rgba(255,255,255,0.10); border: 2px dashed rgba(255,255,255,0.35); border-radius: 12px; padding: 10px; }
+  .discounts-title { font-weight: 800; margin-bottom: 6px; }
+  .discount { background: rgba(255,255,255,0.85); color: #1f2937; border-radius: 10px; padding: 6px 8px; font-weight: 700; margin: 4px 0; }
 
   /* Center: Register */
   .register { background: rgba(255,255,255,0.12); border-radius: 16px; padding: 14px; display: grid; grid-template-rows: auto auto 1fr; gap: 12px; }
@@ -35,7 +38,7 @@ custom_css: |
   /* queue removed */
 
   .status { background: rgba(255,255,255,0.18); border-radius: 12px; padding: 10px; text-align: center; font-weight: 800; }
-  .actions { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-top: 10px; }
+  .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
   .btn { background: #ffd700; color: #111827; border: none; border-radius: 10px; padding: 10px; font-weight: 800; cursor: pointer; }
   .btn.secondary { background: #e2e8f0; }
 
@@ -55,6 +58,10 @@ custom_css: |
       <div class="belt">
         <div class="belt-title">🛒 Items on Belt</div>
         <div id="items" class="items"></div>
+        <div class="discounts">
+          <div class="discounts-title">🏷️ Discounts</div>
+          <div id="discountsList"></div>
+        </div>
       </div>
 
       <!-- Center: Register -->
@@ -92,9 +99,8 @@ custom_css: |
             <div id="hintMsg" style="margin-top:6px; font-weight:700;"></div>
           </div>
         </div>
-        <div class="status" id="status">Welcome! Click New Order to begin.</div>
+        <div class="status" id="status">Welcome! Add items from the belt, then Evaluate.</div>
         <div class="actions">
-          <button id="startBtn" class="btn">New Order</button>
           <button id="finishBtn" class="btn secondary">Evaluate</button>
         </div>
       </div>
@@ -123,7 +129,7 @@ custom_css: |
   const cashSlot = document.getElementById('cashSlot');
   // queue removed
   const statusEl = document.getElementById('status');
-  const startBtn = document.getElementById('startBtn');
+  // start button removed
   const finishBtn = document.getElementById('finishBtn');
   // next removed
 
@@ -132,6 +138,7 @@ custom_css: |
   const discountMsg = document.getElementById('discountMsg');
   const helpBtn = document.getElementById('helpBtn');
   const hintMsg = document.getElementById('hintMsg');
+  const discountsListEl = document.getElementById('discountsList');
 
   // queue removed
   let cart = [];
@@ -139,6 +146,7 @@ custom_css: |
   let subtotal = 0;
   let payments = 0;
   let timerStart = 0;
+  let activeDiscounts = [];
 
   const NOTE_VALUES = [50, 20, 10, 5];
   const COIN_VALUES = [2, 1, 0.5, 0.2, 0.1, 0.05, 0.01];
@@ -161,6 +169,8 @@ custom_css: |
 
   function reset(){
     cart = []; subtotal = 0; payments = 0; selected = null; receiptEl.innerHTML = ''; discountMsg.textContent = ''; hintMsg.textContent = '';
+    activeDiscounts = [];
+    if (discountsListEl) discountsListEl.innerHTML = '<div class="discount">No discounts</div>';
   }
 
   // queue removed
@@ -182,14 +192,72 @@ custom_css: |
       el.addEventListener('click', ()=> addItem(it));
       itemsEl.appendChild(el);
     });
+
+    // Generate 1-2 discounts relevant to this order
+    activeDiscounts = [];
+    const pickIdx = () => Math.floor(Math.random()*list.length);
+    if (list.length > 0) {
+      const d1Item = list[pickIdx()].name;
+      const perc = [10,15,20][Math.floor(Math.random()*3)];
+      activeDiscounts.push({ type:'percent', item:d1Item, percent: perc });
+    }
+    if (list.length > 1 && Math.random() < 0.6) {
+      let d2Item = list[pickIdx()].name;
+      // ensure not duplicate
+      let guard=0; while (activeDiscounts.some(d=>d.item===d2Item) && guard++<5) d2Item = list[pickIdx()].name;
+      const amount = [0.10,0.20,0.50][Math.floor(Math.random()*3)];
+      activeDiscounts.push({ type:'amount', item:d2Item, amount: amount });
+    }
+    renderDiscounts();
+  }
+
+  function renderDiscounts(){
+    discountsListEl.innerHTML = '';
+    if (activeDiscounts.length === 0){
+      discountsListEl.innerHTML = '<div class="discount">No discounts</div>';
+      return;
+    }
+    activeDiscounts.forEach(d => {
+      const el = document.createElement('div'); el.className = 'discount';
+      if (d.type==='percent') el.textContent = `${d.item}: ${d.percent}% off`;
+      else el.textContent = `${d.item}: £${format(d.amount)} off`;
+      discountsListEl.appendChild(el);
+    });
+  }
+
+  function getDiscountForItem(item){
+    // compute best single discount for item
+    let best = 0; let label = '';
+    activeDiscounts.forEach(d => {
+      if (d.item !== item.name) return;
+      if (d.type==='percent'){
+        const amt = Math.round(item.price * (d.percent/100) * 100)/100;
+        if (amt > best){ best = amt; label = `${d.percent}% off`; }
+      } else if (d.type==='amount'){
+        const amt = Math.min(d.amount, item.price);
+        if (amt > best){ best = amt; label = `£${format(amt)} off`; }
+      }
+    });
+    return { amount: best, label };
   }
 
   function addItem(it){
     cart.push(it);
-    subtotal += it.price;
-    const line = document.createElement('div'); line.className = 'receipt-line';
-    line.innerHTML = `<span>${it.name}</span><span>£${format(it.price)}</span>`;
-    receiptEl.appendChild(line);
+    // add item line
+    const itemLine = document.createElement('div'); itemLine.className = 'receipt-line';
+    itemLine.innerHTML = `<span>${it.name}</span><span>£${format(it.price)}</span>`;
+    receiptEl.appendChild(itemLine);
+    subtotal = Math.round((subtotal + it.price)*100)/100;
+
+    // apply discount if any
+    const disc = getDiscountForItem(it);
+    if (disc.amount > 0){
+      const dLine = document.createElement('div'); dLine.className = 'receipt-line';
+      dLine.innerHTML = `<span>— Discount (${disc.label})</span><span>-£${format(disc.amount)}</span>`;
+      receiptEl.appendChild(dLine);
+      subtotal = Math.round((subtotal - disc.amount)*100)/100;
+    }
+
     statusEl.textContent = 'Added ' + it.name + ' to receipt';
   }
 
@@ -210,21 +278,40 @@ custom_css: |
     cashSlot.textContent = 'Inserted: £' + format(payments);
   }
 
-  function applyRandomDiscount(){
-    if (cart.length === 0) { discountMsg.textContent = 'No items selected.'; return; }
-    // Random 10% discount to one item
-    const i = Math.floor(Math.random() * cart.length);
-    const it = cart[i];
-    const cut = Math.round(it.price * 0.1 * 100)/100;
-    it.price = Math.max(0, Math.round((it.price - cut)*100)/100);
-    subtotal = Math.round(cart.reduce((s,x)=>s+x.price,0)*100)/100;
+  function rebuildReceipt(){
+    subtotal = 0;
     receiptEl.innerHTML = '';
-    cart.forEach(ci=>{
-      const line = document.createElement('div'); line.className = 'receipt-line';
-      line.innerHTML = `<span>${ci.name}</span><span>£${format(ci.price)}</span>`;
-      receiptEl.appendChild(line);
+    cart.forEach(it => {
+      const itemLine = document.createElement('div'); itemLine.className = 'receipt-line';
+      itemLine.innerHTML = `<span>${it.name}</span><span>£${format(it.price)}</span>`;
+      receiptEl.appendChild(itemLine);
+      subtotal = Math.round((subtotal + it.price)*100)/100;
+      const disc = getDiscountForItem(it);
+      if (disc.amount > 0){
+        const dLine = document.createElement('div'); dLine.className = 'receipt-line';
+        dLine.innerHTML = `<span>— Discount (${disc.label})</span><span>-£${format(disc.amount)}</span>`;
+        receiptEl.appendChild(dLine);
+        subtotal = Math.round((subtotal - disc.amount)*100)/100;
+      }
     });
-    discountMsg.textContent = `Discount applied to ${it.name}: -£${format(cut)}`;
+  }
+
+  function applyRandomDiscount(){
+    // Scans add a new discount to a random item on the belt
+    const allItemNames = Array.from(itemsEl.querySelectorAll('.item')).map(el=>el.firstChild.textContent);
+    if (allItemNames.length === 0){ discountMsg.textContent = 'No items on belt.'; return; }
+    const pickName = allItemNames[Math.floor(Math.random()*allItemNames.length)];
+    if (Math.random() < 0.5){
+      const perc = [10,15,20][Math.floor(Math.random()*3)];
+      activeDiscounts.push({ type:'percent', item: pickName, percent: perc });
+      discountMsg.textContent = `Scanner found: ${perc}% off ${pickName}`;
+    } else {
+      const amt = [0.10,0.20,0.50][Math.floor(Math.random()*3)];
+      activeDiscounts.push({ type:'amount', item: pickName, amount: amt });
+      discountMsg.textContent = `Scanner found: £${format(amt)} off ${pickName}`;
+    }
+    renderDiscounts();
+    rebuildReceipt();
   }
 
   function showHint(){
@@ -248,13 +335,19 @@ custom_css: |
     if (payments < due) stars = 1;
     else if (timeTaken > 45) stars = 2;
 
-    statusEl.textContent = `${msg} ⏱️ ${timeTaken}s ⭐ ${'★'.repeat(stars)}${'☆'.repeat(3-stars)}`;
+    if (payments === due){
+      statusEl.textContent = `🎉 CONGRATULATIONS! ${msg} ⏱️ ${timeTaken}s ⭐ ${'★'.repeat(stars)}${'☆'.repeat(3-stars)}`;
+      // Auto-load next order after short delay
+      setTimeout(()=> start(), 1200);
+    } else {
+      statusEl.textContent = `${msg} ⏱️ ${timeTaken}s ⭐ ${'★'.repeat(stars)}${'☆'.repeat(3-stars)}`;
+    }
   }
 
   function start(){
     reset(); spawnItems(); renderCash();
     cashSlot.textContent = 'Insert payment here';
-    statusEl.textContent = 'New order started. Click items to add.';
+    statusEl.textContent = 'New order loaded. Click items to add, then Evaluate.';
     timerStart = performance.now();
   }
 
@@ -285,10 +378,12 @@ custom_css: |
   })();
 
   // Events
-  startBtn.addEventListener('click', start);
+  // start removed
   finishBtn.addEventListener('click', finish);
   // next removed
   checkDiscountBtn.addEventListener('click', applyRandomDiscount);
   helpBtn.addEventListener('click', showHint);
+  // Auto-load first order on page load
+  start();
 })();
 </script>
