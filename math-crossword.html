@@ -1082,8 +1082,8 @@ function canSolvePuzzle(grid, equations, givenPositions) {
 function getDifficultyTargets(difficulty, totalNumbers) {
   // Define difficulty levels - Expert requires serious deduction
   const difficultySettings = {
-    expert: { min: 0.08, max: 0.15, name: 'Expert' },    // Much fewer clues for deduction
-    hard:   { min: 0.18, max: 0.25, name: 'Hard' },     // Reduced from previous
+    expert: { min: 0.03, max: 0.08, name: 'Expert' },    // Ultra minimal clues for serious deduction
+    hard:   { min: 0.15, max: 0.22, name: 'Hard' },     // Reduced from previous
     medium: { min: 0.25, max: 0.35, name: 'Medium' },   // Unchanged
     easy:   { min: 0.35, max: 0.45, name: 'Easy' }      // Slightly more clues
   };
@@ -1237,11 +1237,29 @@ function selectOptimalGivens(grid, equations, difficulty) {
     }
   }
 
-  // For expert level, only proceed if we have enough constraint propagation
+  // For expert level, be more aggressive about accepting minimal puzzles
   if (difficulty === 'expert') {
-    // Expert level requires that we can solve with strict constraints
-    if (canSolvePuzzle(grid, equations, strategicGivens) && !hasAnyIsolatedEquations(grid, equations, strategicGivens)) {
+    // Try to solve with just strategic givens first
+    const hasIsolated = hasAnyIsolatedEquations(grid, equations, strategicGivens);
+    const isSolvable = canSolvePuzzle(grid, equations, strategicGivens);
+
+    // Accept expert puzzle if it's solvable, even if it has some challenges
+    if (isSolvable && strategicGivens.size >= Math.max(2, difficultyTargets.minGivens)) {
       return { givens: strategicGivens, difficulty: difficultyTargets };
+    }
+
+    // For expert, try adding just 1-2 more strategic clues if needed
+    const numCells = getAllNumberCells(grid);
+    const remaining = numCells.filter(cell => !strategicGivens.has(`${cell.r},${cell.c}`));
+    const shuffled = remaining.sort(() => Math.random() - 0.5);
+
+    let expertGivens = new Set([...strategicGivens]);
+    for (let i = 0; i < Math.min(2, shuffled.length); i++) {
+      expertGivens.add(`${shuffled[i].r},${shuffled[i].c}`);
+      if (canSolvePuzzle(grid, equations, expertGivens) &&
+          !isCompleteEquation(grid, equations, expertGivens)) {
+        return { givens: expertGivens, difficulty: difficultyTargets };
+      }
     }
   }
 
@@ -1259,8 +1277,15 @@ function selectOptimalGivens(grid, equations, difficulty) {
     const hasCompleteEquation = isCompleteEquation(grid, equations, currentGivens);
     const hasIsolated = hasAnyIsolatedEquations(grid, equations, currentGivens);
 
-    if (!needsMoreForDifficulty && isSolvable && !hasCompleteEquation && !hasIsolated) {
-      break; // We have enough givens, it's solvable, no complete equations, and no isolated ones
+    // For expert, be much more lenient about solvability requirements
+    if (difficulty === 'expert') {
+      if (isSolvable && currentGivens.size >= difficultyTargets.minGivens && !hasCompleteEquation) {
+        break; // Expert level: accept if solvable with minimal clues, ignore isolated equations
+      }
+    } else {
+      if (!needsMoreForDifficulty && isSolvable && !hasCompleteEquation && !hasIsolated) {
+        break; // Other difficulties: standard requirements
+      }
     }
 
     if (addedIndex < shuffled.length) {
@@ -1277,11 +1302,18 @@ function selectOptimalGivens(grid, equations, difficulty) {
     }
 
     // Stop if we exceed maximum for this difficulty and meet all criteria
-    if (currentGivens.size >= difficultyTargets.maxGivens &&
-        canSolvePuzzle(grid, equations, currentGivens) &&
-        !isCompleteEquation(grid, equations, currentGivens) &&
-        !hasAnyIsolatedEquations(grid, equations, currentGivens)) {
-      break;
+    if (difficulty === 'expert') {
+      // For expert, stop much earlier to keep puzzles challenging
+      if (currentGivens.size >= difficultyTargets.maxGivens && canSolvePuzzle(grid, equations, currentGivens)) {
+        break; // Expert: stop at max limit if solvable, regardless of other criteria
+      }
+    } else {
+      if (currentGivens.size >= difficultyTargets.maxGivens &&
+          canSolvePuzzle(grid, equations, currentGivens) &&
+          !isCompleteEquation(grid, equations, currentGivens) &&
+          !hasAnyIsolatedEquations(grid, equations, currentGivens)) {
+        break;
+      }
     }
   }
 
