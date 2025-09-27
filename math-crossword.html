@@ -306,14 +306,7 @@ custom_css: |
                         <input type="number" id="maxRange" value="20" min="1" max="999" style="width:80px;">
                     </span>
                 </div>
-                <div class="control-group">
-                    <label>Digits:</label>
-                    <select id="digitsSelect">
-                        <option value="auto" selected>Auto</option>
-                        <option value="1">1 digit</option>
-                        <option value="2">2 digits</option>
-                    </select>
-                </div>
+                
 
                 <div class="control-group">
                     <label>Operations:</label>
@@ -364,7 +357,6 @@ const rangePreset=document.getElementById('rangePreset');
 const customRange=document.getElementById('customRange');
 const minRange=document.getElementById('minRange');
 const maxRange=document.getElementById('maxRange');
-const digitsSelect=document.getElementById('digitsSelect');
 const opAdd=document.getElementById('opAdd'), opSub=document.getElementById('opSub');
 const opMul=document.getElementById('opMul'), opDiv=document.getElementById('opDiv');
 const stat=document.getElementById('stat');
@@ -387,7 +379,6 @@ function syncFromCookies(){
   const rangeC=getCookie('mx_range');
   const rangeMinC=getCookie('mx_range_min');
   const rangeMaxC=getCookie('mx_range_max');
-  const digitsC=getCookie('mx_digits');
   const opsC=getCookie('mx_ops');
 
   eqSlider.value = clamp(parseInt(eqC)||4,3,30);    // Start with 4 equations
@@ -404,7 +395,6 @@ function syncFromCookies(){
   } else {
     customRange.style.display='none';
   }
-  digitsSelect.value = digitsC || 'auto';
   eqOut.textContent = eqSlider.value;
 
   // Restore operation settings
@@ -641,10 +631,6 @@ function getNumberRange() {
     min = parseInt(m[1]);
     max = parseInt(m[2]);
   }
-  // Enforce digits setting (if selected)
-  const digits = digitsSelect.value;
-  if(digits==='1'){ min = Math.max(min, 0); max = Math.min(max, 9); }
-  if(digits==='2'){ min = Math.max(min, 10); max = Math.min(max, 99); }
   // Ensure positive non-zero results where needed
   return { min, max };
 }
@@ -673,7 +659,7 @@ function validateEquation(A, B, C, op, range = null) {
 function generateRandomEquation() {
   const operations = getSelectedOperations();
   const range = getNumberRange();
-  const digits = digitsSelect.value;
+  const digits = 'auto';
 
   for (let attempts = 0; attempts < 300; attempts++) {
     const op = operations[Math.floor(Math.random() * operations.length)];
@@ -681,46 +667,38 @@ function generateRandomEquation() {
 
     switch (op) {
       case '+': {
-        // Choose A in range; choose B so that C stays in range
-        A = R(range.min, Math.max(range.min, range.max));
-        const bMax = range.max - A;
-        if (bMax < range.min) continue;
-        B = R(range.min, bMax);
-        // Optional digits enforcement
-        if (digits==='1' && (A>9 || B>9)) continue;
-        if (digits==='2' && (A<10 || B<10)) continue;
+        // Pick operands within selected range; result constraints handled in validateEquation
+        A = R(range.min, range.max);
+        B = R(range.min, range.max);
+        // digits auto: do not clamp operands by digits; rely on range
         C = A + B;
         break; }
 
       case '-': {
-        // Ensure A >= B and all in range
+        // Ensure A >= B and both in range
         A = R(Math.max(range.min, 1), range.max);
-        B = R(range.min, A);
-        if (digits==='1' && (A>9 || B>9)) continue;
-        if (digits==='2' && (A<10 || B<10)) continue;
+        B = R(range.min, range.max);
+        if (B > A) [A, B] = [B, A];
+        // digits auto: do not clamp operands by digits; rely on range
         C = A - B;
-        if (C < range.min || C > range.max) continue;
         break; }
 
       case '×': {
         const maxFactor = Math.min(Math.floor(Math.sqrt(range.max)), 20);
         A = R(2, Math.max(2, maxFactor));
         B = R(2, Math.max(2, maxFactor));
-        if (digits==='1' && (A>9 || B>9)) continue;
-        if (digits==='2' && (A<10 || B<10)) continue;
+        // digits auto: do not clamp operands by digits; rely on range
         C = A * B;
         if (C < range.min || C > range.max) continue;
         break; }
 
       case '÷': {
-        // Generate exact division within range
-        const maxDivisor = Math.min(Math.floor(Math.sqrt(range.max)), 20);
-        B = R(2, Math.max(2, maxDivisor));
-        C = R(Math.max(range.min, 1), Math.max(range.min, Math.floor(range.max / B)));
+        // Generate exact division with operands in range
+        B = R(Math.max(range.min, 2), Math.max(range.min, range.max));
+        C = R(Math.max(range.min, 1), Math.max(range.min, range.max));
         A = B * C;
-        if (A < range.min || A > range.max) continue;
-        if (digits==='1' && (A>9 || B>9 || C>9)) continue;
-        if (digits==='2' && ((A<10 && A!==0) || (B<10 && B!==0) || (C<10 && C!==0))) continue;
+        if (A < 1) continue;
+        // digits auto: do not clamp operands by digits; rely on range
         break; }
     }
 
@@ -1818,7 +1796,6 @@ function saveSettings() {
     setCookie('mx_range_min', minRange.value);
     setCookie('mx_range_max', maxRange.value);
   }
-  setCookie('mx_digits', digitsSelect.value);
   setCookie('mx_ops', JSON.stringify({
     add: opAdd.checked,
     sub: opSub.checked,
@@ -2022,7 +1999,6 @@ rangePreset.addEventListener('change',()=>{
 });
 minRange.addEventListener('input',()=>{saveSettings();});
 maxRange.addEventListener('input',()=>{saveSettings();});
-digitsSelect.addEventListener('change',()=>{saveSettings(); regenerate(false);});
 opAdd.addEventListener('change',()=>{saveSettings(); regenerate(false);});
 opSub.addEventListener('change',()=>{saveSettings(); regenerate(false);});
 opMul.addEventListener('change',()=>{saveSettings(); regenerate(false);});
