@@ -1191,15 +1191,6 @@ function hasAnyIsolatedEquations(grid, equations, givenSet) {
 }
 
 function selectOptimalGivens(grid, equations, difficulty) {
-  const numCells = [];
-  for(let r = 0; r < 24; r++) {
-    for(let c = 0; c < 24; c++) {
-      if(grid[r][c] && grid[r][c].k === 'num') {
-        numCells.push({r, c});
-      }
-    }
-  }
-
   // Get all number cells for difficulty calculation
   const numCells = [];
   for (let r = 0; r < 24; r++) {
@@ -1296,16 +1287,16 @@ function selectOptimalGivens(grid, equations, difficulty) {
     }
 
     // For expert, try adding just 1-2 more strategic clues if needed
-    const allNumberCells = [];
+    const expertNumberCells = [];
     for (let r = 0; r < 24; r++) {
       for (let c = 0; c < 24; c++) {
         if (grid[r] && grid[r][c] && grid[r][c].type === 'number') {
-          allNumberCells.push({r, c});
+          expertNumberCells.push({r, c});
         }
       }
     }
 
-    const remaining = allNumberCells.filter(cell => !strategicGivens.has(`${cell.r},${cell.c}`));
+    const remaining = expertNumberCells.filter(cell => !strategicGivens.has(`${cell.r},${cell.c}`));
     const shuffled = remaining.sort(() => Math.random() - 0.5);
 
     let expertGivens = new Set([...strategicGivens]);
@@ -1325,15 +1316,15 @@ function selectOptimalGivens(grid, equations, difficulty) {
   }
 
   // Add more givens until we reach the minimum for this difficulty
-  const allNumCells = [];
+  const fallbackNumberCells = [];
   for (let r = 0; r < 24; r++) {
     for (let c = 0; c < 24; c++) {
       if (grid[r] && grid[r][c] && grid[r][c].type === 'number') {
-        allNumCells.push({r, c});
+        fallbackNumberCells.push({r, c});
       }
     }
   }
-  const remaining = allNumCells.filter(cell => !strategicGivens.has(`${cell.r},${cell.c}`));
+  const remaining = fallbackNumberCells.filter(cell => !strategicGivens.has(`${cell.r},${cell.c}`));
   const shuffled = remaining.sort(() => Math.random() - 0.5);
 
   let currentGivens = new Set([...strategicGivens]);
