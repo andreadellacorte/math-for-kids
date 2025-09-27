@@ -350,9 +350,43 @@ h1 {
     transform: scale(1.2);
 }
 
+/* Changelog Styles */
+.changelog-entry {
+    background: white;
+    border-radius: 12px;
+    padding: 25px;
+    margin-bottom: 25px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-left: 4px solid #667eea;
+}
+
+.changelog-entry h3 {
+    color: #2d3748;
+    margin-bottom: 15px;
+    font-size: 1.3em;
+}
+
+.changelog-entry ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.changelog-entry li {
+    margin-bottom: 8px;
+    line-height: 1.5;
+}
+
+.changelog-entry strong {
+    color: #4a5568;
+}
+
+.creators {
+    font-weight: 600;
+    color: #667eea;
+}
+
 /* Clean Modern Footer */
 .footer {
-    background: #f8fafc;
     border-top: 1px solid #e2e8f0;
     margin-top: 60px;
     padding: 40px 20px 30px;
@@ -394,14 +428,14 @@ h1 {
     margin: 0 5px;
 }
 
-.email-link, .github-link {
+.email-link, .github-link, .changelog-link {
     color: #4a5568;
     text-decoration: none;
     font-weight: 600;
     transition: color 0.2s ease;
 }
 
-.email-link:hover, .github-link:hover {
+.email-link:hover, .github-link:hover, .changelog-link:hover {
     color: #2d3748;
 }
 
