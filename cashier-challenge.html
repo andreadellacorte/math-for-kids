@@ -1,0 +1,307 @@
+---
+title: "Cashier Challenge - Math Fun for Kids!"
+custom_css: |
+  .cashier-container { background: linear-gradient(135deg,#4f46e5 0%, #3b82f6 100%); border-radius: 20px; padding: 24px; color: white; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+  .layout { display: grid; grid-template-columns: 1.2fr 1.2fr 1fr; gap: 16px; }
+
+  /* Left: Conveyor */
+  .belt { background: rgba(255,255,255,0.12); border-radius: 16px; padding: 14px; backdrop-filter: blur(8px); }
+  .belt-title { font-weight: 800; margin-bottom: 10px; }
+  .items { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .item { background: white; color: #1f2937; border-radius: 12px; padding: 10px; text-align: center; cursor: pointer; border: 2px solid transparent; }
+  .item:hover { border-color: #e5e7eb; transform: translateY(-1px); }
+  .item .price { font-weight: 800; color: #2563eb; }
+  .barcode { font-size: 0.8em; color: #6b7280; }
+
+  /* Center: Register */
+  .register { background: rgba(255,255,255,0.12); border-radius: 16px; padding: 14px; display: grid; grid-template-rows: auto auto 1fr; gap: 12px; }
+  .receipt { background: #fff; color: #1f2937; border-radius: 12px; padding: 12px; height: 200px; overflow-y: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; }
+  .receipt-line { display: flex; justify-content: space-between; }
+  .tools { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .pad, .checker, .help { background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.25); border-radius: 12px; padding: 10px; }
+  .pad-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .pad-btn { background: #fde68a; color: #111827; font-weight: 800; border: none; border-radius: 8px; padding: 10px; cursor: pointer; }
+  .pad-btn.op { background: #dbeafe; }
+  .pad-display { background: #111827; color: #fff; border-radius: 8px; padding: 8px; text-align: right; font-weight: 700; margin-bottom: 6px; }
+  .checker-btn, .help-btn { background: #e2e8f0; color: #1f2937; border: none; border-radius: 8px; padding: 8px 10px; font-weight: 700; cursor: pointer; }
+
+  /* Right: Cash */
+  .cash { background: rgba(255,255,255,0.12); border-radius: 16px; padding: 14px; display: grid; gap: 10px; }
+  .drawer { background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.25); border-radius: 12px; padding: 10px; }
+  .note-row, .coin-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .note, .coin { background: #fff; color: #111827; border-radius: 8px; padding: 6px 8px; font-weight: 800; cursor: pointer; border: 2px solid transparent; }
+  .note:hover, .coin:hover { border-color: #e5e7eb; }
+  .slot { background: #0f172a; color: #fff; border-radius: 10px; padding: 10px; text-align: center; font-weight: 700; }
+  .queue { display: flex; gap: 10px; margin-top: 14px; }
+  .cust { background: rgba(255,255,255,0.15); border-radius: 9999px; padding: 6px 10px; font-weight: 800; }
+
+  .status { background: rgba(255,255,255,0.18); border-radius: 12px; padding: 10px; text-align: center; font-weight: 800; }
+  .actions { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-top: 10px; }
+  .btn { background: #ffd700; color: #111827; border: none; border-radius: 10px; padding: 10px; font-weight: 800; cursor: pointer; }
+  .btn.secondary { background: #e2e8f0; }
+
+  @media (max-width: 1000px) { .layout { grid-template-columns: 1fr; } }
+---
+<div class="container">
+  <div class="header">
+    <a href="index.html" class="back-btn">← Back Home</a>
+    <h1>🧾 Cashier Challenge</h1>
+  </div>
+
+  <div class="cashier-container">
+    <p>Process each customer's order. Click items to add them to the receipt, accept payment, and return correct change. Use tools for help—be quick and accurate!</p>
+
+    <div class="layout">
+      <!-- Left: Conveyor belt with items -->
+      <div class="belt">
+        <div class="belt-title">🛒 Items on Belt</div>
+        <div id="items" class="items"></div>
+      </div>
+
+      <!-- Center: Register -->
+      <div class="register">
+        <div class="receipt" id="receipt"></div>
+        <div class="tools">
+          <div class="pad">
+            <div id="padDisplay" class="pad-display">0.00</div>
+            <div class="pad-grid">
+              <button class="pad-btn">7</button>
+              <button class="pad-btn">8</button>
+              <button class="pad-btn">9</button>
+              <button class="pad-btn op">C</button>
+              <button class="pad-btn">4</button>
+              <button class="pad-btn">5</button>
+              <button class="pad-btn">6</button>
+              <button class="pad-btn op">+</button>
+              <button class="pad-btn">1</button>
+              <button class="pad-btn">2</button>
+              <button class="pad-btn">3</button>
+              <button class="pad-btn op">-</button>
+              <button class="pad-btn">0</button>
+              <button class="pad-btn">.</button>
+              <button class="pad-btn op" style="grid-column: span 2;">=</button>
+            </div>
+          </div>
+          <div class="checker">
+            <div style="font-weight:800; margin-bottom:6px;">🔎 Price Checker</div>
+            <button id="checkDiscountBtn" class="checker-btn">Scan for Discount</button>
+            <div id="discountMsg" style="margin-top:6px; font-weight:700;"></div>
+          </div>
+          <div class="help">
+            <div style="font-weight:800; margin-bottom:6px;">💡 Help</div>
+            <button id="helpBtn" class="help-btn">Show Hint</button>
+            <div id="hintMsg" style="margin-top:6px; font-weight:700;"></div>
+          </div>
+        </div>
+        <div class="status" id="status">Welcome! Click Start to begin.</div>
+        <div class="actions">
+          <button id="startBtn" class="btn">Start</button>
+          <button id="finishBtn" class="btn secondary">Finish Order</button>
+          <button id="nextBtn" class="btn secondary">Next Customer</button>
+        </div>
+      </div>
+
+      <!-- Right: Cash drawer and payment slot -->
+      <div class="cash">
+        <div class="drawer">
+          <div style="font-weight:800; margin-bottom:6px;">💵 Notes</div>
+          <div class="note-row" id="notes"></div>
+          <div style="font-weight:800; margin:8px 0 6px;">🪙 Coins</div>
+          <div class="coin-row" id="coins"></div>
+        </div>
+        <div class="slot" id="cashSlot">Insert payment here</div>
+        <div class="queue" id="queue"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  // Game state
+  const itemsEl = document.getElementById('items');
+  const receiptEl = document.getElementById('receipt');
+  const notesEl = document.getElementById('notes');
+  const coinsEl = document.getElementById('coins');
+  const cashSlot = document.getElementById('cashSlot');
+  const queueEl = document.getElementById('queue');
+  const statusEl = document.getElementById('status');
+  const startBtn = document.getElementById('startBtn');
+  const finishBtn = document.getElementById('finishBtn');
+  const nextBtn = document.getElementById('nextBtn');
+
+  const padDisplay = document.getElementById('padDisplay');
+  const checkDiscountBtn = document.getElementById('checkDiscountBtn');
+  const discountMsg = document.getElementById('discountMsg');
+  const helpBtn = document.getElementById('helpBtn');
+  const hintMsg = document.getElementById('hintMsg');
+
+  let currentCustomer = 0;
+  let cart = [];
+  let selected = null;
+  let subtotal = 0;
+  let payments = 0;
+  let timerStart = 0;
+
+  const NOTE_VALUES = [50, 20, 10, 5];
+  const COIN_VALUES = [2, 1, 0.5, 0.2, 0.1];
+
+  const CATALOG = [
+    { name: 'Milk', price: 1.20, barcode: 'M-001' },
+    { name: 'Bread', price: 0.90, barcode: 'B-002' },
+    { name: 'Eggs', price: 1.80, barcode: 'E-003' },
+    { name: 'Apples', price: 1.10, barcode: 'A-004' },
+    { name: 'Pasta', price: 1.50, barcode: 'P-005' },
+    { name: 'Juice', price: 1.30, barcode: 'J-006' },
+    { name: 'Cereal', price: 2.70, barcode: 'C-007' },
+    { name: 'Cheese', price: 2.10, barcode: 'C-008' },
+    { name: 'Yogurt', price: 0.80, barcode: 'Y-009' }
+  ];
+
+  const CUSTOMERS = [
+    { id: 1, items: ['Milk','Bread','Eggs'] },
+    { id: 2, items: ['Cereal','Apples','Juice','Yogurt'] },
+    { id: 3, items: ['Cheese','Pasta'] }
+  ];
+
+  function format(n){ return n.toFixed(2); }
+
+  function reset(){
+    cart = []; subtotal = 0; payments = 0; selected = null; receiptEl.innerHTML = ''; discountMsg.textContent = ''; hintMsg.textContent = '';
+  }
+
+  function populateQueue(){
+    queueEl.innerHTML='';
+    CUSTOMERS.forEach((c,i)=>{
+      const el = document.createElement('div'); el.className = 'cust'; el.textContent = 'Customer #' + c.id + (i===currentCustomer ? ' (now)' : '');
+      queueEl.appendChild(el);
+    });
+  }
+
+  function spawnItemsForCustomer(idx){
+    const list = CUSTOMERS[idx].items.map(name => CATALOG.find(it=>it.name===name));
+    itemsEl.innerHTML = '';
+    list.forEach((it)=>{
+      const el = document.createElement('div');
+      el.className = 'item';
+      el.innerHTML = `<div>${it.name}</div><div class="price">£${format(it.price)}</div><div class="barcode">${it.barcode}</div>`;
+      el.addEventListener('click', ()=> addItem(it));
+      itemsEl.appendChild(el);
+    });
+  }
+
+  function addItem(it){
+    cart.push(it);
+    subtotal += it.price;
+    const line = document.createElement('div'); line.className = 'receipt-line';
+    line.innerHTML = `<span>${it.name}</span><span>£${format(it.price)}</span>`;
+    receiptEl.appendChild(line);
+    statusEl.textContent = 'Added ' + it.name + ' to receipt';
+  }
+
+  function renderCash(){
+    notesEl.innerHTML = ''; coinsEl.innerHTML = '';
+    NOTE_VALUES.forEach(v=>{
+      const b = document.createElement('button'); b.className = 'note'; b.textContent = '£' + v; b.addEventListener('click', ()=> insertCash(v));
+      notesEl.appendChild(b);
+    });
+    COIN_VALUES.forEach(v=>{
+      const b = document.createElement('button'); b.className = 'coin'; b.textContent = '£' + format(v); b.addEventListener('click', ()=> insertCash(v));
+      coinsEl.appendChild(b);
+    });
+  }
+
+  function insertCash(v){
+    payments = Math.round((payments + v)*100)/100;
+    cashSlot.textContent = 'Inserted: £' + format(payments);
+  }
+
+  function applyRandomDiscount(){
+    if (cart.length === 0) { discountMsg.textContent = 'No items selected.'; return; }
+    // Random 10% discount to one item
+    const i = Math.floor(Math.random() * cart.length);
+    const it = cart[i];
+    const cut = Math.round(it.price * 0.1 * 100)/100;
+    it.price = Math.max(0, Math.round((it.price - cut)*100)/100);
+    subtotal = Math.round(cart.reduce((s,x)=>s+x.price,0)*100)/100;
+    receiptEl.innerHTML = '';
+    cart.forEach(ci=>{
+      const line = document.createElement('div'); line.className = 'receipt-line';
+      line.innerHTML = `<span>${ci.name}</span><span>£${format(ci.price)}</span>`;
+      receiptEl.appendChild(line);
+    });
+    discountMsg.textContent = `Discount applied to ${it.name}: -£${format(cut)}`;
+  }
+
+  function showHint(){
+    if (cart.length===0) { hintMsg.textContent = 'Add items first.'; return; }
+    const due = Math.round(subtotal*100)/100;
+    if (payments < due) { hintMsg.textContent = `You need £${format(due - payments)} more.`; }
+    else { hintMsg.textContent = `Change should be £${format(payments - due)}.`; }
+  }
+
+  function evaluateOrder(){
+    const due = Math.round(subtotal*100)/100;
+    const change = Math.round((payments - due)*100)/100;
+    let msg = `Subtotal £${format(due)}. `;
+    if (payments < due) msg += `Short by £${format(due - payments)}.`;
+    else if (payments === due) msg += 'Exact payment. Great job!';
+    else msg += `Change due £${format(change)}.`;
+
+    // Simple scoring
+    const timeTaken = Math.round((performance.now() - timerStart)/1000);
+    let stars = 3;
+    if (payments < due) stars = 1;
+    else if (timeTaken > 45) stars = 2;
+
+    statusEl.textContent = `${msg} ⏱️ ${timeTaken}s ⭐ ${'★'.repeat(stars)}${'☆'.repeat(3-stars)}`;
+  }
+
+  function start(){
+    reset(); currentCustomer = 0; populateQueue(); spawnItemsForCustomer(currentCustomer); renderCash();
+    statusEl.textContent = 'Customer #' + CUSTOMERS[currentCustomer].id + ' started. Click items to add.';
+    timerStart = performance.now();
+  }
+
+  function finish(){
+    evaluateOrder();
+  }
+
+  function next(){
+    if (currentCustomer < CUSTOMERS.length - 1){
+      currentCustomer++; reset(); populateQueue(); spawnItemsForCustomer(currentCustomer);
+      statusEl.textContent = 'Next customer started.'; timerStart = performance.now();
+      cashSlot.textContent = 'Insert payment here';
+    } else {
+      statusEl.textContent = 'All customers finished! Great work!';
+    }
+  }
+
+  // Pad logic (basic calculator for practice)
+  (function initPad(){
+    let expr = '';
+    padDisplay.textContent = '0.00';
+    document.querySelectorAll('.pad-btn').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const t = btn.textContent.trim();
+        if (t === 'C'){ expr = ''; padDisplay.textContent = '0.00'; return; }
+        if (t === '='){ try{
+          const val = Function('return ' + expr)();
+          padDisplay.textContent = isFinite(val) ? String(val) : 'Err';
+        } catch { padDisplay.textContent = 'Err'; }
+        return; }
+        if (t === '+' || t === '-') { expr += ' ' + t + ' '; }
+        else { expr += t; }
+        padDisplay.textContent = expr;
+      });
+    });
+  })();
+
+  // Events
+  startBtn.addEventListener('click', start);
+  finishBtn.addEventListener('click', finish);
+  nextBtn.addEventListener('click', next);
+  checkDiscountBtn.addEventListener('click', applyRandomDiscount);
+  helpBtn.addEventListener('click', showHint);
+})();
+</script>
