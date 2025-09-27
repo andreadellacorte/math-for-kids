@@ -233,7 +233,8 @@ custom_css: |
 
         /* Page setup - dynamic orientation with minimal margins */
         @page {
-            margin: 10mm 10mm 13.5mm 10mm; /* top right bottom left */
+            /* Add ~5% extra margin to ensure single-page fit */
+            margin: 12mm 12mm 15mm 12mm; /* top right bottom left */
         }
 
         /* Specific orientation rules */
@@ -244,6 +245,8 @@ custom_css: |
         @media print and (orientation: landscape) {
             @page {
                 size: A4 landscape;
+                /* Slightly larger bottom margin for printers */
+                margin: 12mm 12mm 16mm 12mm;
             }
         }
     }
@@ -273,7 +276,7 @@ custom_css: |
 
                 <div class="control-group">
                     <label>Number of equations:</label>
-                    <input id="eqSlider" type="range" min="3" max="20" step="1">
+                    <input id="eqSlider" type="range" min="3" max="30" step="1">
                     <output id="eqOut"></output>
                 </div>
 
@@ -365,7 +368,7 @@ function syncFromCookies(){
   const rangeC=getCookie('mx_range');
   const opsC=getCookie('mx_ops');
 
-  eqSlider.value = clamp(parseInt(eqC)||4,3,20);    // Start with 4 equations
+  eqSlider.value = clamp(parseInt(eqC)||4,3,30);    // Start with 4 equations
   difficultySelect.value = diffC || 'medium';       // Start with medium difficulty
   rangeSelect.value = rangeC || '100';              // Start with 0-100 range
   eqOut.textContent = eqSlider.value;
@@ -556,7 +559,7 @@ function draw(model,givensCount){
   const givenSet=new Set(arr.slice(0,givensCount).map(p=>p.r+','+p.c));
 
   const b=cropBounds(g);
-  const targetPx=760, cell=Math.max(18, Math.floor(targetPx/b.cols));
+  const targetPx=720, cell=Math.max(18, Math.floor(targetPx/b.cols));
   const W=b.cols*cell, H=b.rows*cell;
   svg.setAttribute('viewBox',`0 0 ${W} ${H}`); svg.setAttribute('width',W); svg.setAttribute('height',H);
   svg.innerHTML='';
