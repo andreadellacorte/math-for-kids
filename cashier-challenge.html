@@ -21,7 +21,7 @@ custom_css: |
   .receipt { background: #fff; color: #1f2937; border-radius: 12px; padding: 12px; height: 200px; overflow-y: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; }
   .receipt-line { display: flex; justify-content: space-between; }
   .tools { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .pad, .checker, .help { background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.25); border-radius: 12px; padding: 10px; }
+  .pad, .help { background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.25); border-radius: 12px; padding: 10px; }
   .pad-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
   .pad-btn { background: #fde68a; color: #111827; font-weight: 800; border: none; border-radius: 8px; padding: 10px; cursor: pointer; }
   .pad-btn.op { background: #dbeafe; }
@@ -35,6 +35,10 @@ custom_css: |
   .note, .coin { background: #fff; color: #111827; border-radius: 8px; padding: 6px 8px; font-weight: 800; cursor: pointer; border: 2px solid transparent; }
   .note:hover, .coin:hover { border-color: #e5e7eb; }
   .slot { background: #0f172a; color: #fff; border-radius: 10px; padding: 10px; text-align: center; font-weight: 700; }
+  .inserted-wrap { background: rgba(255,255,255,0.12); border-radius: 10px; padding: 8px; margin-top: 8px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .chip { background: #fff; color: #111827; border-radius: 9999px; padding: 6px 10px; font-weight: 800; cursor: pointer; border: 2px solid transparent; }
+  .chip:hover { border-color: #e5e7eb; }
   /* queue removed */
 
   .status { background: rgba(255,255,255,0.18); border-radius: 12px; padding: 10px; text-align: center; font-weight: 800; }
@@ -88,11 +92,7 @@ custom_css: |
               <button class="pad-btn op" style="grid-column: span 2;">=</button>
             </div>
           </div>
-          <div class="checker">
-            <div style="font-weight:800; margin-bottom:6px;">🔎 Price Checker</div>
-            <button id="checkDiscountBtn" class="checker-btn">Scan for Discount</button>
-            <div id="discountMsg" style="margin-top:6px; font-weight:700;"></div>
-          </div>
+          
           <div class="help">
             <div style="font-weight:800; margin-bottom:6px;">💡 Help</div>
             <button id="helpBtn" class="help-btn">Show Hint</button>
@@ -114,6 +114,10 @@ custom_css: |
           <div class="coin-row" id="coins"></div>
         </div>
         <div class="slot" id="cashSlot">Insert payment here</div>
+        <div class="inserted-wrap">
+          <div style="font-weight:800;">Inserted:</div>
+          <div id="chips" class="chips"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -127,6 +131,7 @@ custom_css: |
   const notesEl = document.getElementById('notes');
   const coinsEl = document.getElementById('coins');
   const cashSlot = document.getElementById('cashSlot');
+  const chipsEl = document.getElementById('chips');
   // queue removed
   const statusEl = document.getElementById('status');
   // start button removed
@@ -134,8 +139,7 @@ custom_css: |
   // next removed
 
   const padDisplay = document.getElementById('padDisplay');
-  const checkDiscountBtn = document.getElementById('checkDiscountBtn');
-  const discountMsg = document.getElementById('discountMsg');
+  // price checker removed
   const helpBtn = document.getElementById('helpBtn');
   const hintMsg = document.getElementById('hintMsg');
   const discountsListEl = document.getElementById('discountsList');
@@ -145,6 +149,7 @@ custom_css: |
   let selected = null;
   let subtotal = 0;
   let payments = 0;
+  let inserted = [];
   let timerStart = 0;
   let activeDiscounts = [];
 
@@ -168,7 +173,7 @@ custom_css: |
   function format(n){ return n.toFixed(2); }
 
   function reset(){
-    cart = []; subtotal = 0; payments = 0; selected = null; receiptEl.innerHTML = ''; discountMsg.textContent = ''; hintMsg.textContent = '';
+    cart = []; subtotal = 0; payments = 0; selected = null; receiptEl.innerHTML = ''; hintMsg.textContent = '';
     activeDiscounts = [];
     if (discountsListEl) discountsListEl.innerHTML = '<div class="discount">No discounts</div>';
   }
@@ -275,7 +280,32 @@ custom_css: |
 
   function insertCash(v){
     payments = Math.round((payments + v)*100)/100;
+    inserted.push(v);
     cashSlot.textContent = 'Inserted: £' + format(payments);
+    renderChips();
+  }
+
+  function renderChips(){
+    chipsEl.innerHTML = '';
+    if (inserted.length === 0){
+      chipsEl.innerHTML = '<div style="opacity:0.7;">—</div>';
+      return;
+    }
+    inserted.forEach((val, idx)=>{
+      const c = document.createElement('button'); c.className = 'chip';
+      c.textContent = '£' + format(val);
+      c.title = 'Remove this';
+      c.addEventListener('click', ()=> removeChip(idx));
+      chipsEl.appendChild(c);
+    });
+  }
+
+  function removeChip(index){
+    const val = inserted[index];
+    inserted.splice(index,1);
+    payments = Math.round((payments - val)*100)/100;
+    cashSlot.textContent = 'Inserted: £' + format(payments);
+    renderChips();
   }
 
   function rebuildReceipt(){
@@ -296,23 +326,7 @@ custom_css: |
     });
   }
 
-  function applyRandomDiscount(){
-    // Scans add a new discount to a random item on the belt
-    const allItemNames = Array.from(itemsEl.querySelectorAll('.item')).map(el=>el.firstChild.textContent);
-    if (allItemNames.length === 0){ discountMsg.textContent = 'No items on belt.'; return; }
-    const pickName = allItemNames[Math.floor(Math.random()*allItemNames.length)];
-    if (Math.random() < 0.5){
-      const perc = [10,15,20][Math.floor(Math.random()*3)];
-      activeDiscounts.push({ type:'percent', item: pickName, percent: perc });
-      discountMsg.textContent = `Scanner found: ${perc}% off ${pickName}`;
-    } else {
-      const amt = [0.10,0.20,0.50][Math.floor(Math.random()*3)];
-      activeDiscounts.push({ type:'amount', item: pickName, amount: amt });
-      discountMsg.textContent = `Scanner found: £${format(amt)} off ${pickName}`;
-    }
-    renderDiscounts();
-    rebuildReceipt();
-  }
+  // price checker removed
 
   function showHint(){
     if (cart.length===0) { hintMsg.textContent = 'Add items first.'; return; }
@@ -381,7 +395,7 @@ custom_css: |
   // start removed
   finishBtn.addEventListener('click', finish);
   // next removed
-  checkDiscountBtn.addEventListener('click', applyRandomDiscount);
+  // price checker removed
   helpBtn.addEventListener('click', showHint);
   // Auto-load first order on page load
   start();
