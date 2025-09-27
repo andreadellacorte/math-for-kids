@@ -1097,18 +1097,31 @@ function getDifficultyTargets(difficulty, totalNumbers) {
 }
 
 function isCompleteEquation(grid, equations, givenSet) {
-  // Check if any equation has all three numbers given (making it trivial)
+  // Check if any equation has ALL its numbers given (making it trivial)
   for (const eq of equations) {
+    const numberPositions = [];
     let givenNumbers = 0;
+
+    // Find all number positions in this equation
     for (let i = 0; i < 5; i += 2) { // Check positions 0, 2, 4 (the numbers)
       const r = eq.across ? eq.row : eq.row + i;
       const c = eq.across ? eq.col + i : eq.col;
-      if (r < 24 && c < 24 && givenSet.has(`${r},${c}`)) {
-        givenNumbers++;
+      if (r < 24 && c < 24) {
+        numberPositions.push({r, c});
+        if (givenSet.has(`${r},${c}`)) {
+          givenNumbers++;
+        }
       }
     }
-    if (givenNumbers >= 3) {
-      return true; // This equation is completely given
+
+    // If ALL numbers in this equation are given, it's complete (trivial)
+    if (numberPositions.length > 0 && givenNumbers === numberPositions.length) {
+      return true;
+    }
+
+    // Also check for equations where 4+ out of 5 numbers are given (nearly complete)
+    if (numberPositions.length >= 4 && givenNumbers >= numberPositions.length - 1) {
+      return true;
     }
   }
   return false;
@@ -1189,53 +1202,77 @@ function selectOptimalGivens(grid, equations, difficulty) {
 
   const difficultyTargets = getDifficultyTargets(difficulty, numCells.length);
 
-  // Start with strategic givens - ensure each equation has at least 2 numbers for solvability
+  // Start with strategic givens - for expert be much more conservative
   const strategicGivens = new Set();
-  for (const eq of equations) {
-    const eqNumbers = [];
-    for (let i = 0; i < 5; i += 2) { // positions 0, 2, 4 are numbers
-      const r = eq.across ? eq.row : eq.row + i;
-      const c = eq.across ? eq.col + i : eq.col;
-      if (r < 24 && c < 24) {
-        eqNumbers.push(`${r},${c}`);
+
+  if (difficulty === 'expert') {
+    // Expert: Only add 1 number per equation to keep it challenging
+    for (const eq of equations) {
+      const eqNumbers = [];
+      for (let i = 0; i < 5; i += 2) { // positions 0, 2, 4 are numbers
+        const r = eq.across ? eq.row : eq.row + i;
+        const c = eq.across ? eq.col + i : eq.col;
+        if (r < 24 && c < 24) {
+          eqNumbers.push(`${r},${c}`);
+        }
+      }
+
+      // Expert: Add only 1 number per equation to start
+      if (eqNumbers.length > 0) {
+        const shuffledNumbers = eqNumbers.sort(() => Math.random() - 0.5);
+        strategicGivens.add(shuffledNumbers[0]);
       }
     }
-
-    // Add at least 2 numbers from each equation to ensure solvability
-    if (eqNumbers.length >= 2) {
-      // Shuffle and take first 2 to ensure each equation is solvable
-      const shuffledNumbers = eqNumbers.sort(() => Math.random() - 0.5);
-      strategicGivens.add(shuffledNumbers[0]);
-      strategicGivens.add(shuffledNumbers[1]);
-    } else if (eqNumbers.length > 0) {
-      // Fallback: add at least one if equation is malformed
-      strategicGivens.add(eqNumbers[0]);
-    }
-  }
-
-  // Ensure no equation has insufficient information (< 2 givens)
-  for (const eq of equations) {
-    const eqNumbers = [];
-    for (let i = 0; i < 5; i += 2) {
-      const r = eq.across ? eq.row : eq.row + i;
-      const c = eq.across ? eq.col + i : eq.col;
-      if (r < 24 && c < 24) {
-        eqNumbers.push(`${r},${c}`);
+  } else {
+    // Other difficulties: Add 2 numbers per equation for solvability
+    for (const eq of equations) {
+      const eqNumbers = [];
+      for (let i = 0; i < 5; i += 2) { // positions 0, 2, 4 are numbers
+        const r = eq.across ? eq.row : eq.row + i;
+        const c = eq.across ? eq.col + i : eq.col;
+        if (r < 24 && c < 24) {
+          eqNumbers.push(`${r},${c}`);
+        }
       }
-    }
 
-    // Count how many givens this equation already has
-    const givenCount = eqNumbers.filter(pos => strategicGivens.has(pos)).length;
-
-    // If less than 2 givens, add more until we have at least 2
-    if (givenCount < 2) {
-      const ungiven = eqNumbers.filter(pos => !strategicGivens.has(pos));
-      const needed = 2 - givenCount;
-      for (let i = 0; i < Math.min(needed, ungiven.length); i++) {
-        strategicGivens.add(ungiven[i]);
+      // Add at least 2 numbers from each equation to ensure solvability
+      if (eqNumbers.length >= 2) {
+        const shuffledNumbers = eqNumbers.sort(() => Math.random() - 0.5);
+        strategicGivens.add(shuffledNumbers[0]);
+        strategicGivens.add(shuffledNumbers[1]);
+      } else if (eqNumbers.length > 0) {
+        strategicGivens.add(eqNumbers[0]);
       }
     }
   }
+
+  // Ensure no equation has insufficient information - but respect expert difficulty
+  if (difficulty !== 'expert') {
+    // Non-expert: Ensure at least 2 givens per equation
+    for (const eq of equations) {
+      const eqNumbers = [];
+      for (let i = 0; i < 5; i += 2) {
+        const r = eq.across ? eq.row : eq.row + i;
+        const c = eq.across ? eq.col + i : eq.col;
+        if (r < 24 && c < 24) {
+          eqNumbers.push(`${r},${c}`);
+        }
+      }
+
+      // Count how many givens this equation already has
+      const givenCount = eqNumbers.filter(pos => strategicGivens.has(pos)).length;
+
+      // If less than 2 givens, add more until we have at least 2
+      if (givenCount < 2) {
+        const ungiven = eqNumbers.filter(pos => !strategicGivens.has(pos));
+        const needed = 2 - givenCount;
+        for (let i = 0; i < Math.min(needed, ungiven.length); i++) {
+          strategicGivens.add(ungiven[i]);
+        }
+      }
+    }
+  }
+  // Expert: Skip this step to keep minimal clues
 
   // For expert level, be more aggressive about accepting minimal puzzles
   if (difficulty === 'expert') {
@@ -1277,10 +1314,15 @@ function selectOptimalGivens(grid, equations, difficulty) {
     const hasCompleteEquation = isCompleteEquation(grid, equations, currentGivens);
     const hasIsolated = hasAnyIsolatedEquations(grid, equations, currentGivens);
 
-    // For expert, be much more lenient about solvability requirements
+    // For expert, be much more strict about complete equations
     if (difficulty === 'expert') {
       if (isSolvable && currentGivens.size >= difficultyTargets.minGivens && !hasCompleteEquation) {
-        break; // Expert level: accept if solvable with minimal clues, ignore isolated equations
+        break; // Expert level: accept if solvable with minimal clues, must not have complete equations
+      }
+      // Expert level: NEVER accept any complete equations, even if isolated
+      if (hasCompleteEquation) {
+        // Force continue to avoid this configuration
+        if (addedIndex >= shuffled.length) break; // Prevent infinite loop
       }
     } else {
       if (!needsMoreForDifficulty && isSolvable && !hasCompleteEquation && !hasIsolated) {
