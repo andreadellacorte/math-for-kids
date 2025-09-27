@@ -1143,7 +1143,9 @@ function isCompleteEquation(grid, equations, givenSet) {
 }
 
 function hasAnyIsolatedEquations(grid, equations, givenSet) {
-  // Check if any equation has only 1 given number with no intersecting constraints
+  // Check and fix equations with insufficient givens to determine a unique solution
+  let foundIssues = false;
+
   for (const eq of equations) {
     const eqPositions = [];
     for (let i = 0; i < 5; i += 2) { // Check positions 0, 2, 4 (the numbers)
@@ -1157,8 +1159,111 @@ function hasAnyIsolatedEquations(grid, equations, givenSet) {
     // Count givens in this equation
     const givenCount = eqPositions.filter(pos => givenSet.has(`${pos.r},${pos.c}`)).length;
 
-    // If only 1 given, check if there are intersecting constraints
-    if (givenCount === 1) {
+    // CRITICAL: Equations need sufficient givens to prevent ambiguity
+    if (givenCount === 0) {
+      foundIssues = true;
+      continue; // No givens = unsolvable, but continue checking other equations
+    }
+
+    // For equations with 3 numbers (A op B = C), having only 1 given can create ambiguity
+    // We need to ensure ALL empty positions have intersecting constraints
+    if (eqPositions.length >= 3 && givenCount === 1) {
+      let emptyPositionsWithConstraints = 0;
+      let totalEmptyPositions = 0;
+
+      for (const pos of eqPositions) {
+        if (!givenSet.has(`${pos.r},${pos.c}`)) {
+          totalEmptyPositions++;
+
+          // Check if this empty position intersects with other equations that have constraints
+          let hasIntersectionConstraint = false;
+          for (const otherEq of equations) {
+            if (otherEq === eq) continue; // Skip same equation
+
+            // Check if this position intersects with the other equation
+            for (let j = 0; j < 5; j += 2) {
+              const otherR = otherEq.across ? otherEq.row : otherEq.row + j;
+              const otherC = otherEq.across ? otherEq.col + j : otherEq.col;
+
+              if (otherR === pos.r && otherC === pos.c) {
+                // Found intersection! Check if other equation has sufficient constraints
+                const otherPositions = [];
+                for (let k = 0; k < 5; k += 2) {
+                  const checkR = otherEq.across ? otherEq.row : otherEq.row + k;
+                  const checkC = otherEq.across ? otherEq.col + k : otherEq.col;
+                  if (checkR < 24 && checkC < 24) {
+                    otherPositions.push(`${checkR},${checkC}`);
+                  }
+                }
+                const otherGivenCount = otherPositions.filter(p => givenSet.has(p)).length;
+                const otherEmptyCount = otherPositions.length - otherGivenCount;
+
+                // The intersecting equation must have enough constraints to determine this value
+                // For a 3-number equation, need at least 2 knowns (including intersections)
+                if (otherGivenCount >= 2 || (otherGivenCount === 1 && otherEmptyCount === 1)) {
+                  hasIntersectionConstraint = true;
+                }
+                break;
+              }
+            }
+            if (hasIntersectionConstraint) break;
+          }
+
+          if (hasIntersectionConstraint) {
+            emptyPositionsWithConstraints++;
+          }
+        }
+      }
+
+      // ALL empty positions must have intersection constraints to prevent ambiguity
+      // Example: "_ - _ = 11" needs both operands constrained by intersections
+      if (totalEmptyPositions > 0 && emptyPositionsWithConstraints < totalEmptyPositions) {
+        // Instead of rejecting, add a strategic given to fix this equation
+        const unconstrainedPositions = [];
+        for (const pos of eqPositions) {
+          if (!givenSet.has(`${pos.r},${pos.c}`)) {
+            // Check if this position lacks intersection constraints
+            let hasConstraint = false;
+            for (const otherEq of equations) {
+              if (otherEq === eq) continue;
+              for (let j = 0; j < 5; j += 2) {
+                const otherR = otherEq.across ? otherEq.row : otherEq.row + j;
+                const otherC = otherEq.across ? otherEq.col + j : otherEq.col;
+                if (otherR === pos.r && otherC === pos.c) {
+                  const otherPositions = [];
+                  for (let k = 0; k < 5; k += 2) {
+                    const checkR = otherEq.across ? otherEq.row : otherEq.row + k;
+                    const checkC = otherEq.across ? otherEq.col + k : otherEq.col;
+                    if (checkR < 24 && checkC < 24) {
+                      otherPositions.push(`${checkR},${checkC}`);
+                    }
+                  }
+                  const otherGivenCount = otherPositions.filter(p => givenSet.has(p)).length;
+                  const otherEmptyCount = otherPositions.length - otherGivenCount;
+                  if (otherGivenCount >= 2 || (otherGivenCount === 1 && otherEmptyCount === 1)) {
+                    hasConstraint = true;
+                    break;
+                  }
+                }
+              }
+              if (hasConstraint) break;
+            }
+            if (!hasConstraint) {
+              unconstrainedPositions.push(`${pos.r},${pos.c}`);
+            }
+          }
+        }
+
+        // Add a given to one of the unconstrained positions to fix the equation
+        if (unconstrainedPositions.length > 0) {
+          givenSet.add(unconstrainedPositions[0]);
+          // Continue checking other equations instead of returning true
+        }
+      }
+    }
+
+    // If only 1 given and equation has 2 numbers, check if there are intersecting constraints
+    if (givenCount === 1 && eqPositions.length === 2) {
       let hasIntersectingConstraints = false;
 
       // Check each number position for intersections with other equations
@@ -1198,11 +1303,11 @@ function hasAnyIsolatedEquations(grid, equations, givenSet) {
 
       // If no intersecting constraints found, this equation is isolated
       if (!hasIntersectingConstraints) {
-        return true;
+        foundIssues = true;
       }
     }
   }
-  return false;
+  return foundIssues;
 }
 
 function selectOptimalGivens(grid, equations, difficulty) {
@@ -1210,7 +1315,7 @@ function selectOptimalGivens(grid, equations, difficulty) {
   const numCells = [];
   for (let r = 0; r < 24; r++) {
     for (let c = 0; c < 24; c++) {
-      if (grid[r] && grid[r][c] && grid[r][c].type === 'number') {
+      if (grid[r] && grid[r][c] && grid[r][c].k === 'num') {
         numCells.push({r, c});
       }
     }
@@ -1218,77 +1323,39 @@ function selectOptimalGivens(grid, equations, difficulty) {
 
   const difficultyTargets = getDifficultyTargets(difficulty, numCells.length);
 
-  // Start with strategic givens - for expert be much more conservative
+  // Start with strategic givens - ALWAYS ensure at least 1 number per equation for unique solutions
   const strategicGivens = new Set();
 
-  if (difficulty === 'expert') {
-    // Expert: Only add 1 number per equation to keep it challenging
-    for (const eq of equations) {
-      const eqNumbers = [];
-      for (let i = 0; i < 5; i += 2) { // positions 0, 2, 4 are numbers
-        const r = eq.across ? eq.row : eq.row + i;
-        const c = eq.across ? eq.col + i : eq.col;
-        if (r < 24 && c < 24) {
-          eqNumbers.push(`${r},${c}`);
-        }
-      }
-
-      // Expert: Add only 1 number per equation to start
-      if (eqNumbers.length > 0) {
-        const shuffledNumbers = eqNumbers.sort(() => Math.random() - 0.5);
-        strategicGivens.add(shuffledNumbers[0]);
+  // Start with minimal strategic givens - let intersections provide constraints
+  for (const eq of equations) {
+    const eqNumbers = [];
+    for (let i = 0; i < 5; i += 2) { // positions 0, 2, 4 are numbers
+      const r = eq.across ? eq.row : eq.row + i;
+      const c = eq.across ? eq.col + i : eq.col;
+      if (r < 24 && c < 24) {
+        eqNumbers.push({pos: `${r},${c}`, index: i});
       }
     }
-  } else {
-    // Other difficulties: Add 2 numbers per equation for solvability
-    for (const eq of equations) {
-      const eqNumbers = [];
-      for (let i = 0; i < 5; i += 2) { // positions 0, 2, 4 are numbers
-        const r = eq.across ? eq.row : eq.row + i;
-        const c = eq.across ? eq.col + i : eq.col;
-        if (r < 24 && c < 24) {
-          eqNumbers.push(`${r},${c}`);
-        }
-      }
 
-      // Add at least 2 numbers from each equation to ensure solvability
-      if (eqNumbers.length >= 2) {
-        const shuffledNumbers = eqNumbers.sort(() => Math.random() - 0.5);
-        strategicGivens.add(shuffledNumbers[0]);
-        strategicGivens.add(shuffledNumbers[1]);
-      } else if (eqNumbers.length > 0) {
-        strategicGivens.add(eqNumbers[0]);
+    if (eqNumbers.length > 0) {
+      // Start with just 1 number per equation - let intersections provide additional constraints
+      const shuffledNumbers = eqNumbers.sort(() => Math.random() - 0.5);
+      strategicGivens.add(shuffledNumbers[0].pos);
+
+      // For easier difficulties, add one more number to some equations
+      if (difficulty === 'easy' && Math.random() < 0.5) {
+        if (eqNumbers.length >= 2) {
+          strategicGivens.add(shuffledNumbers[1].pos);
+        }
+      } else if (difficulty === 'medium' && Math.random() < 0.3) {
+        if (eqNumbers.length >= 2) {
+          strategicGivens.add(shuffledNumbers[1].pos);
+        }
       }
     }
   }
 
-  // Ensure no equation has insufficient information - but respect expert difficulty
-  if (difficulty !== 'expert') {
-    // Non-expert: Ensure at least 2 givens per equation
-    for (const eq of equations) {
-      const eqNumbers = [];
-      for (let i = 0; i < 5; i += 2) {
-        const r = eq.across ? eq.row : eq.row + i;
-        const c = eq.across ? eq.col + i : eq.col;
-        if (r < 24 && c < 24) {
-          eqNumbers.push(`${r},${c}`);
-        }
-      }
-
-      // Count how many givens this equation already has
-      const givenCount = eqNumbers.filter(pos => strategicGivens.has(pos)).length;
-
-      // If less than 2 givens, add more until we have at least 2
-      if (givenCount < 2) {
-        const ungiven = eqNumbers.filter(pos => !strategicGivens.has(pos));
-        const needed = 2 - givenCount;
-        for (let i = 0; i < Math.min(needed, ungiven.length); i++) {
-          strategicGivens.add(ungiven[i]);
-        }
-      }
-    }
-  }
-  // Expert: Skip this step to keep minimal clues
+  // Let intersection-based solving work - don't force additional givens here
 
   // For expert level, be more aggressive about accepting minimal puzzles
   if (difficulty === 'expert') {
@@ -1397,7 +1464,104 @@ function selectOptimalGivens(grid, equations, difficulty) {
     }
   }
 
-  return { givens: currentGivens, difficulty: difficultyTargets };
+  // FINAL SAFETY CHECK: Only add givens for truly isolated equations
+  for (const eq of equations) {
+    const eqNumbers = [];
+    for (let i = 0; i < 5; i += 2) { // positions 0, 2, 4 are numbers
+      const r = eq.across ? eq.row : eq.row + i;
+      const c = eq.across ? eq.col + i : eq.col;
+      if (r < 24 && c < 24) {
+        eqNumbers.push(`${r},${c}`);
+      }
+    }
+
+    // Count givens in this equation
+    const givenCount = eqNumbers.filter(pos => currentGivens.has(pos)).length;
+
+    // Only enforce minimum givens if equation has NO givens at all
+    if (eqNumbers.length > 0 && givenCount === 0) {
+      // Ensure at least 1 given to prevent completely unsolvable equations
+      currentGivens.add(eqNumbers[0]);
+    }
+  }
+
+  // OPTIMIZATION: Remove redundant givens from over-constrained equations
+  // Example: if we have "36 - 14 = 22" with both 36 and 22 given, we can remove 22
+  const optimizedGivens = new Set([...currentGivens]);
+
+  for (const eq of equations) {
+    const eqNumbers = [];
+    for (let i = 0; i < 5; i += 2) { // positions 0, 2, 4 are numbers (A, B, C)
+      const r = eq.across ? eq.row : eq.row + i;
+      const c = eq.across ? eq.col + i : eq.col;
+      if (r < 24 && c < 24) {
+        eqNumbers.push({pos: `${r},${c}`, index: i});
+      }
+    }
+
+    if (eqNumbers.length === 3) { // A op B = C equation
+      const givenPositions = eqNumbers.filter(num => optimizedGivens.has(num.pos));
+
+      // If we have 3 givens (all positions), we can safely remove one
+      if (givenPositions.length === 3) {
+        // Remove the result (position 4 = C) as it's most redundant
+        const resultPos = eqNumbers.find(num => num.index === 4);
+        if (resultPos) {
+          optimizedGivens.delete(resultPos.pos);
+        }
+      }
+      // If we have exactly 2 givens, check if one can be removed due to intersections
+      else if (givenPositions.length === 2) {
+        // For each given position, check if it has strong intersection constraints
+        for (const givenPos of givenPositions) {
+          const [r, c] = givenPos.pos.split(',').map(Number);
+
+          // Count intersections with well-constrained equations
+          let strongIntersections = 0;
+          for (const otherEq of equations) {
+            if (otherEq === eq) continue;
+
+            // Check if this position intersects with the other equation
+            for (let j = 0; j < 5; j += 2) {
+              const otherR = otherEq.across ? otherEq.row : otherEq.row + j;
+              const otherC = otherEq.across ? otherEq.col + j : otherEq.col;
+
+              if (otherR === r && otherC === c) {
+                // Found intersection! Check if other equation is well-constrained
+                const otherPositions = [];
+                for (let k = 0; k < 5; k += 2) {
+                  const checkR = otherEq.across ? otherEq.row : otherEq.row + k;
+                  const checkC = otherEq.across ? otherEq.col + k : otherEq.col;
+                  if (checkR < 24 && checkC < 24) {
+                    otherPositions.push(`${checkR},${checkC}`);
+                  }
+                }
+                const otherGivenCount = otherPositions.filter(p => optimizedGivens.has(p)).length;
+
+                // If the intersecting equation has 2+ givens, it provides strong constraint
+                if (otherGivenCount >= 2) {
+                  strongIntersections++;
+                }
+                break;
+              }
+            }
+          }
+
+          // If this position has strong intersection constraints, we might be able to remove it
+          // But only for non-expert difficulties to avoid making puzzles too hard
+          if (strongIntersections >= 1 && difficulty !== 'expert') {
+            // Prefer removing the result (C) over operands (A, B) for cleaner puzzles
+            if (givenPos.index === 4) { // This is the result position
+              optimizedGivens.delete(givenPos.pos);
+              break; // Only remove one per equation
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return { givens: optimizedGivens, difficulty: difficultyTargets };
 }
 
 function drawSimpleCrossword(model, difficulty) {
