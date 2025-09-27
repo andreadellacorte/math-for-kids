@@ -1,0 +1,2 @@
+- before adding dates, check the current date using bash
+- update changelog as you commit things

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd" xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<url>
+<loc>http://localhost:4000/brain-training</loc>
+</url>
+<url>
+<loc>http://localhost:4000/changelog</loc>
+</url>
+<url>
+<loc>http://localhost:4000/hearing-game</loc>
+</url>
+<url>
+<loc>http://localhost:4000/</loc>
+</url>
+<url>
+<loc>http://localhost:4000/instruments-game</loc>
+</url>
+<url>
+<loc>http://localhost:4000/math-crossword</loc>
+</url>
+<url>
+<loc>http://localhost:4000/music-theory</loc>
+</url>
+<url>
+<loc>http://localhost:4000/music-trivia</loc>
+</url>
+<url>
+<loc>http://localhost:4000/notation-game</loc>
+</url>
+<url>
+<loc>http://localhost:4000/rhythm-game</loc>
+</url>
+</urlset>

@@ -1,0 +1,25 @@
+title: "Math Fun for Kids!"
+description: "Educational math and music games for children"
+baseurl: ""
+url: "https://andreadellacorte.github.io/math-for-kids"
+
+markdown: kramdown
+highlighter: rouge
+permalink: /:basename.html
+
+plugins:
+  - jekyll-feed
+  - jekyll-sitemap
+
+defaults:
+  - scope:
+      path: ""
+      type: "pages"
+    values:
+      layout: "default"
+
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - README.md
+  - vendor/

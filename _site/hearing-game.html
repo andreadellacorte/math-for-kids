@@ -1,160 +1,169 @@
----
-title: "Hearing Game - Music Trivia"
-custom_css: |
-        .hearing-container {
-            max-width: 800px;
-            margin: 0 auto;
-            text-align: center;
-            padding: 20px;
-        }
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hearing Game - Music Trivia</title>
+    <link rel="stylesheet" href="/styles.css">
+    
+    
+        <style>.hearing-container {
+    max-width: 800px;
+    margin: 0 auto;
+    text-align: center;
+    padding: 20px;
+}
 
-        .audio-display {
-            background: #f8f9fa;
-            border: 3px solid #007bff;
-            border-radius: 15px;
-            padding: 40px 20px;
-            margin: 20px 0;
-            min-height: 120px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5em;
-        }
+.audio-display {
+    background: #f8f9fa;
+    border: 3px solid #007bff;
+    border-radius: 15px;
+    padding: 40px 20px;
+    margin: 20px 0;
+    min-height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5em;
+}
 
-        .patterns-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin: 30px 0;
-        }
+.patterns-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin: 30px 0;
+}
 
-        .pattern-option {
-            background: #fff;
-            border: 3px solid #dee2e6;
-            border-radius: 15px;
-            padding: 20px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
-            min-height: 150px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
+.pattern-option {
+    background: #fff;
+    border: 3px solid #dee2e6;
+    border-radius: 15px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    min-height: 150px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
 
-        .pattern-option:hover {
-            border-color: #007bff;
-            transform: translateY(-5px);
-            box-shadow: 0 5px 15px rgba(0, 123, 255, 0.3);
-        }
+.pattern-option:hover {
+    border-color: #007bff;
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0, 123, 255, 0.3);
+}
 
-        .pattern-option.selected {
-            border-color: #007bff;
-            background: #e7f3ff;
-        }
+.pattern-option.selected {
+    border-color: #007bff;
+    background: #e7f3ff;
+}
 
-        .pattern-option.correct {
-            border-color: #28a745;
-            background: #d4edda;
-            color: #155724;
-        }
+.pattern-option.correct {
+    border-color: #28a745;
+    background: #d4edda;
+    color: #155724;
+}
 
-        .pattern-option.incorrect {
-            border-color: #dc3545;
-            background: #f8d7da;
-            color: #721c24;
-        }
+.pattern-option.incorrect {
+    border-color: #dc3545;
+    background: #f8d7da;
+    color: #721c24;
+}
 
-        .pattern-visual {
-            font-size: 2em;
-            margin: 10px 0;
-            font-family: monospace;
-            line-height: 1.2;
-        }
+.pattern-visual {
+    font-size: 2em;
+    margin: 10px 0;
+    font-family: monospace;
+    line-height: 1.2;
+}
 
-        .pattern-label {
-            font-size: 1.1em;
-            font-weight: bold;
-            margin-top: 10px;
-        }
+.pattern-label {
+    font-size: 1.1em;
+    font-weight: bold;
+    margin-top: 10px;
+}
 
-        .sequence-display {
-            background: #e9ecef;
-            border-radius: 10px;
-            padding: 20px;
-            margin: 20px 0;
-            font-size: 1.2em;
-            min-height: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
+.sequence-display {
+    background: #e9ecef;
+    border-radius: 10px;
+    padding: 20px;
+    margin: 20px 0;
+    font-size: 1.2em;
+    min-height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
 
-        .controls {
-            margin: 20px 0;
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
+.controls {
+    margin: 20px 0;
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
 
-        .game-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 15px;
-            margin: 20px 0;
-            max-width: 600px;
-            margin-left: auto;
-            margin-right: auto;
-        }
+.game-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 15px;
+    margin: 20px 0;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
 
-        .stat-card {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 10px;
-            border: 2px solid #dee2e6;
-        }
+.stat-card {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 10px;
+    border: 2px solid #dee2e6;
+}
 
-        .stat-value {
-            font-size: 2em;
-            font-weight: bold;
-            color: #007bff;
-        }
+.stat-value {
+    font-size: 2em;
+    font-weight: bold;
+    color: #007bff;
+}
 
-        .volume-control {
-            margin: 20px 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
+.volume-control {
+    margin: 20px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
 
-        .volume-control input {
-            width: 150px;
-        }
+.volume-control input {
+    width: 150px;
+}
 
-        .note-info {
-            background: #fff3cd;
-            border: 2px solid #ffeaa7;
-            border-radius: 10px;
-            padding: 15px;
-            margin: 20px 0;
-            color: #856404;
-            font-size: 0.9em;
-        }
+.note-info {
+    background: #fff3cd;
+    border: 2px solid #ffeaa7;
+    border-radius: 10px;
+    padding: 15px;
+    margin: 20px 0;
+    color: #856404;
+    font-size: 0.9em;
+}
 
-        @media (max-width: 768px) {
-            .patterns-container {
-                grid-template-columns: 1fr;
-            }
+@media (max-width: 768px) {
+    .patterns-container {
+        grid-template-columns: 1fr;
+    }
 
-            .pattern-visual {
-                font-size: 1.5em;
-            }
-        }
----
-    <div class="container">
+    .pattern-visual {
+        font-size: 1.5em;
+    }
+}
+</style>
+    
+</head>
+<body>
+        <div class="container">
         <div class="header">
             <a href="music-trivia.html" class="back-btn">← Back to Music Trivia</a>
             <h1>👂 Hearing Game</h1>
@@ -548,3 +557,44 @@ custom_css: |
     </script>
 
     </div>
+    <div class="footer">
+    <div class="footer-content">
+        <p class="footer-message">Have fun learning math! 🌟</p>
+        <div class="footer-links">
+            <div class="footer-item">
+                <span>Made with ❤️ by</span>
+                <span class="creators">Andrea & Defne</span>
+            </div>
+            <div class="footer-separator">•</div>
+            
+            <div class="footer-item">
+                <a href="/changelog.html" class="changelog-link">
+                    <span>📝</span>
+                    Changelog
+                </a>
+            </div>
+            <div class="footer-separator">•</div>
+            
+            <div class="footer-item">
+                <a href="mailto:andrea@techinterview.coach" class="email-link">
+                    <span class="email-icon">📧</span>
+                    Contact
+                </a>
+            </div>
+            <div class="footer-separator">•</div>
+            <div class="footer-item">
+                <a href="https://github.com/andreadellacorte/math-for-kids" target="_blank" class="github-link">
+                    <i class="fab fa-github github-icon"></i>
+                    GitHub
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+    <div class="visit-counter">
+    <a href='http://www.freevisitorcounters.com'>freevisitorcounters.com</a>
+    <script type='text/javascript' src='https://www.freevisitorcounters.com/auth.php?id=b1a1886d259ff7d2d67be873ee14dcdda1cdba46'></script>
+    <script type="text/javascript" src="https://www.freevisitorcounters.com/en/home/counter/1397853/t/2"></script>
+</div>
+</body>
+</html>

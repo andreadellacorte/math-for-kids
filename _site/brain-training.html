@@ -1,636 +1,645 @@
----
-title: "Brain Training Speed Math - Math Fun for Kids!"
-custom_css: |
-    .brain-training-container {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border-radius: 20px;
-        padding: 40px;
-        margin-bottom: 30px;
-        color: white;
-        text-align: center;
-    }
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brain Training Speed Math - Math Fun for Kids!</title>
+    <link rel="stylesheet" href="/styles.css">
+    
+    
+        <style>.brain-training-container {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 20px;
+    padding: 40px;
+    margin-bottom: 30px;
+    color: white;
+    text-align: center;
+}
 
-    .game-status {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 30px;
-        flex-wrap: wrap;
-        gap: 20px;
-    }
+.game-status {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+    gap: 20px;
+}
 
-    .timer {
-        background: rgba(255, 255, 255, 0.9);
-        color: #333;
-        padding: 25px 40px;
-        border-radius: 20px;
-        font-size: 3em;
-        font-weight: bold;
-        backdrop-filter: blur(10px);
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
-        border: 4px solid transparent;
-        min-width: 150px;
-    }
+.timer {
+    background: rgba(255, 255, 255, 0.9);
+    color: #333;
+    padding: 25px 40px;
+    border-radius: 20px;
+    font-size: 3em;
+    font-weight: bold;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    border: 4px solid transparent;
+    min-width: 150px;
+}
 
-    .problem-counter, .accuracy {
-        background: rgba(255, 255, 255, 0.2);
-        padding: 15px 25px;
-        border-radius: 15px;
-        font-size: 1.5em;
-        font-weight: bold;
-        backdrop-filter: blur(10px);
-    }
+.problem-counter, .accuracy {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 15px 25px;
+    border-radius: 15px;
+    font-size: 1.5em;
+    font-weight: bold;
+    backdrop-filter: blur(10px);
+}
 
-    .timer.warning {
-        background: rgba(255, 193, 7, 0.9);
-        color: #333;
-        border-color: #ffc107;
-        animation: pulse 1s infinite;
-    }
+.timer.warning {
+    background: rgba(255, 193, 7, 0.9);
+    color: #333;
+    border-color: #ffc107;
+    animation: pulse 1s infinite;
+}
 
-    .timer.danger {
-        background: rgba(220, 53, 69, 0.9);
-        color: white;
-        border-color: #dc3545;
-        animation: pulse 0.5s infinite;
-    }
+.timer.danger {
+    background: rgba(220, 53, 69, 0.9);
+    color: white;
+    border-color: #dc3545;
+    animation: pulse 0.5s infinite;
+}
 
-    @keyframes pulse {
-        0%, 100% { transform: scale(1); }
-        50% { transform: scale(1.05); }
-    }
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
 
+.equations-container {
+    background: white;
+    color: #333;
+    border-radius: 20px;
+    padding: 20px;
+    margin: 30px 0;
+    min-height: 400px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+}
+
+.equation-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 30px;
+    margin: 5px 0;
+    border-radius: 15px;
+    transition: all 0.4s ease;
+    min-height: 60px;
+}
+
+.equation-item.completed {
+    background: rgba(40, 167, 69, 0.1);
+    color: #28a745;
+    opacity: 0.7;
+    transform: scale(0.95);
+}
+
+.equation-item.completed .equation-text {
+    font-size: 1.8em;
+    font-weight: bold;
+}
+
+.equation-item.completed .equation-status {
+    font-size: 2em;
+    color: #28a745;
+}
+
+.equation-item.current {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    transform: scale(1.05);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+    animation: currentPulse 2s ease-in-out infinite;
+}
+
+.equation-item.current .equation-text {
+    font-size: 2.5em;
+    font-weight: bold;
+}
+
+.equation-item.current .equation-status {
+    font-size: 2.5em;
+    animation: currentArrow 1.5s ease-in-out infinite;
+}
+
+.equation-item.future {
+    background: rgba(108, 117, 125, 0.1);
+    color: #6c757d;
+    opacity: 0.6;
+    transform: scale(0.9);
+}
+
+.equation-item.future .equation-text {
+    font-size: 1.6em;
+    font-weight: normal;
+}
+
+.equation-item.future .equation-status {
+    font-size: 1.5em;
+    color: #6c757d;
+}
+
+@keyframes currentPulse {
+    0%, 100% { box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4); }
+    50% { box-shadow: 0 12px 35px rgba(102, 126, 234, 0.6); }
+}
+
+@keyframes currentArrow {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(10px); }
+}
+
+.equation-text {
+    flex: 1;
+    text-align: left;
+}
+
+.equation-status {
+    margin-left: 20px;
+}
+
+.equations-container.transitioning .equation-item {
+    animation: gentleScroll 0.4s ease-out;
+}
+
+@keyframes gentleScroll {
+    0% {
+        transform: translateY(0);
+    }
+    100% {
+        transform: translateY(-10px);
+    }
+}
+
+.keyboard-input {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    align-items: center;
+    margin: 20px 0;
+    flex-wrap: wrap;
+}
+
+.keyboard-input input {
+    font-size: 2em;
+    padding: 15px 20px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-radius: 15px;
+    background: rgba(255, 255, 255, 0.9);
+    color: #333;
+    font-weight: bold;
+    text-align: center;
+    min-width: 150px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.keyboard-input input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+}
+
+.keyboard-input button {
+    font-size: 1.5em;
+    padding: 15px 25px;
+    min-width: 120px;
+}
+
+.answer-options {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    max-width: 500px;
+    margin: 30px auto;
+}
+
+.answer-btn {
+    font-size: 2em;
+    padding: 25px;
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.9);
+    color: #333;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.answer-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+    border-color: #667eea;
+}
+
+.answer-btn.correct {
+    background: #28a745;
+    color: white;
+    border-color: #28a745;
+    animation: correctFlash 0.6s ease;
+}
+
+.answer-btn.incorrect {
+    background: #dc3545;
+    color: white;
+    border-color: #dc3545;
+    animation: incorrectShake 0.6s ease;
+}
+
+.answer-btn.hint {
+    animation: hintShake 1s ease-in-out infinite;
+}
+
+@keyframes correctFlash {
+    0% { background: #28a745; transform: scale(1); }
+    50% { background: #20c997; transform: scale(1.05); }
+    100% { background: #28a745; transform: scale(1); }
+}
+
+@keyframes incorrectShake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+}
+
+@keyframes hintShake {
+    0%, 100% { transform: scale(1) rotate(0deg); border-color: rgba(255, 255, 255, 0.3); }
+    25% { transform: scale(1.02) rotate(-1deg); border-color: #ffd700; }
+    75% { transform: scale(1.02) rotate(1deg); border-color: #ffd700; }
+}
+
+.feedback-overlay {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 4em;
+    font-weight: bold;
+    z-index: 1000;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.feedback-overlay.correct {
+    color: #28a745;
+    animation: feedbackBounce 0.6s ease;
+}
+
+.feedback-overlay.incorrect {
+    color: #dc3545;
+    animation: feedbackShake 0.6s ease;
+}
+
+@keyframes feedbackBounce {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+    50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+}
+
+@keyframes feedbackShake {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+    25% { opacity: 1; transform: translate(-50%, -50%) scale(1.1) rotate(-5deg); }
+    75% { opacity: 1; transform: translate(-50%, -50%) scale(1.1) rotate(5deg); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+}
+
+.game-controls {
+    margin: 30px 0;
+}
+
+.settings-section {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 15px;
+    padding: 25px;
+    margin-bottom: 20px;
+    backdrop-filter: blur(10px);
+}
+
+.settings-section h3 {
+    color: white;
+    font-weight: bold;
+    margin-bottom: 20px;
+    font-size: 1.3em;
+}
+
+.setting-group {
+    margin-bottom: 25px;
+}
+
+.setting-group label {
+    color: white;
+    font-weight: bold;
+    display: block;
+    margin-bottom: 10px;
+    font-size: 1.1em;
+}
+
+.difficulty-buttons {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 10px;
+}
+
+.difficulty-btn {
+    background: rgba(255, 255, 255, 0.9);
+    color: #333;
+    border: 3px solid transparent;
+    padding: 15px 20px;
+    border-radius: 15px;
+    font-size: 1em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+.difficulty-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+.difficulty-btn.selected {
+    background: #ffd700;
+    border-color: #ffed4e;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
+}
+
+.time-selector {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.time-slider {
+    flex: 1;
+    min-width: 200px;
+    height: 8px;
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.3);
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.time-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #ffd700;
+    cursor: pointer;
+    border: 3px solid white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.time-slider::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #ffd700;
+    cursor: pointer;
+    border: 3px solid white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.time-display {
+    background: rgba(255, 255, 255, 0.9);
+    color: #333;
+    padding: 8px 16px;
+    border-radius: 10px;
+    font-weight: bold;
+    font-size: 1.1em;
+    min-width: 80px;
+    text-align: center;
+}
+
+.checkbox-setting, .radio-setting {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 15px 20px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.checkbox-setting:hover, .radio-setting:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.checkbox-setting input[type="checkbox"], .radio-setting input[type="radio"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    transform: scale(1.2);
+}
+
+.checkbox-setting label, .radio-setting label {
+    margin: 0;
+    cursor: pointer;
+    font-size: 1.1em;
+}
+
+.input-mode-group {
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 15px;
+    padding: 15px;
+    margin: 10px 0;
+}
+
+.input-mode-group h4 {
+    margin: 0 0 15px 0;
+    font-size: 1.1em;
+    color: #ffd700;
+    text-align: center;
+}
+
+.start-btn {
+    background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+    color: #333;
+    border: none;
+    padding: 20px 40px;
+    border-radius: 25px;
+    font-size: 1.3em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+.start-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.start-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.results-screen {
+    background: white;
+    color: #333;
+    border-radius: 20px;
+    padding: 40px;
+    margin: 30px 0;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.brain-age {
+    font-size: 3em;
+    font-weight: bold;
+    color: #667eea;
+    margin: 20px 0;
+}
+
+.results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin: 30px 0;
+}
+
+.result-item {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 15px;
+    text-align: center;
+}
+
+.result-item h3 {
+    color: #667eea;
+    margin-bottom: 10px;
+}
+
+.result-value {
+    font-size: 2em;
+    font-weight: bold;
+    color: #333;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+    margin: 20px 0;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #ffd700, #ffed4e);
+    transition: width 0.3s ease;
+}
+
+.hidden {
+    display: none;
+}
+
+@media (max-width: 768px) {
     .equations-container {
-        background: white;
-        color: #333;
-        border-radius: 20px;
-        padding: 20px;
-        margin: 30px 0;
-        min-height: 400px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-        overflow: hidden;
-    }
-
-    .equation-item {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 20px 30px;
-        margin: 5px 0;
-        border-radius: 15px;
-        transition: all 0.4s ease;
-        min-height: 60px;
-    }
-
-    .equation-item.completed {
-        background: rgba(40, 167, 69, 0.1);
-        color: #28a745;
-        opacity: 0.7;
-        transform: scale(0.95);
-    }
-
-    .equation-item.completed .equation-text {
-        font-size: 1.8em;
-        font-weight: bold;
-    }
-
-    .equation-item.completed .equation-status {
-        font-size: 2em;
-        color: #28a745;
-    }
-
-    .equation-item.current {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        transform: scale(1.05);
-        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
-        animation: currentPulse 2s ease-in-out infinite;
+        min-height: 300px;
+        padding: 15px;
     }
 
     .equation-item.current .equation-text {
-        font-size: 2.5em;
-        font-weight: bold;
+        font-size: 2em;
     }
 
-    .equation-item.current .equation-status {
-        font-size: 2.5em;
-        animation: currentArrow 1.5s ease-in-out infinite;
-    }
-
-    .equation-item.future {
-        background: rgba(108, 117, 125, 0.1);
-        color: #6c757d;
-        opacity: 0.6;
-        transform: scale(0.9);
+    .equation-item.completed .equation-text {
+        font-size: 1.4em;
     }
 
     .equation-item.future .equation-text {
-        font-size: 1.6em;
-        font-weight: normal;
-    }
-
-    .equation-item.future .equation-status {
-        font-size: 1.5em;
-        color: #6c757d;
-    }
-
-    @keyframes currentPulse {
-        0%, 100% { box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4); }
-        50% { box-shadow: 0 12px 35px rgba(102, 126, 234, 0.6); }
-    }
-
-    @keyframes currentArrow {
-        0%, 100% { transform: translateX(0); }
-        50% { transform: translateX(10px); }
-    }
-
-    .equation-text {
-        flex: 1;
-        text-align: left;
-    }
-
-    .equation-status {
-        margin-left: 20px;
-    }
-
-    .equations-container.transitioning .equation-item {
-        animation: gentleScroll 0.4s ease-out;
-    }
-
-    @keyframes gentleScroll {
-        0% {
-            transform: translateY(0);
-        }
-        100% {
-            transform: translateY(-10px);
-        }
-    }
-
-    .keyboard-input {
-        display: flex;
-        gap: 15px;
-        justify-content: center;
-        align-items: center;
-        margin: 20px 0;
-        flex-wrap: wrap;
-    }
-
-    .keyboard-input input {
-        font-size: 2em;
-        padding: 15px 20px;
-        border: 3px solid rgba(255, 255, 255, 0.3);
-        border-radius: 15px;
-        background: rgba(255, 255, 255, 0.9);
-        color: #333;
-        font-weight: bold;
-        text-align: center;
-        min-width: 150px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    }
-
-    .keyboard-input input:focus {
-        outline: none;
-        border-color: #667eea;
-        box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
-    }
-
-    .keyboard-input button {
-        font-size: 1.5em;
-        padding: 15px 25px;
-        min-width: 120px;
+        font-size: 1.2em;
     }
 
     .answer-options {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 20px;
-        max-width: 500px;
-        margin: 30px auto;
+        grid-template-columns: 1fr;
+        gap: 15px;
     }
 
     .answer-btn {
-        font-size: 2em;
-        padding: 25px;
-        border: 4px solid rgba(255, 255, 255, 0.3);
-        border-radius: 20px;
-        background: rgba(255, 255, 255, 0.9);
-        color: #333;
-        font-weight: bold;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        font-size: 1.8em;
+        padding: 20px;
     }
 
-    .answer-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
-        border-color: #667eea;
+    .game-status {
+        flex-direction: column;
+        gap: 15px;
     }
 
-    .answer-btn.correct {
-        background: #28a745;
-        color: white;
-        border-color: #28a745;
-        animation: correctFlash 0.6s ease;
+    .timer {
+        font-size: 2.5em;
+        padding: 20px 30px;
     }
 
-    .answer-btn.incorrect {
-        background: #dc3545;
-        color: white;
-        border-color: #dc3545;
-        animation: incorrectShake 0.6s ease;
-    }
-
-    .answer-btn.hint {
-        animation: hintShake 1s ease-in-out infinite;
-    }
-
-    @keyframes correctFlash {
-        0% { background: #28a745; transform: scale(1); }
-        50% { background: #20c997; transform: scale(1.05); }
-        100% { background: #28a745; transform: scale(1); }
-    }
-
-    @keyframes incorrectShake {
-        0%, 100% { transform: translateX(0); }
-        25% { transform: translateX(-10px); }
-        75% { transform: translateX(10px); }
-    }
-
-    @keyframes hintShake {
-        0%, 100% { transform: scale(1) rotate(0deg); border-color: rgba(255, 255, 255, 0.3); }
-        25% { transform: scale(1.02) rotate(-1deg); border-color: #ffd700; }
-        75% { transform: scale(1.02) rotate(1deg); border-color: #ffd700; }
+    .problem-counter, .accuracy {
+        font-size: 1.2em;
+        padding: 10px 20px;
     }
 
     .feedback-overlay {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        font-size: 4em;
-        font-weight: bold;
-        z-index: 1000;
-        pointer-events: none;
-        opacity: 0;
-        transition: opacity 0.3s ease;
+        font-size: 3em;
     }
 
-    .feedback-overlay.correct {
-        color: #28a745;
-        animation: feedbackBounce 0.6s ease;
-    }
-
-    .feedback-overlay.incorrect {
-        color: #dc3545;
-        animation: feedbackShake 0.6s ease;
-    }
-
-    @keyframes feedbackBounce {
-        0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
-        50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
-        100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
-    }
-
-    @keyframes feedbackShake {
-        0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
-        25% { opacity: 1; transform: translate(-50%, -50%) scale(1.1) rotate(-5deg); }
-        75% { opacity: 1; transform: translate(-50%, -50%) scale(1.1) rotate(5deg); }
-        100% { opacity: 0; transform: translate(-50%, -50%) scale(1) rotate(0deg); }
-    }
-
-    .game-controls {
-        margin: 30px 0;
-    }
-
-    .settings-section {
-        background: rgba(255, 255, 255, 0.2);
-        border-radius: 15px;
-        padding: 25px;
-        margin-bottom: 20px;
-        backdrop-filter: blur(10px);
-    }
-
-    .settings-section h3 {
-        color: white;
-        font-weight: bold;
-        margin-bottom: 20px;
-        font-size: 1.3em;
-    }
-
-    .setting-group {
-        margin-bottom: 25px;
-    }
-
-    .setting-group label {
-        color: white;
-        font-weight: bold;
-        display: block;
-        margin-bottom: 10px;
-        font-size: 1.1em;
+    .brain-training-container {
+        padding: 20px;
     }
 
     .difficulty-buttons {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 15px;
-        margin-top: 10px;
+        grid-template-columns: 1fr;
+        gap: 10px;
     }
 
     .difficulty-btn {
-        background: rgba(255, 255, 255, 0.9);
-        color: #333;
-        border: 3px solid transparent;
-        padding: 15px 20px;
-        border-radius: 15px;
-        font-size: 1em;
-        font-weight: bold;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        text-align: center;
+        padding: 12px 15px;
+        font-size: 0.9em;
     }
 
-    .difficulty-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+    .settings-section {
+        padding: 20px;
     }
 
-    .difficulty-btn.selected {
-        background: #ffd700;
-        border-color: #ffed4e;
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
+    .setting-group {
+        margin-bottom: 20px;
     }
 
     .time-selector {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        flex-wrap: wrap;
+        justify-content: center;
+        flex-direction: column;
+        gap: 10px;
     }
 
     .time-slider {
-        flex: 1;
-        min-width: 200px;
-        height: 8px;
-        border-radius: 5px;
-        background: rgba(255, 255, 255, 0.3);
-        outline: none;
-        -webkit-appearance: none;
-        appearance: none;
-    }
-
-    .time-slider::-webkit-slider-thumb {
-        -webkit-appearance: none;
-        appearance: none;
-        width: 24px;
-        height: 24px;
-        border-radius: 50%;
-        background: #ffd700;
-        cursor: pointer;
-        border: 3px solid white;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-    }
-
-    .time-slider::-moz-range-thumb {
-        width: 24px;
-        height: 24px;
-        border-radius: 50%;
-        background: #ffd700;
-        cursor: pointer;
-        border: 3px solid white;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-    }
-
-    .time-display {
-        background: rgba(255, 255, 255, 0.9);
-        color: #333;
-        padding: 8px 16px;
-        border-radius: 10px;
-        font-weight: bold;
-        font-size: 1.1em;
-        min-width: 80px;
-        text-align: center;
+        min-width: 100%;
     }
 
     .checkbox-setting, .radio-setting {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        background: rgba(255, 255, 255, 0.1);
-        padding: 15px 20px;
-        border-radius: 12px;
-        cursor: pointer;
-        transition: all 0.3s ease;
-    }
-
-    .checkbox-setting:hover, .radio-setting:hover {
-        background: rgba(255, 255, 255, 0.2);
-    }
-
-    .checkbox-setting input[type="checkbox"], .radio-setting input[type="radio"] {
-        width: 20px;
-        height: 20px;
-        cursor: pointer;
-        transform: scale(1.2);
+        padding: 12px 15px;
     }
 
     .checkbox-setting label, .radio-setting label {
-        margin: 0;
-        cursor: pointer;
-        font-size: 1.1em;
+        font-size: 1em;
     }
-
-    .input-mode-group {
-        border: 2px solid rgba(255, 255, 255, 0.2);
-        border-radius: 15px;
-        padding: 15px;
-        margin: 10px 0;
-    }
-
-    .input-mode-group h4 {
-        margin: 0 0 15px 0;
-        font-size: 1.1em;
-        color: #ffd700;
-        text-align: center;
-    }
-
-    .start-btn {
-        background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
-        color: #333;
-        border: none;
-        padding: 20px 40px;
-        border-radius: 25px;
-        font-size: 1.3em;
-        font-weight: bold;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
-    }
-
-    .start-btn:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-    }
-
-    .start-btn:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-        transform: none;
-    }
-
-    .results-screen {
-        background: white;
-        color: #333;
-        border-radius: 20px;
-        padding: 40px;
-        margin: 30px 0;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-    }
-
-    .brain-age {
-        font-size: 3em;
-        font-weight: bold;
-        color: #667eea;
-        margin: 20px 0;
-    }
-
-    .results-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 20px;
-        margin: 30px 0;
-    }
-
-    .result-item {
-        background: #f8f9fa;
-        padding: 20px;
-        border-radius: 15px;
-        text-align: center;
-    }
-
-    .result-item h3 {
-        color: #667eea;
-        margin-bottom: 10px;
-    }
-
-    .result-value {
-        font-size: 2em;
-        font-weight: bold;
-        color: #333;
-    }
-
-    .progress-bar {
-        width: 100%;
-        height: 8px;
-        background: rgba(255, 255, 255, 0.3);
-        border-radius: 4px;
-        margin: 20px 0;
-        overflow: hidden;
-    }
-
-    .progress-fill {
-        height: 100%;
-        background: linear-gradient(90deg, #ffd700, #ffed4e);
-        transition: width 0.3s ease;
-    }
-
-    .hidden {
-        display: none;
-    }
-
-    @media (max-width: 768px) {
-        .equations-container {
-            min-height: 300px;
-            padding: 15px;
-        }
-
-        .equation-item.current .equation-text {
-            font-size: 2em;
-        }
-
-        .equation-item.completed .equation-text {
-            font-size: 1.4em;
-        }
-
-        .equation-item.future .equation-text {
-            font-size: 1.2em;
-        }
-
-        .answer-options {
-            grid-template-columns: 1fr;
-            gap: 15px;
-        }
-
-        .answer-btn {
-            font-size: 1.8em;
-            padding: 20px;
-        }
-
-        .game-status {
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .timer {
-            font-size: 2.5em;
-            padding: 20px 30px;
-        }
-
-        .problem-counter, .accuracy {
-            font-size: 1.2em;
-            padding: 10px 20px;
-        }
-
-        .feedback-overlay {
-            font-size: 3em;
-        }
-
-        .brain-training-container {
-            padding: 20px;
-        }
-
-        .difficulty-buttons {
-            grid-template-columns: 1fr;
-            gap: 10px;
-        }
-
-        .difficulty-btn {
-            padding: 12px 15px;
-            font-size: 0.9em;
-        }
-
-        .settings-section {
-            padding: 20px;
-        }
-
-        .setting-group {
-            margin-bottom: 20px;
-        }
-
-        .time-selector {
-            justify-content: center;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .time-slider {
-            min-width: 100%;
-        }
-
-        .checkbox-setting, .radio-setting {
-            padding: 12px 15px;
-        }
-
-        .checkbox-setting label, .radio-setting label {
-            font-size: 1em;
-        }
-    }
----
-    <div class="container">
+}
+</style>
+    
+</head>
+<body>
+        <div class="container">
         <div class="header">
             <a href="index.html" class="back-btn">← Back Home</a>
             <h1>🧠 Brain Training Speed Math</h1>
@@ -1570,3 +1579,44 @@ custom_css: |
     </script>
 
     </div>
+    <div class="footer">
+    <div class="footer-content">
+        <p class="footer-message">Have fun learning math! 🌟</p>
+        <div class="footer-links">
+            <div class="footer-item">
+                <span>Made with ❤️ by</span>
+                <span class="creators">Andrea & Defne</span>
+            </div>
+            <div class="footer-separator">•</div>
+            
+            <div class="footer-item">
+                <a href="/changelog.html" class="changelog-link">
+                    <span>📝</span>
+                    Changelog
+                </a>
+            </div>
+            <div class="footer-separator">•</div>
+            
+            <div class="footer-item">
+                <a href="mailto:andrea@techinterview.coach" class="email-link">
+                    <span class="email-icon">📧</span>
+                    Contact
+                </a>
+            </div>
+            <div class="footer-separator">•</div>
+            <div class="footer-item">
+                <a href="https://github.com/andreadellacorte/math-for-kids" target="_blank" class="github-link">
+                    <i class="fab fa-github github-icon"></i>
+                    GitHub
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+    <div class="visit-counter">
+    <a href='http://www.freevisitorcounters.com'>freevisitorcounters.com</a>
+    <script type='text/javascript' src='https://www.freevisitorcounters.com/auth.php?id=b1a1886d259ff7d2d67be873ee14dcdda1cdba46'></script>
+    <script type="text/javascript" src="https://www.freevisitorcounters.com/en/home/counter/1397853/t/2"></script>
+</div>
+</body>
+</html>
