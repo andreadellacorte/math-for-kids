@@ -324,7 +324,7 @@ custom_css: |
             <!-- Hidden print version using HTML table -->
             <div id="printGrid" style="display: none;"></div>
 
-            <div id="stat" class="crossword-status"></div>
+            <div id="stat" class="crossword-status">Click "Generate New Puzzle" to create a math crossword!</div>
         </div>
     </div>
 
@@ -369,7 +369,7 @@ function syncFromCookies(){
   const rangeC=getCookie('mx_range');
   const opsC=getCookie('mx_ops');
 
-  eqSlider.value = clamp(parseInt(eqC)||4,3,30);    // Start with 4 equations
+  eqSlider.value = clamp(parseInt(eqC)||30,3,30);    // Start with 30 equations
   difficultySelect.value = diffC || 'medium';       // Start with medium difficulty
   if(rangeC){
     rangePreset.value = rangeC;
@@ -807,6 +807,265 @@ function findValidEquationForConstraints(constraints) {
   return generateRandomEquation(); // Fallback
 }
 
+// BACKWARD GENERATION ALGORITHM
+// 1. Generate complete crossword with all numbers filled
+// 2. Strategically remove numbers while maintaining unique solvability
+// 3. Stop when target difficulty percentage is reached
+
+function generateBackwardCrossword(targetEquations, difficulty) {
+  // Step 1: Generate a complete crossword with all numbers visible
+  const fullModel = createRandomCrossword(targetEquations);
+  if (!fullModel) return null;
+
+  // Step 2: Start with all numbers as givens and strategically remove them
+  return optimizeGivensBackward(fullModel, difficulty);
+}
+
+function optimizeGivensBackward(model, difficulty) {
+  const {grid, equations} = model;
+
+  // Start with ALL numbers as givens (complete solution)
+  const allNumberPositions = [];
+  for (let r = 0; r < 24; r++) {
+    for (let c = 0; c < 24; c++) {
+      if (grid[r] && grid[r][c] && grid[r][c].k === 'num') {
+        allNumberPositions.push(`${r},${c}`);
+      }
+    }
+  }
+
+  let currentGivens = new Set(allNumberPositions);
+  const difficultyTargets = getDifficultyTargets(difficulty, allNumberPositions.length);
+
+  // Step 3: Remove numbers strategically until we hit target difficulty
+  let attempts = 0;
+  const maxAttempts = 200; // Prevent infinite loops
+
+  while (currentGivens.size > difficultyTargets.maxGivens && attempts < maxAttempts) {
+    attempts++;
+    const bestRemoval = findBestNumberToRemove(grid, equations, currentGivens);
+
+    if (!bestRemoval) {
+      console.log(`No more removals found at ${currentGivens.size}/${allNumberPositions.length} givens (${Math.round(currentGivens.size/allNumberPositions.length*100)}%)`);
+      break; // Cannot remove any more numbers safely
+    }
+
+    currentGivens.delete(bestRemoval);
+
+    // For expert mode, use mathematical constraint validation instead of full solvability
+    if (difficulty === 'expert') {
+      // Check if removal creates mathematical ambiguity (multiple valid solutions)
+      if (createsMathematicalAmbiguity(grid, equations, currentGivens)) {
+        currentGivens.add(bestRemoval);
+        console.log(`Removed number created mathematical ambiguity at ${currentGivens.size}/${allNumberPositions.length} givens (${Math.round(currentGivens.size/allNumberPositions.length*100)}%)`);
+        break;
+      }
+    } else {
+      // For other difficulties, verify puzzle is still computationally solvable
+      if (!canSolvePuzzle(grid, equations, currentGivens)) {
+        currentGivens.add(bestRemoval);
+        console.log(`Removed number broke solvability at ${currentGivens.size}/${allNumberPositions.length} givens (${Math.round(currentGivens.size/allNumberPositions.length*100)}%)`);
+        break;
+      }
+    }
+  }
+
+  console.log(`Final: ${currentGivens.size}/${allNumberPositions.length} givens (${Math.round(currentGivens.size/allNumberPositions.length*100)}%), target was ${Math.round(difficultyTargets.maxGivens)} (${Math.round(difficultyTargets.maxGivens/allNumberPositions.length*100)}%)`);
+  console.log(`Attempts made: ${attempts}`);
+
+  // Step 4: Final validation to ensure we haven't created any isolated equations
+  const beforeFix = currentGivens.size;
+  currentGivens = fixAnyIsolatedEquations(grid, equations, currentGivens);
+  const afterFix = currentGivens.size;
+
+  if (afterFix > beforeFix) {
+    console.log(`Final validation added ${afterFix - beforeFix} givens back (${beforeFix} -> ${afterFix})`);
+  }
+
+  return {
+    ...model,
+    optimizedGivens: currentGivens
+  };
+}
+
+function findBestNumberToRemove(grid, equations, currentGivens) {
+  const candidates = [];
+
+  // Analyze each given number for removal potential
+  for (const givenPos of currentGivens) {
+    const [r, c] = givenPos.split(',').map(Number);
+    const removalScore = calculateRemovalScore(grid, equations, currentGivens, r, c);
+
+    if (removalScore > 0) {
+      candidates.push({pos: givenPos, score: removalScore, r, c});
+    }
+  }
+
+  if (candidates.length === 0) return null;
+
+  // Sort by removal score (higher = better to remove)
+  candidates.sort((a, b) => b.score - a.score);
+  return candidates[0].pos;
+}
+
+function calculateRemovalScore(grid, equations, currentGivens, r, c) {
+  let score = 0;
+
+  // Find which equation(s) this number belongs to
+  const containingEquations = [];
+  for (const eq of equations) {
+    for (let i = 0; i < 5; i += 2) { // Check positions 0, 2, 4 (numbers)
+      const eqR = eq.across ? eq.row : eq.row + i;
+      const eqC = eq.across ? eq.col + i : eq.col;
+      if (eqR === r && eqC === c) {
+        containingEquations.push({eq, position: i});
+        break;
+      }
+    }
+  }
+
+  for (const {eq, position} of containingEquations) {
+    // Count how many givens this equation currently has
+    const eqPositions = [];
+    for (let i = 0; i < 5; i += 2) {
+      const eqR = eq.across ? eq.row : eq.row + i;
+      const eqC = eq.across ? eq.col + i : eq.col;
+      if (eqR < 24 && eqC < 24) {
+        eqPositions.push(`${eqR},${eqC}`);
+      }
+    }
+
+    const currentEqGivens = eqPositions.filter(pos => currentGivens.has(pos)).length;
+
+    // CRITICAL: Never remove the last given from an equation
+    if (currentEqGivens <= 1) {
+      return 0; // Cannot remove - would create equation with 0 givens
+    }
+
+    // Higher score for removing from over-constrained equations
+    if (currentEqGivens >= 3) {
+      score += 10; // Heavily favor removing from fully-given equations
+    } else if (currentEqGivens === 2) {
+      // Check if this number has intersection constraints
+      const intersectionCount = countIntersectionConstraints(grid, equations, currentGivens, r, c);
+      if (intersectionCount >= 1) {
+        score += 7; // Can remove if constrained by intersections
+      } else {
+        score += 3; // Still consider for removal with weaker constraints
+      }
+    }
+
+    // Prefer removing results over operands for cleaner puzzles
+    if (position === 4) { // Result position
+      score += 2;
+    }
+
+    // Prefer removing larger numbers (they're easier to deduce)
+    const cellValue = parseInt(grid[r][c].ch);
+    if (cellValue > 20) score += 1;
+  }
+
+  return score;
+}
+
+function countIntersectionConstraints(grid, equations, currentGivens, r, c) {
+  let count = 0;
+
+  for (const eq of equations) {
+    // Check if this position intersects with this equation
+    for (let i = 0; i < 5; i += 2) {
+      const eqR = eq.across ? eq.row : eq.row + i;
+      const eqC = eq.across ? eq.col + i : eq.col;
+
+      if (eqR === r && eqC === c) {
+        // Found intersection! Check if this equation provides constraints
+        const eqPositions = [];
+        for (let j = 0; j < 5; j += 2) {
+          const checkR = eq.across ? eq.row : eq.row + j;
+          const checkC = eq.across ? eq.col + j : eq.col;
+          if (checkR < 24 && checkC < 24) {
+            eqPositions.push(`${checkR},${checkC}`);
+          }
+        }
+
+        const eqGivens = eqPositions.filter(pos => currentGivens.has(pos)).length;
+        if (eqGivens >= 2) {
+          count++;
+        }
+        break;
+      }
+    }
+  }
+
+  return count;
+}
+
+function fixAnyIsolatedEquations(grid, equations, currentGivens) {
+  const fixedGivens = new Set([...currentGivens]);
+  let fixes = 0;
+
+  for (const eq of equations) {
+    const eqPositions = [];
+    for (let i = 0; i < 5; i += 2) {
+      const r = eq.across ? eq.row : eq.row + i;
+      const c = eq.across ? eq.col + i : eq.col;
+      if (r < 24 && c < 24) {
+        eqPositions.push(`${r},${c}`);
+      }
+    }
+
+    const givenCount = eqPositions.filter(pos => fixedGivens.has(pos)).length;
+
+    // Only fix truly unsolvable cases - be very conservative for expert puzzles
+    if (givenCount === 0) {
+      fixedGivens.add(eqPositions[0]);
+      fixes++;
+      console.log(`Fixed equation with 0 givens (fix #${fixes})`);
+    } else if (givenCount === 1 && eqPositions.length >= 3) {
+      // For expert mode, be extremely conservative - only fix if ALL empty positions are completely isolated
+      let completelyIsolatedCount = 0;
+
+      for (const pos of eqPositions) {
+        if (!fixedGivens.has(pos)) {
+          const [r, c] = pos.split(',').map(Number);
+
+          // Check if this position has ANY intersection at all
+          let hasAnyIntersection = false;
+          for (const otherEq of equations) {
+            if (otherEq === eq) continue;
+            for (let j = 0; j < 5; j += 2) {
+              const otherR = otherEq.across ? otherEq.row : otherEq.row + j;
+              const otherC = otherEq.across ? otherEq.col + j : otherEq.col;
+              if (otherR === r && otherC === c) {
+                hasAnyIntersection = true;
+                break;
+              }
+            }
+            if (hasAnyIntersection) break;
+          }
+
+          if (!hasAnyIntersection) {
+            completelyIsolatedCount++;
+          }
+        }
+      }
+
+      // Only fix if ALL empty positions are completely isolated (extremely rare case)
+      if (completelyIsolatedCount === eqPositions.length - givenCount) {
+        const ungiven = eqPositions.filter(pos => !fixedGivens.has(pos));
+        if (ungiven.length > 0) {
+          fixedGivens.add(ungiven[0]);
+          fixes++;
+          console.log(`Fixed equation with ${completelyIsolatedCount} completely isolated positions (fix #${fixes})`);
+        }
+      }
+    }
+  }
+
+  console.log(`Final validation made ${fixes} fixes total`);
+  return fixedGivens;
+}
+
 function createRandomCrossword(numEquations) {
   const grid = Array.from({length: 24}, () => Array(24).fill(null));
   const equations = [];
@@ -1002,15 +1261,94 @@ function canSolvePuzzle(grid, equations, givenPositions) {
     }
   }
 
-  // Try to solve using constraint propagation
-  let changed = true;
-  let iterations = 0;
-  const maxIterations = 50;
+  // Enhanced solving with multiple passes and techniques
+  let globalChanged = true;
+  let globalIterations = 0;
+  const maxGlobalIterations = 10;
 
-  while (changed && iterations < maxIterations) {
-    changed = false;
-    iterations++;
+  while (globalChanged && globalIterations < maxGlobalIterations) {
+    globalChanged = false;
+    globalIterations++;
 
+    // Pass 1: Basic constraint propagation (equations with 2 knowns)
+    let changed = true;
+    let iterations = 0;
+    const maxIterations = 20;
+
+    while (changed && iterations < maxIterations) {
+      changed = false;
+      iterations++;
+
+      for (const eq of equations) {
+        const cells = [];
+        for (let i = 0; i < 5; i++) {
+          const r = eq.across ? eq.row : eq.row + i;
+          const c = eq.across ? eq.col + i : eq.col;
+          if (r < 24 && c < 24 && solveGrid[r][c]) {
+            cells.push({r, c, cell: solveGrid[r][c], pos: i});
+          }
+        }
+
+        if (cells.length === 5) {
+          const numCells = cells.filter(cell => cell.cell.k === 'num');
+          const opCell = cells.find(cell => cell.cell.k === 'op');
+
+          if (opCell && numCells.length >= 2) {
+            const knownValues = {};
+            const unknownPositions = [];
+
+            for (const numCell of numCells) {
+              if (numCell.cell.ch !== null) {
+                knownValues[numCell.pos] = parseInt(numCell.cell.ch);
+              } else {
+                unknownPositions.push(numCell.pos);
+              }
+            }
+
+            // If we have 2 known values, we can deduce the third
+            if (Object.keys(knownValues).length === 2 && unknownPositions.length === 1) {
+              const op = opCell.cell.ch;
+              const unknownPos = unknownPositions[0];
+              let deducedValue = null;
+
+              if (unknownPos === 0) { // Deduce A
+                const B = knownValues[2];
+                const C = knownValues[4];
+                if (op === '+') deducedValue = C - B;
+                else if (op === '-') deducedValue = C + B;
+                else if (op === '×') deducedValue = B !== 0 ? C / B : null;
+                else if (op === '÷') deducedValue = C * B;
+              } else if (unknownPos === 2) { // Deduce B
+                const A = knownValues[0];
+                const C = knownValues[4];
+                if (op === '+') deducedValue = C - A;
+                else if (op === '-') deducedValue = A - C;
+                else if (op === '×') deducedValue = A !== 0 ? C / A : null;
+                else if (op === '÷') deducedValue = A !== 0 ? A / C : null;
+              } else if (unknownPos === 4) { // Deduce C
+                const A = knownValues[0];
+                const B = knownValues[2];
+                if (op === '+') deducedValue = A + B;
+                else if (op === '-') deducedValue = A - B;
+                else if (op === '×') deducedValue = A * B;
+                else if (op === '÷') deducedValue = B !== 0 ? A / B : null;
+              }
+
+              if (deducedValue !== null && deducedValue > 0 && deducedValue <= 99 && Number.isInteger(deducedValue)) {
+                const targetCell = cells.find(cell => cell.pos === unknownPos);
+                if (targetCell && targetCell.cell.ch === null) {
+                  targetCell.cell.ch = String(deducedValue);
+                  changed = true;
+                  globalChanged = true;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Pass 2: Advanced constraint analysis (single constraints with intersection analysis)
     for (const eq of equations) {
       const cells = [];
       for (let i = 0; i < 5; i++) {
@@ -1022,11 +1360,10 @@ function canSolvePuzzle(grid, equations, givenPositions) {
       }
 
       if (cells.length === 5) {
-        // Try to deduce missing values
         const numCells = cells.filter(cell => cell.cell.k === 'num');
         const opCell = cells.find(cell => cell.cell.k === 'op');
 
-        if (opCell && numCells.length >= 2) {
+        if (opCell && numCells.length >= 1) {
           const knownValues = {};
           const unknownPositions = [];
 
@@ -1038,40 +1375,18 @@ function canSolvePuzzle(grid, equations, givenPositions) {
             }
           }
 
-          // If we have 2 known values, we can deduce the third
-          if (Object.keys(knownValues).length === 2 && unknownPositions.length === 1) {
-            const op = opCell.cell.ch;
-            const unknownPos = unknownPositions[0];
-            let deducedValue = null;
+          // Advanced: Try to solve with 1 known + intersection constraints
+          if (Object.keys(knownValues).length === 1 && unknownPositions.length === 2) {
+            // Try to deduce one unknown from intersection constraints
+            for (const unknownPos of unknownPositions) {
+              const cell = cells.find(c => c.pos === unknownPos);
+              const possibleValues = getPossibleValuesFromIntersections(solveGrid, equations, cell.r, cell.c);
 
-            if (unknownPos === 0) { // Deduce A
-              const B = knownValues[2];
-              const C = knownValues[4];
-              if (op === '+') deducedValue = C - B;
-              else if (op === '-') deducedValue = C + B;
-              else if (op === '×') deducedValue = B !== 0 ? C / B : null;
-              else if (op === '÷') deducedValue = C * B;
-            } else if (unknownPos === 2) { // Deduce B
-              const A = knownValues[0];
-              const C = knownValues[4];
-              if (op === '+') deducedValue = C - A;
-              else if (op === '-') deducedValue = A - C;
-              else if (op === '×') deducedValue = A !== 0 ? C / A : null;
-              else if (op === '÷') deducedValue = A !== 0 ? A / C : null;
-            } else if (unknownPos === 4) { // Deduce C
-              const A = knownValues[0];
-              const B = knownValues[2];
-              if (op === '+') deducedValue = A + B;
-              else if (op === '-') deducedValue = A - B;
-              else if (op === '×') deducedValue = A * B;
-              else if (op === '÷') deducedValue = B !== 0 ? A / B : null;
-            }
-
-            if (deducedValue !== null && deducedValue > 0 && deducedValue <= 99 && Number.isInteger(deducedValue)) {
-              const targetCell = cells.find(cell => cell.pos === unknownPos);
-              if (targetCell && targetCell.cell.ch === null) {
-                targetCell.cell.ch = String(deducedValue);
-                changed = true;
+              if (possibleValues && possibleValues.length === 1) {
+                // Only one possible value from intersections - use it
+                cell.cell.ch = String(possibleValues[0]);
+                globalChanged = true;
+                break; // Process one at a time
               }
             }
           }
@@ -1092,6 +1407,152 @@ function canSolvePuzzle(grid, equations, givenPositions) {
   }
 
   return true; // Puzzle is solvable
+}
+
+function getPossibleValuesFromIntersections(solveGrid, equations, targetR, targetC) {
+  // Find intersecting equations that constrain this position
+  const possibleValues = [];
+  const range = getNumberRange();
+
+  for (let testValue = range.min; testValue <= range.max; testValue++) {
+    let isValid = true;
+
+    // Test if this value would be consistent with all intersecting equations
+    for (const eq of equations) {
+      let isInThisEquation = false;
+      let positionInEquation = -1;
+
+      // Check if this position is part of this equation
+      for (let i = 0; i < 5; i += 2) {
+        const eqR = eq.across ? eq.row : eq.row + i;
+        const eqC = eq.across ? eq.col + i : eq.col;
+        if (eqR === targetR && eqC === targetC) {
+          isInThisEquation = true;
+          positionInEquation = i;
+          break;
+        }
+      }
+
+      if (isInThisEquation) {
+        // This equation contains our target position
+        const eqCells = [];
+        for (let i = 0; i < 5; i++) {
+          const eqR = eq.across ? eq.row : eq.row + i;
+          const eqC = eq.across ? eq.col + i : eq.col;
+          if (eqR < 24 && eqC < 24 && solveGrid[eqR][eqC]) {
+            eqCells.push({r: eqR, c: eqC, cell: solveGrid[eqR][eqC], pos: i});
+          }
+        }
+
+        if (eqCells.length === 5) {
+          const numCells = eqCells.filter(cell => cell.cell.k === 'num');
+          const opCell = eqCells.find(cell => cell.cell.k === 'op');
+
+          if (opCell && numCells.length === 3) {
+            // Build equation with test value
+            const values = {};
+            let hasUnknowns = false;
+
+            for (const numCell of numCells) {
+              if (numCell.r === targetR && numCell.c === targetC) {
+                values[numCell.pos] = testValue;
+              } else if (numCell.cell.ch !== null) {
+                values[numCell.pos] = parseInt(numCell.cell.ch);
+              } else {
+                hasUnknowns = true;
+              }
+            }
+
+            // If we have at least 2 values (including our test), check equation validity
+            if (Object.keys(values).length >= 2 && !hasUnknowns) {
+              const A = values[0];
+              const B = values[2];
+              const C = values[4];
+              const op = opCell.cell.ch;
+
+              if (A !== undefined && B !== undefined && C !== undefined) {
+                if (!evalOk(A, op, B, C)) {
+                  isValid = false;
+                  break;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    if (isValid) {
+      possibleValues.push(testValue);
+    }
+  }
+
+  return possibleValues;
+}
+
+function createsMathematicalAmbiguity(grid, equations, givenPositions) {
+  // Ultra-permissive validation for expert mode - only prevent extreme mathematical impossibilities
+
+  for (const eq of equations) {
+    const eqPositions = [];
+    for (let i = 0; i < 5; i += 2) { // positions 0, 2, 4 are numbers
+      const r = eq.across ? eq.row : eq.row + i;
+      const c = eq.across ? eq.col + i : eq.col;
+      if (r < 24 && c < 24) {
+        eqPositions.push({r, c, pos: i});
+      }
+    }
+
+    const givenCount = eqPositions.filter(pos => givenPositions.has(`${pos.r},${pos.c}`)).length;
+
+    // ONLY prevent truly impossible cases
+    if (givenCount === 0) {
+      console.log('Mathematical ambiguity: equation with 0 givens');
+      return true; // No constraints = infinite solutions
+    }
+
+    // For expert mode, be extremely permissive - trust human reasoning abilities
+    // Only flag the most extreme case: equation with 1 given where BOTH other numbers
+    // have absolutely NO intersections with ANY other equations
+    if (eqPositions.length >= 3 && givenCount === 1) {
+      let completelyIsolatedCount = 0;
+
+      for (const pos of eqPositions) {
+        if (!givenPositions.has(`${pos.r},${pos.c}`)) {
+          // Check if this position has ANY intersection at all
+          let hasAnyIntersection = false;
+
+          for (const otherEq of equations) {
+            if (otherEq === eq) continue;
+
+            for (let j = 0; j < 5; j += 2) {
+              const otherR = otherEq.across ? otherEq.row : otherEq.row + j;
+              const otherC = otherEq.across ? otherEq.col + j : otherEq.col;
+
+              if (otherR === pos.r && otherC === pos.c) {
+                hasAnyIntersection = true;
+                break;
+              }
+            }
+            if (hasAnyIntersection) break;
+          }
+
+          if (!hasAnyIntersection) {
+            completelyIsolatedCount++;
+          }
+        }
+      }
+
+      // For ultra-expert mode, only flag if ALL empty positions are completely isolated
+      // This is extremely rare and represents true mathematical impossibility
+      if (completelyIsolatedCount === eqPositions.length - givenCount && completelyIsolatedCount >= 2) {
+        console.log(`Mathematical ambiguity: equation with ALL ${completelyIsolatedCount} empty positions completely isolated`);
+        return true;
+      }
+    }
+  }
+
+  return false; // Trust human reasoning for everything else
 }
 
 function getDifficultyTargets(difficulty, totalNumbers) {
@@ -1564,6 +2025,103 @@ function selectOptimalGivens(grid, equations, difficulty) {
   return { givens: optimizedGivens, difficulty: difficultyTargets };
 }
 
+function drawCompletedCrossword(model, difficulty) {
+  const {grid, equations, optimizedGivens} = model;
+
+  // Use the optimized givens from backward generation
+  const givenSet = optimizedGivens || new Set();
+
+  // Find bounds of used cells to crop the display
+  const usedCells = [];
+  for(let r = 0; r < 24; r++) {
+    for(let c = 0; c < 24; c++) {
+      if(grid[r][c]) {
+        usedCells.push({r, c});
+      }
+    }
+  }
+
+  const minR = Math.min(...usedCells.map(p => p.r));
+  const maxR = Math.max(...usedCells.map(p => p.r));
+  const minC = Math.min(...usedCells.map(p => p.c));
+  const maxC = Math.max(...usedCells.map(p => p.c));
+
+  const gridRows = maxR - minR + 1;
+  const gridCols = maxC - minC + 1;
+
+  // Use smaller cell size for better overview of the whole puzzle
+  const cellSize = Math.min(32, Math.floor(320 / Math.max(gridRows, gridCols))); // 20% smaller: 40->32, 400->320
+  const W = gridCols * cellSize;
+  const H = gridRows * cellSize;
+
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.setAttribute('width', W);
+  svg.setAttribute('height', H);
+  svg.innerHTML = '';
+
+  // Draw grid
+  for(let r = minR; r <= maxR; r++) {
+    for(let c = minC; c <= maxC; c++) {
+      const x = (c - minC) * cellSize;
+      const y = (r - minR) * cellSize;
+      const cell = grid[r][c];
+
+      if(cell) {
+        // Draw cell background
+        svg.appendChild(t('rect', {
+          x, y, width: cellSize, height: cellSize,
+          fill: '#fff', stroke: '#000', 'stroke-width': 2
+        }));
+
+        // Draw text
+        let text = cell.ch;
+        if(cell.k === 'num' && !ans.checked) {
+          text = givenSet.has(`${r},${c}`) ? cell.ch : '';
+        }
+
+        const fontSize = Math.max(12, text.length >= 2 ? cellSize * 0.5 : cellSize * 0.7);
+        const textEl = t('text', {
+          x: x + cellSize/2,
+          y: y + cellSize/2 + fontSize/4,
+          'text-anchor': 'middle',
+          'dominant-baseline': 'middle',
+          'font-size': fontSize,
+          'font-family': 'Arial, sans-serif',
+          'font-weight': 'bold'
+        });
+        textEl.textContent = text;
+        svg.appendChild(textEl);
+      }
+    }
+  }
+
+  // Draw border
+  svg.appendChild(t('rect', {
+    x: 0, y: 0, width: W, height: H,
+    fill: 'none', stroke: '#000', 'stroke-width': 3
+  }));
+
+  // Hide SVG and generate colorful HTML version for screen
+  document.getElementById('grid').style.display = 'none';
+
+  // Generate colorful screen and print versions
+  generateScreenVersion(grid, givenSet, minR, maxR, minC, maxC);
+  generatePrintVersion(grid, givenSet, minR, maxR, minC, maxC);
+
+  // Count number cells for stats
+  const numCells = [];
+  for(let r = 0; r < 24; r++) {
+    for(let c = 0; c < 24; c++) {
+      if(grid[r][c] && grid[r][c].k === 'num') {
+        numCells.push({r, c});
+      }
+    }
+  }
+
+  const difficultyTargets = getDifficultyTargets(difficulty, numCells.length);
+  return {numTotal: numCells.length, actualGivens: givenSet.size, difficulty: difficultyTargets};
+}
+
 function drawSimpleCrossword(model, difficulty) {
   const {grid, equations} = model;
 
@@ -1772,8 +2330,8 @@ function generateScreenVersion(grid, givenSet, minR, maxR, minC, maxC) {
   const container = document.createElement('div');
   container.className = 'print-grid';
 
-  // Calculate container size
-  const cellSize = 50;
+  // Calculate container size - smaller for better overview (20% smaller: 30->24)
+  const cellSize = 24;
   const gridWidth = (maxC - minC + 1) * cellSize;
   const gridHeight = (maxR - minR + 1) * cellSize;
   container.style.width = gridWidth + 'px';
@@ -1791,13 +2349,13 @@ function generateScreenVersion(grid, givenSet, minR, maxR, minC, maxC) {
         cell.className = 'print-cell screen-view';
 
         // Position the cell
-        const x = (c - minC) * colorCellSize;
-        const y = (r - minR) * colorCellSize;
+        const x = (c - minC) * cellSize;
+        const y = (r - minR) * cellSize;
         cell.style.left = x + 'px';
         cell.style.top = y + 'px';
-        cell.style.width = '50px';
-        cell.style.height = '50px';
-        cell.style.fontSize = '18px';
+        cell.style.width = cellSize + 'px';
+        cell.style.height = cellSize + 'px';
+        cell.style.fontSize = Math.floor(cellSize * 0.6) + 'px';
 
         // Add border classes for cells that need right/bottom borders
         // Check if there's no cell to the right
@@ -1873,7 +2431,8 @@ function generatePrintVersion(grid, givenSet, minR, maxR, minC, maxC) {
   const landscapeCellSize = Math.min(landscapeCellSizeByWidth, landscapeCellSizeByHeight);
 
   // Use the orientation that gives larger cells - maximize A4 usage for print
-  const printCellSize = Math.max(portraitCellSize, landscapeCellSize, 25); // Larger minimum for print
+  // Reduce print size by 10%
+  const printCellSize = Math.max(Math.floor(portraitCellSize * 0.9), Math.floor(landscapeCellSize * 0.9), 23); // 10% smaller print
   const usePortrait = portraitCellSize >= landscapeCellSize;
 
   // Store the orientation decision and print cell size
@@ -1944,31 +2503,59 @@ function saveSettings() {
 }
 
 function regenerate(printAfter=false){
-  stat.textContent='Generating puzzle...';
-  const numEquations = parseInt(eqSlider.value) || 4;
-  const difficulty = difficultySelect.value || 'medium';
+  // Show immediate feedback
+  stat.textContent='🔄 Generating puzzle...';
+  stat.style.background = '#fff3cd';
+  stat.style.color = '#856404';
+  stat.style.border = '2px solid #ffeeba';
 
-  // Check if at least one operation is selected
-  const selectedOps = getSelectedOperations();
-  if (selectedOps.length === 0) {
-    stat.textContent = '⚠️ Please select at least one operation!';
-    return;
-  }
+  // Use setTimeout to ensure UI updates immediately
+  setTimeout(() => {
+    const numEquations = parseInt(eqSlider.value) || 30;
+    const difficulty = difficultySelect.value || 'medium';
 
-  saveSettings();
+    // Check if at least one operation is selected
+    const selectedOps = getSelectedOperations();
+    if (selectedOps.length === 0) {
+      stat.textContent = '⚠️ Please select at least one operation!';
+      stat.style.background = '#f8d7da';
+      stat.style.color = '#721c24';
+      stat.style.border = '2px solid #f5c6cb';
+      return;
+    }
 
-  try {
-    const model = createRandomCrossword(numEquations);
-    const meta = drawSimpleCrossword(model, difficulty);
-    const percentage = Math.round((meta.actualGivens / meta.numTotal) * 100);
-    const range = getNumberRange();
-    stat.textContent=`✅ Generated ${meta.difficulty.name} puzzle (${range.min}-${range.max}) with ${model.equations.length} equations, showing ${meta.actualGivens}/${meta.numTotal} numbers (${percentage}%)`;
+    saveSettings();
 
-    if(printAfter) setTimeout(() => window.print(), 100);
-  } catch(e) {
-    console.error('Error generating crossword:', e);
-    stat.textContent = '⚠️ Error generating puzzle. Please try again.';
-  }
+    try {
+      // Use backward generation algorithm for better optimal puzzles
+      const model = generateBackwardCrossword(numEquations, difficulty);
+      if (!model) {
+        stat.textContent = '⚠️ Failed to generate puzzle. Please try again.';
+        stat.style.background = '#f8d7da';
+        stat.style.color = '#721c24';
+        stat.style.border = '2px solid #f5c6cb';
+        return;
+      }
+
+      const meta = drawCompletedCrossword(model, difficulty);
+      const percentage = Math.round((meta.actualGivens / meta.numTotal) * 100);
+      const range = getNumberRange();
+
+      // Success styling
+      stat.style.background = '#d4edda';
+      stat.style.color = '#155724';
+      stat.style.border = '2px solid #c3e6cb';
+      stat.textContent=`✅ Generated ${meta.difficulty.name} puzzle (${range.min}-${range.max}) with ${model.equations.length} equations, showing ${meta.actualGivens}/${meta.numTotal} numbers (${percentage}%)`;
+
+      if(printAfter) setTimeout(() => window.print(), 100);
+    } catch(e) {
+      console.error('Error generating crossword:', e);
+      stat.textContent = '⚠️ Error generating puzzle. Please try again.';
+      stat.style.background = '#f8d7da';
+      stat.style.color = '#721c24';
+      stat.style.border = '2px solid #f5c6cb';
+    }
+  }, 10); // Small delay to ensure UI updates
 }
 
 function printColorVersion() {
