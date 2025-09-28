@@ -814,7 +814,7 @@ function findValidEquationForConstraints(constraints) {
 
 function generateBackwardCrossword(targetEquations, difficulty) {
   // Step 1: Generate a complete crossword with all numbers visible
-  const fullModel = createRandomCrossword(targetEquations);
+  const fullModel = createRandomCrossword(targetEquations, difficulty);
   if (!fullModel) return null;
 
   // Step 2: Start with all numbers as givens and strategically remove them
@@ -835,7 +835,21 @@ function optimizeGivensBackward(model, difficulty) {
   }
 
   let currentGivens = new Set(allNumberPositions);
-  const difficultyTargets = getDifficultyTargets(difficulty, allNumberPositions.length);
+  const difficultyTargets = getNewDifficultyTargets(difficulty, allNumberPositions.length);
+
+  console.log(`=== BACKWARD GENERATION DEBUG ===`);
+  console.log(`Difficulty: ${difficulty}`);
+  console.log(`Total numbers: ${allNumberPositions.length}`);
+  console.log(`Difficulty targets:`, difficultyTargets);
+
+  if (!difficultyTargets || !difficultyTargets.percentage) {
+    console.error('Invalid difficulty targets!', difficultyTargets);
+    return model; // Return original model if targets are invalid
+  }
+
+  console.log(`Target range: ${difficultyTargets.minGivens}-${difficultyTargets.maxGivens} givens (${difficultyTargets.percentage.min}-${difficultyTargets.percentage.max}%)`);
+  console.log(`Starting with: ${currentGivens.size} givens (100%)`);
+  console.log(`===================================`);
 
   // Step 3: Remove numbers strategically until we hit target difficulty
   let attempts = 0;
@@ -846,8 +860,12 @@ function optimizeGivensBackward(model, difficulty) {
     const bestRemoval = findBestNumberToRemove(grid, equations, currentGivens);
 
     if (!bestRemoval) {
-      console.log(`No more removals found at ${currentGivens.size}/${allNumberPositions.length} givens (${Math.round(currentGivens.size/allNumberPositions.length*100)}%)`);
+      console.log(`No more removals found at ${currentGivens.size}/${allNumberPositions.length} givens (${Math.round(currentGivens.size/allNumberPositions.length*100)}%) - target was ${difficultyTargets.maxGivens}`);
       break; // Cannot remove any more numbers safely
+    }
+
+    if (attempts % 10 === 0) {
+      console.log(`Attempt ${attempts}: ${currentGivens.size}/${allNumberPositions.length} givens (${Math.round(currentGivens.size/allNumberPositions.length*100)}%) - removing next...`);
     }
 
     currentGivens.delete(bestRemoval);
@@ -872,6 +890,7 @@ function optimizeGivensBackward(model, difficulty) {
 
   console.log(`Final: ${currentGivens.size}/${allNumberPositions.length} givens (${Math.round(currentGivens.size/allNumberPositions.length*100)}%), target was ${Math.round(difficultyTargets.maxGivens)} (${Math.round(difficultyTargets.maxGivens/allNumberPositions.length*100)}%)`);
   console.log(`Attempts made: ${attempts}`);
+  console.log(`Generated ${equations.length} equations with ${allNumberPositions.length} total numbers`);
 
   // Step 4: Final validation to ensure we haven't created any isolated equations
   const beforeFix = currentGivens.size;
@@ -901,10 +920,19 @@ function findBestNumberToRemove(grid, equations, currentGivens) {
     }
   }
 
-  if (candidates.length === 0) return null;
+  if (candidates.length === 0) {
+    console.log(`No removal candidates found! Current givens: ${currentGivens.size}`);
+    return null;
+  }
 
   // Sort by removal score (higher = better to remove)
   candidates.sort((a, b) => b.score - a.score);
+
+  // Debug: Show top candidates
+  if (candidates.length > 0) {
+    console.log(`Found ${candidates.length} removal candidates, best score: ${candidates[0].score}`);
+  }
+
   return candidates[0].pos;
 }
 
@@ -942,16 +970,18 @@ function calculateRemovalScore(grid, equations, currentGivens, r, c) {
       return 0; // Cannot remove - would create equation with 0 givens
     }
 
-    // Higher score for removing from over-constrained equations
+    // EXPERT MODE: Be much more aggressive about removal scoring
     if (currentEqGivens >= 3) {
-      score += 10; // Heavily favor removing from fully-given equations
+      score += 20; // Heavily favor removing from fully-given equations
     } else if (currentEqGivens === 2) {
       // Check if this number has intersection constraints
       const intersectionCount = countIntersectionConstraints(grid, equations, currentGivens, r, c);
-      if (intersectionCount >= 1) {
-        score += 7; // Can remove if constrained by intersections
+      if (intersectionCount >= 2) {
+        score += 15; // Strong intersections = high removal score
+      } else if (intersectionCount >= 1) {
+        score += 10; // Even single intersections get good scores for expert
       } else {
-        score += 3; // Still consider for removal with weaker constraints
+        score += 5; // Still consider for removal with weaker constraints
       }
     }
 
@@ -1066,7 +1096,7 @@ function fixAnyIsolatedEquations(grid, equations, currentGivens) {
   return fixedGivens;
 }
 
-function createRandomCrossword(numEquations) {
+function createRandomCrossword(numEquations, difficulty = 'expert') {
   const grid = Array.from({length: 24}, () => Array(24).fill(null));
   const equations = [];
   const maxAttempts = 100;
@@ -1099,12 +1129,12 @@ function createRandomCrossword(numEquations) {
     eq: firstEq
   });
 
-  // Add remaining equations
+  // Add remaining equations with difficulty-based connectivity
   for (let eqNum = 2; eqNum <= numEquations; eqNum++) {
     let placed = false;
 
     for (let attempt = 0; attempt < maxAttempts && !placed; attempt++) {
-      // Try to find intersection with existing equations
+      // Enhanced intersection finding - connectivity varies by difficulty
       const possibleIntersections = [];
 
       for (let r = 1; r < 23; r++) {
@@ -1120,6 +1150,7 @@ function createRandomCrossword(numEquations) {
                 if (startR >= 0 && startR < 24 && startC >= 0 && startC < 24) {
                   let canPlace = true;
                   const constraints = {};
+                  let intersectionCount = 0;
 
                   // Check all 5 positions of potential equation
                   for (let i = 0; i < 5; i++) {
@@ -1133,28 +1164,63 @@ function createRandomCrossword(numEquations) {
 
                     const existing = grid[checkR][checkC];
                     if (existing) {
-                      if (i === pos) {
-                        // This is our intersection point
-                        if (existing.k === 'num') {
-                          constraints[i] = parseInt(existing.ch);
+                      // ENHANCED: Allow multiple intersections and self-loops
+                      if (existing.k === 'num') {
+                        constraints[i] = parseInt(existing.ch);
+                        intersectionCount++;
+                      } else if (existing.k === 'op' && (i === 1)) {
+                        // Allow operation intersections for loops (but be more lenient)
+                        if (getSelectedOperations().map(op => op.symbol).includes(existing.ch)) {
+                          constraints[i] = existing.ch;
+                          intersectionCount++;
                         } else {
                           canPlace = false;
                           break;
                         }
+                      } else if (existing.k === 'eq' && (i === 3)) {
+                        // Allow equals sign intersections for loops
+                        constraints[i] = existing.ch;
+                        intersectionCount++;
                       } else {
-                        // Another cell is occupied
-                        canPlace = false;
-                        break;
+                        // For the first few equations, be more lenient about intersections
+                        if (eqNum <= 5) {
+                          // Skip this intersection rather than failing
+                          canPlace = false;
+                          break;
+                        } else {
+                          // Later equations can be more strict
+                          canPlace = false;
+                          break;
+                        }
                       }
                     }
                   }
 
-                  if (canPlace) {
+                  // ENHANCED: Prefer placements with multiple intersections
+                  // Difficulty-based minimum intersection requirements
+                  let minIntersections;
+                  switch (difficulty) {
+                    case 'expert':
+                      minIntersections = eqNum <= 3 ? 1 : 1; // Expert allows single intersections but prefers multiple
+                      break;
+                    case 'hard':
+                      minIntersections = 1; // Hard requires at least one intersection
+                      break;
+                    case 'medium':
+                    case 'easy':
+                      minIntersections = eqNum <= 5 ? 1 : 1; // Easier modes are more flexible
+                      break;
+                    default:
+                      minIntersections = 1;
+                  }
+
+                  if (canPlace && intersectionCount >= minIntersections) {
                     possibleIntersections.push({
                       row: startR,
                       col: startC,
                       across: across,
-                      constraints: constraints
+                      constraints: constraints,
+                      intersectionCount: intersectionCount // For scoring
                     });
                   }
                 }
@@ -1165,9 +1231,64 @@ function createRandomCrossword(numEquations) {
       }
 
       if (possibleIntersections.length > 0) {
-        // Pick random intersection
-        const intersection = possibleIntersections[Math.floor(Math.random() * possibleIntersections.length)];
-        const eq = findValidEquationForConstraints(intersection.constraints);
+        // ENHANCED: Prefer intersections with higher connectivity based on difficulty
+        // Sort by intersection count (descending) and pick from top candidates
+        possibleIntersections.sort((a, b) => b.intersectionCount - a.intersectionCount);
+
+        // Difficulty-based connectivity selection
+        let topPercentage;
+        switch (difficulty) {
+          case 'expert':
+            topPercentage = 0.4; // Pick from top 40% - reduced from 20%
+            break;
+          case 'hard':
+            topPercentage = 0.6; // Pick from top 60% - reduced from 40%
+            break;
+          case 'medium':
+            topPercentage = 0.8; // Pick from top 80% - reduced from 60%
+            break;
+          case 'easy':
+            topPercentage = 1.0; // Pick from all options - reduced from 80%
+            break;
+          default:
+            topPercentage = 0.5; // Default fallback
+        }
+
+        const topCandidates = possibleIntersections.slice(0, Math.max(1, Math.ceil(possibleIntersections.length * topPercentage)));
+        const intersection = topCandidates[Math.floor(Math.random() * topCandidates.length)];
+
+        let eq = null;
+        let attempts = 0;
+        while (!eq && attempts < 10) {
+          eq = findValidEquationForConstraints(intersection.constraints);
+          attempts++;
+        }
+
+        // If we still can't find a valid equation, try fallback based on difficulty
+        if (!eq && possibleIntersections.length > 1) {
+          if (difficulty === 'expert') {
+            // For expert, try high-connectivity intersections first, then single
+            const multiIntersections = possibleIntersections.filter(int => int.intersectionCount > 1);
+            if (multiIntersections.length > 0) {
+              const multiIntersection = multiIntersections[Math.floor(Math.random() * multiIntersections.length)];
+              eq = findValidEquationForConstraints(multiIntersection.constraints);
+            }
+          }
+
+          // Fallback to simpler intersections if needed
+          if (!eq) {
+            const simplerIntersections = possibleIntersections.filter(int => int.intersectionCount === 1);
+            if (simplerIntersections.length > 0) {
+              const simpleIntersection = simplerIntersections[Math.floor(Math.random() * simplerIntersections.length)];
+              eq = findValidEquationForConstraints(simpleIntersection.constraints);
+            }
+          }
+        }
+
+        if (!eq) {
+          console.log('Failed to generate equation for constraints, using fallback');
+          eq = generateRandomEquation();
+        }
 
         const sequence = [
           {k: 'num', ch: String(eq.A)},
@@ -1240,10 +1361,219 @@ function createRandomCrossword(numEquations) {
           placed = true;
         }
       }
+
+      // FALLBACK: If no intersections found, place equation in empty space
+      if (!placed) {
+        console.log(`No intersections found for equation ${eqNum}, trying fallback placement`);
+
+        for (let fallbackAttempt = 0; fallbackAttempt < 50 && !placed; fallbackAttempt++) {
+          const row = Math.floor(Math.random() * 20) + 2;
+          const col = Math.floor(Math.random() * 20) + 2;
+          const across = Math.random() < 0.5;
+
+          // Check if this space is free
+          let canPlace = true;
+          for (let i = 0; i < 5; i++) {
+            const checkR = across ? row : row + i;
+            const checkC = across ? col + i : col;
+
+            if (checkR >= 24 || checkC >= 24 || grid[checkR][checkC]) {
+              canPlace = false;
+              break;
+            }
+          }
+
+          if (canPlace) {
+            const eq = generateRandomEquation();
+            const sequence = [
+              {k: 'num', ch: String(eq.A)},
+              {k: 'op', ch: eq.op},
+              {k: 'num', ch: String(eq.B)},
+              {k: 'eq', ch: '='},
+              {k: 'num', ch: String(eq.C)}
+            ];
+
+            // Place the equation
+            for (let i = 0; i < 5; i++) {
+              const r = across ? row : row + i;
+              const c = across ? col + i : col;
+              grid[r][c] = {...sequence[i], id: eqNum};
+            }
+
+            equations.push({
+              across: across,
+              row: row,
+              col: col,
+              eq: eq
+            });
+
+            placed = true;
+            console.log(`Fallback placement successful for equation ${eqNum}`);
+          }
+        }
+
+        if (!placed) {
+          console.log(`Failed to place equation ${eqNum} even with fallback`);
+        }
+      }
+    }
+
+    if (!placed) {
+      console.log(`Could not place equation ${eqNum} after ${maxAttempts} attempts`);
     }
   }
 
   return {grid, equations};
+}
+
+function findValidEquationForConstraints(constraints) {
+  // ENHANCED: Handle multiple constraints including operators and equals
+  // constraints: {pos0: value, pos1: op, pos2: value, pos3: '=', pos4: value}
+  const operations = getSelectedOperations().map(op => op.symbol);
+
+  for (let attempt = 0; attempt < 2000; attempt++) {
+    const eq = generateRandomEquation();
+
+    // Check if this equation satisfies ALL constraints
+    let valid = true;
+
+    for (const [pos, requiredValue] of Object.entries(constraints)) {
+      const position = parseInt(pos);
+      let actualValue;
+
+      if (position === 0) actualValue = eq.A;
+      else if (position === 1) actualValue = eq.op;
+      else if (position === 2) actualValue = eq.B;
+      else if (position === 3) actualValue = '=';
+      else if (position === 4) actualValue = eq.C;
+
+      if (actualValue !== requiredValue) {
+        valid = false;
+        break;
+      }
+    }
+
+    if (valid && validateEquation(eq.A, eq.B, eq.C, eq.op)) {
+      return eq;
+    }
+  }
+
+  // If no valid equation found with ALL constraints, try to build one systematically
+  const numConstraints = Object.keys(constraints).filter(pos => [0, 2, 4].includes(parseInt(pos)));
+  if (numConstraints.length >= 1) {
+    return buildEquationWithConstraints(constraints);
+  }
+
+  // Fallback to random equation
+  return generateRandomEquation();
+}
+
+function buildEquationWithConstraints(constraints) {
+  // Build equation systematically when we have specific number constraints
+  const operations = getSelectedOperations().map(op => op.symbol);
+
+  // Extract constraints
+  const A = constraints[0] ? parseInt(constraints[0]) : null;
+  const op = constraints[1] || null;
+  const B = constraints[2] ? parseInt(constraints[2]) : null;
+  const C = constraints[4] ? parseInt(constraints[4]) : null;
+
+  // Try to satisfy constraints systematically
+  for (const testOp of (op ? [op] : operations)) {
+    for (let attempt = 0; attempt < 100; attempt++) {
+      let testA, testB, testC;
+
+      if (A !== null && B !== null) {
+        // Both operands known, calculate result
+        testA = A;
+        testB = B;
+        if (testOp === '+') testC = testA + testB;
+        else if (testOp === '-') testC = testA - testB;
+        else if (testOp === '×') testC = testA * testB;
+        else if (testOp === '÷' && testB !== 0 && testA % testB === 0) testC = testA / testB;
+        else continue;
+      } else if (A !== null && C !== null) {
+        // First operand and result known, calculate second operand
+        testA = A;
+        testC = C;
+        if (testOp === '+') testB = testC - testA;
+        else if (testOp === '-') testB = testA - testC;
+        else if (testOp === '×' && testA !== 0 && testC % testA === 0) testB = testC / testA;
+        else if (testOp === '÷' && testA !== 0) testB = testA / testC;
+        else continue;
+      } else if (B !== null && C !== null) {
+        // Second operand and result known, calculate first operand
+        testB = B;
+        testC = C;
+        if (testOp === '+') testA = testC - testB;
+        else if (testOp === '-') testA = testC + testB;
+        else if (testOp === '×' && testB !== 0 && testC % testB === 0) testA = testC / testB;
+        else if (testOp === '÷') testA = testC * testB;
+        else continue;
+      } else {
+        // Only one constraint, generate others randomly
+        const range = getNumberRange();
+        if (A !== null) {
+          testA = A;
+          testB = Math.floor(Math.random() * (range.max - range.min + 1)) + range.min;
+        } else if (B !== null) {
+          testB = B;
+          testA = Math.floor(Math.random() * (range.max - range.min + 1)) + range.min;
+        } else if (C !== null) {
+          testC = C;
+          testA = Math.floor(Math.random() * (range.max - range.min + 1)) + range.min;
+          testB = Math.floor(Math.random() * (range.max - range.min + 1)) + range.min;
+        }
+
+        // Calculate missing value
+        if (testC === undefined) {
+          if (testOp === '+') testC = testA + testB;
+          else if (testOp === '-') testC = testA - testB;
+          else if (testOp === '×') testC = testA * testB;
+          else if (testOp === '÷' && testB !== 0 && testA % testB === 0) testC = testA / testB;
+          else continue;
+        }
+      }
+
+      // Validate the constructed equation
+      if (testA > 0 && testB > 0 && testC > 0 &&
+          testA <= 99 && testB <= 99 && testC <= 99 &&
+          validateEquation(testA, testB, testC, testOp)) {
+        return {A: testA, B: testB, C: testC, op: testOp};
+      }
+    }
+  }
+
+  // Fallback
+  return generateRandomEquation();
+}
+
+function getNewDifficultyTargets(difficulty, totalNumbers) {
+  console.log(`getNewDifficultyTargets called with: ${difficulty}, ${totalNumbers}`);
+
+  // Define difficulty levels with appropriate percentages
+  const difficultySettings = {
+    expert: { min: 0.03, max: 0.08, name: 'Expert' },    // 3-8% - Ultra minimal for serious deduction
+    hard:   { min: 0.15, max: 0.22, name: 'Hard' },     // 15-22% - Requires logical thinking
+    medium: { min: 0.25, max: 0.35, name: 'Medium' },   // 25-35% - Moderate challenge
+    easy:   { min: 0.35, max: 0.45, name: 'Easy' }      // 35-45% - More guidance
+  };
+
+  const setting = difficultySettings[difficulty] || difficultySettings.medium;
+  console.log(`Found setting:`, setting);
+
+  const result = {
+    minGivens: Math.ceil(totalNumbers * setting.min),
+    maxGivens: Math.ceil(totalNumbers * setting.max),
+    name: setting.name,
+    percentage: {
+      min: Math.round(setting.min * 100),
+      max: Math.round(setting.max * 100)
+    }
+  };
+
+  console.log(`Returning:`, result);
+  return result;
 }
 
 function canSolvePuzzle(grid, equations, givenPositions) {
@@ -1491,7 +1821,7 @@ function getPossibleValuesFromIntersections(solveGrid, equations, targetR, targe
 }
 
 function createsMathematicalAmbiguity(grid, equations, givenPositions) {
-  // Ultra-permissive validation for expert mode - only prevent extreme mathematical impossibilities
+  // ULTRA-PERMISSIVE for expert mode - only prevent the most extreme impossibilities
 
   for (const eq of equations) {
     const eqPositions = [];
@@ -1505,23 +1835,20 @@ function createsMathematicalAmbiguity(grid, equations, givenPositions) {
 
     const givenCount = eqPositions.filter(pos => givenPositions.has(`${pos.r},${pos.c}`)).length;
 
-    // ONLY prevent truly impossible cases
+    // ONLY prevent equations with absolutely NO constraints
     if (givenCount === 0) {
       console.log('Mathematical ambiguity: equation with 0 givens');
       return true; // No constraints = infinite solutions
     }
 
-    // For expert mode, be extremely permissive - trust human reasoning abilities
-    // Only flag the most extreme case: equation with 1 given where BOTH other numbers
-    // have absolutely NO intersections with ANY other equations
+    // For equations with only 1 given, check if it's COMPLETELY isolated
+    // Only flag if there are literally NO intersections at all for ANY empty position
     if (eqPositions.length >= 3 && givenCount === 1) {
-      let completelyIsolatedCount = 0;
+      let totalIntersections = 0;
 
       for (const pos of eqPositions) {
         if (!givenPositions.has(`${pos.r},${pos.c}`)) {
-          // Check if this position has ANY intersection at all
-          let hasAnyIntersection = false;
-
+          // Count intersections for this empty position
           for (const otherEq of equations) {
             if (otherEq === eq) continue;
 
@@ -1530,29 +1857,24 @@ function createsMathematicalAmbiguity(grid, equations, givenPositions) {
               const otherC = otherEq.across ? otherEq.col + j : otherEq.col;
 
               if (otherR === pos.r && otherC === pos.c) {
-                hasAnyIntersection = true;
+                totalIntersections++;
                 break;
               }
             }
-            if (hasAnyIntersection) break;
-          }
-
-          if (!hasAnyIntersection) {
-            completelyIsolatedCount++;
           }
         }
       }
 
-      // For ultra-expert mode, only flag if ALL empty positions are completely isolated
-      // This is extremely rare and represents true mathematical impossibility
-      if (completelyIsolatedCount === eqPositions.length - givenCount && completelyIsolatedCount >= 2) {
-        console.log(`Mathematical ambiguity: equation with ALL ${completelyIsolatedCount} empty positions completely isolated`);
+      // Only flag if this equation has ZERO intersections total
+      // This is extremely rare with high connectivity
+      if (totalIntersections === 0) {
+        console.log(`Mathematical ambiguity: equation has zero intersections total`);
         return true;
       }
     }
   }
 
-  return false; // Trust human reasoning for everything else
+  return false; // Allow everything else - trust the connectivity network
 }
 
 function getDifficultyTargets(difficulty, totalNumbers) {
