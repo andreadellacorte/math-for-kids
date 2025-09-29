@@ -31,6 +31,86 @@ custom_css: |
             margin-right: auto;
         }
 
+        .choice-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin: 20px 0;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .choice-button {
+            padding: 20px;
+            border: 3px solid #007bff;
+            border-radius: 15px;
+            background: #fff;
+            font-size: 1.2em;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        .choice-button:hover {
+            background: #e7f3ff;
+            transform: scale(1.02);
+        }
+
+        .choice-button.selected {
+            background: #007bff;
+            color: white;
+        }
+
+        .choice-button.correct {
+            background: #28a745;
+            color: white;
+            border-color: #28a745;
+        }
+
+        .choice-button.incorrect {
+            background: #dc3545;
+            color: white;
+            border-color: #dc3545;
+        }
+
+        .mode-selector {
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .mode-button {
+            margin: 0 10px;
+            padding: 10px 20px;
+            border: 2px solid #007bff;
+            background: #fff;
+            color: #007bff;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .mode-button.active {
+            background: #007bff;
+            color: white;
+        }
+
+        .notation-display {
+            font-size: 3em;
+            text-align: center;
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+        }
+
         .beat-button {
             width: 80px;
             height: 80px;
@@ -179,43 +259,53 @@ custom_css: |
 
             <div class="tempo-slider">
                 <label for="tempoSlider">Tempo: </label>
-                <input type="range" id="tempoSlider" min="60" max="150" value="120">
-                <span id="tempoValue">120</span> BPM
+                <input type="range" id="tempoSlider" min="60" max="150" value="100">
+                <span id="tempoValue">100</span> BPM
+            </div>
+
+            <div class="mode-selector">
+                <h3>Choose Game Mode:</h3>
+                <button class="mode-button active" id="listenModeBtn">Listen → Choose Notation</button>
+                <button class="mode-button" id="readModeBtn">Read Notation → Choose Audio</button>
             </div>
 
             <div class="controls">
                 <button class="btn" id="newRhythmBtn">New Rhythm</button>
                 <button class="btn secondary" id="playBtn" disabled>Play Again</button>
                 <button class="btn secondary" id="checkBtn" disabled>Check Answer</button>
-                <button class="btn secondary" id="clearBtn">Clear</button>
             </div>
 
-            <div class="beat-grid" id="beatGrid">
-                <div class="beat-button" data-beat="1">
-                    <div class="beat-number">1</div>
-                    <span>♩</span>
+            <!-- Listen Mode: User hears rhythm and chooses notation -->
+            <div id="listenMode" class="game-mode">
+                <div class="choice-grid" id="notationChoices" style="display: none;">
+                    <!-- Will be populated with notation choices -->
                 </div>
-                <div class="beat-button" data-beat="2">
-                    <div class="beat-number">2</div>
-                    <span>♩</span>
-                </div>
-                <div class="beat-button" data-beat="3">
-                    <div class="beat-number">3</div>
-                    <span>♩</span>
-                </div>
-                <div class="beat-button" data-beat="4">
-                    <div class="beat-number">4</div>
-                    <span>♩</span>
+            </div>
+
+            <!-- Read Mode: User sees notation and chooses audio -->
+            <div id="readMode" class="game-mode" style="display: none;">
+                <div class="notation-display" id="notationDisplay"></div>
+                <div class="choice-grid" id="audioChoices" style="display: none;">
+                    <!-- Will be populated with audio choices -->
                 </div>
             </div>
 
             <div class="info-box" style="margin-top: 30px;">
                 <h3>How to Play:</h3>
-                <p>1. Click "New Rhythm" to generate a random 4-beat pattern</p>
-                <p>2. Listen carefully to the rhythm</p>
-                <p>3. Click the numbered buttons in the order you heard the beats</p>
-                <p>4. Use "Play Again" to replay the rhythm if needed</p>
-                <p>5. Click "Check Answer" when you're ready to submit</p>
+                <div id="listenModeInstructions">
+                    <p><strong>Listen → Choose Notation Mode:</strong></p>
+                    <p>1. Click "New Rhythm" to start</p>
+                    <p>2. Listen carefully to the rhythm pattern</p>
+                    <p>3. Choose the correct musical notation from the options</p>
+                    <p>4. Use "Play Again" to replay if needed</p>
+                </div>
+                <div id="readModeInstructions" style="display: none;">
+                    <p><strong>Read Notation → Choose Audio Mode:</strong></p>
+                    <p>1. Click "New Rhythm" to start</p>
+                    <p>2. Study the musical notation shown</p>
+                    <p>3. Listen to the audio options and choose the correct one</p>
+                    <p>4. Match the notation to the correct rhythm</p>
+                </div>
             </div>
         </div>
     </div>
@@ -224,12 +314,13 @@ custom_css: |
         class RhythmGame {
             constructor() {
                 this.currentPattern = [];
-                this.userPattern = [];
+                this.correctAnswer = 0;
                 this.score = 0;
                 this.level = 1;
                 this.streak = 0;
                 this.isPlaying = false;
-                this.tempo = 120; // BPM
+                this.tempo = 100; // BPM
+                this.gameMode = 'listen'; // 'listen' or 'read'
 
                 // Audio context for generating beats
                 this.audioContext = null;
@@ -238,6 +329,7 @@ custom_css: |
                 this.initializeElements();
                 this.attachEventListeners();
                 this.updateDisplay();
+                this.switchMode('listen');
             }
 
             async initAudio() {
@@ -254,43 +346,76 @@ custom_css: |
                 this.streakElement = document.getElementById('streak');
                 this.rhythmDisplay = document.getElementById('rhythmDisplay');
                 this.rhythmPattern = document.getElementById('rhythmPattern');
-                this.beatGrid = document.getElementById('beatGrid');
                 this.tempoSlider = document.getElementById('tempoSlider');
                 this.tempoValue = document.getElementById('tempoValue');
 
                 this.newRhythmBtn = document.getElementById('newRhythmBtn');
                 this.playBtn = document.getElementById('playBtn');
                 this.checkBtn = document.getElementById('checkBtn');
-                this.clearBtn = document.getElementById('clearBtn');
+
+                this.listenModeBtn = document.getElementById('listenModeBtn');
+                this.readModeBtn = document.getElementById('readModeBtn');
+
+                this.listenMode = document.getElementById('listenMode');
+                this.readMode = document.getElementById('readMode');
+                this.notationChoices = document.getElementById('notationChoices');
+                this.audioChoices = document.getElementById('audioChoices');
+                this.notationDisplay = document.getElementById('notationDisplay');
+
+                this.listenModeInstructions = document.getElementById('listenModeInstructions');
+                this.readModeInstructions = document.getElementById('readModeInstructions');
             }
 
             attachEventListeners() {
                 this.newRhythmBtn.addEventListener('click', () => this.generateNewRhythm());
                 this.playBtn.addEventListener('click', () => this.playCurrentRhythm());
                 this.checkBtn.addEventListener('click', () => this.checkAnswer());
-                this.clearBtn.addEventListener('click', () => this.clearUserInput());
+
+                this.listenModeBtn.addEventListener('click', () => this.switchMode('listen'));
+                this.readModeBtn.addEventListener('click', () => this.switchMode('read'));
 
                 this.tempoSlider.addEventListener('input', (e) => {
                     this.tempo = parseInt(e.target.value);
                     this.tempoValue.textContent = this.tempo;
                 });
+            }
 
-                // Add beat button listeners
-                this.beatGrid.addEventListener('click', (e) => {
-                    if (e.target.classList.contains('beat-button')) {
-                        this.handleBeatClick(e.target);
-                    }
-                });
+            switchMode(mode) {
+                this.gameMode = mode;
+
+                // Update mode buttons
+                this.listenModeBtn.classList.toggle('active', mode === 'listen');
+                this.readModeBtn.classList.toggle('active', mode === 'read');
+
+                // Update mode displays
+                this.listenMode.style.display = mode === 'listen' ? 'block' : 'none';
+                this.readMode.style.display = mode === 'read' ? 'block' : 'none';
+
+                // Update instructions
+                this.listenModeInstructions.style.display = mode === 'listen' ? 'block' : 'none';
+                this.readModeInstructions.style.display = mode === 'read' ? 'block' : 'none';
+
+                // Reset game state
+                this.resetGame();
+                this.rhythmDisplay.textContent = `${mode === 'listen' ? 'Listen Mode' : 'Read Mode'}: Press "New Rhythm" to start!`;
+            }
+
+            resetGame() {
+                this.currentPattern = [];
+                this.correctAnswer = 0;
+                this.notationChoices.style.display = 'none';
+                this.audioChoices.style.display = 'none';
+                this.notationDisplay.textContent = '';
+                this.playBtn.disabled = true;
+                this.checkBtn.disabled = true;
+                this.clearChoiceSelection();
             }
 
             generateNewRhythm() {
-                // Reset game state
-                this.currentPattern = [];
-                this.userPattern = [];
-                this.clearUserInput();
+                this.resetGame();
 
                 // Generate a 4-beat pattern
-                // Each beat can be: quarter note (1), eighth notes (2), or rest (0)
+                this.currentPattern = [];
                 const beatTypes = [0, 1, 2]; // 0=rest, 1=quarter, 2=eighth notes
 
                 for (let i = 0; i < 4; i++) {
@@ -304,42 +429,220 @@ custom_css: |
                     this.currentPattern[2] = 1;
                 }
 
-                this.displayPattern();
-                this.playCurrentRhythm();
+                if (this.gameMode === 'listen') {
+                    this.startListenMode();
+                } else {
+                    this.startReadMode();
+                }
 
                 this.playBtn.disabled = false;
                 this.checkBtn.disabled = false;
             }
 
-            displayPattern() {
-                let patternText = '';
-                for (let i = 0; i < this.currentPattern.length; i++) {
-                    switch (this.currentPattern[i]) {
+            startListenMode() {
+                this.rhythmDisplay.textContent = 'Listen to the rhythm...';
+                this.playCurrentRhythm();
+
+                // Generate notation choices after a delay
+                setTimeout(() => {
+                    this.generateNotationChoices();
+                }, 1000);
+            }
+
+            startReadMode() {
+                this.displayNotation();
+                this.generateAudioChoices();
+                this.rhythmDisplay.textContent = 'Study the notation, then choose the matching audio';
+            }
+
+            generateNotationChoices() {
+                const choices = [];
+
+                // Correct answer
+                choices.push({
+                    notation: this.patternToNotation(this.currentPattern),
+                    pattern: [...this.currentPattern],
+                    isCorrect: true
+                });
+
+                // Generate 3 incorrect options
+                for (let i = 0; i < 3; i++) {
+                    let wrongPattern;
+                    do {
+                        wrongPattern = this.generateRandomPattern();
+                    } while (this.patternsEqual(wrongPattern, this.currentPattern));
+
+                    choices.push({
+                        notation: this.patternToNotation(wrongPattern),
+                        pattern: wrongPattern,
+                        isCorrect: false
+                    });
+                }
+
+                // Shuffle choices
+                this.shuffleArray(choices);
+                this.correctAnswer = choices.findIndex(choice => choice.isCorrect);
+
+                // Display choices
+                this.displayNotationChoices(choices);
+                this.notationChoices.style.display = 'grid';
+            }
+
+            generateAudioChoices() {
+                const choices = [];
+
+                // Correct answer
+                choices.push({
+                    pattern: [...this.currentPattern],
+                    isCorrect: true,
+                    label: 'Option A'
+                });
+
+                // Generate 3 incorrect options
+                for (let i = 0; i < 3; i++) {
+                    let wrongPattern;
+                    do {
+                        wrongPattern = this.generateRandomPattern();
+                    } while (this.patternsEqual(wrongPattern, this.currentPattern));
+
+                    choices.push({
+                        pattern: wrongPattern,
+                        isCorrect: false,
+                        label: `Option ${String.fromCharCode(66 + i)}` // B, C, D
+                    });
+                }
+
+                // Shuffle choices
+                this.shuffleArray(choices);
+                this.correctAnswer = choices.findIndex(choice => choice.isCorrect);
+
+                // Store choices for audio playback
+                this.currentAudioChoices = choices;
+
+                // Display choices
+                this.displayAudioChoices(choices);
+                this.audioChoices.style.display = 'grid';
+            }
+
+            displayNotation() {
+                this.notationDisplay.textContent = this.patternToNotation(this.currentPattern);
+            }
+
+            displayNotationChoices(choices) {
+                this.notationChoices.innerHTML = '';
+                choices.forEach((choice, index) => {
+                    const button = document.createElement('div');
+                    button.className = 'choice-button';
+                    button.dataset.choice = index;
+                    button.innerHTML = `<div style="font-size: 1.5em; margin-bottom: 10px;">${choice.notation}</div>`;
+                    button.addEventListener('click', () => this.selectChoice(index));
+                    this.notationChoices.appendChild(button);
+                });
+            }
+
+            displayAudioChoices(choices) {
+                this.audioChoices.innerHTML = '';
+                choices.forEach((choice, index) => {
+                    const button = document.createElement('div');
+                    button.className = 'choice-button';
+                    button.dataset.choice = index;
+                    button.innerHTML = `
+                        <div style="font-size: 1.2em; margin-bottom: 10px;">${choice.label}</div>
+                        <button onclick="event.stopPropagation(); game.playPattern(${index})" class="btn secondary" style="font-size: 0.8em;">🔊 Play</button>
+                    `;
+                    button.addEventListener('click', () => this.selectChoice(index));
+                    this.audioChoices.appendChild(button);
+                });
+            }
+
+            async playPattern(choiceIndex) {
+                if (this.gameMode !== 'read' || !this.currentAudioChoices) return;
+
+                if (this.currentAudioChoices[choiceIndex]) {
+                    await this.playRhythmPattern(this.currentAudioChoices[choiceIndex].pattern);
+                }
+            }
+
+            selectChoice(choiceIndex) {
+                this.clearChoiceSelection();
+
+                const container = this.gameMode === 'listen' ? this.notationChoices : this.audioChoices;
+                const button = container.querySelector(`[data-choice="${choiceIndex}"]`);
+                if (button) {
+                    button.classList.add('selected');
+                    this.selectedChoice = choiceIndex;
+                }
+            }
+
+            clearChoiceSelection() {
+                document.querySelectorAll('.choice-button').forEach(btn => {
+                    btn.classList.remove('selected', 'correct', 'incorrect');
+                });
+                this.selectedChoice = null;
+            }
+
+            patternToNotation(pattern) {
+                let notation = '';
+                for (let beat of pattern) {
+                    switch (beat) {
                         case 0:
-                            patternText += '𝄽 '; // Rest
+                            notation += '𝄽 '; // Rest
                             break;
                         case 1:
-                            patternText += '♩ '; // Quarter note
+                            notation += '♩ '; // Quarter note
                             break;
                         case 2:
-                            patternText += '♫ '; // Eighth notes
+                            notation += '♫ '; // Eighth notes
                             break;
                     }
                 }
-                this.rhythmPattern.textContent = `Pattern: ${patternText}`;
-                this.rhythmDisplay.textContent = 'Listen to the rhythm...';
+                return notation.trim();
+            }
+
+            generateRandomPattern() {
+                const pattern = [];
+                const beatTypes = [0, 1, 2];
+
+                for (let i = 0; i < 4; i++) {
+                    pattern.push(beatTypes[Math.floor(Math.random() * beatTypes.length)]);
+                }
+
+                // Ensure at least 2 beats are not rests
+                const nonRestBeats = pattern.filter(beat => beat !== 0).length;
+                if (nonRestBeats < 2) {
+                    pattern[0] = 1;
+                    pattern[2] = 1;
+                }
+
+                return pattern;
+            }
+
+            patternsEqual(a, b) {
+                return a.length === b.length && a.every((val, i) => val === b[i]);
+            }
+
+            shuffleArray(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
             }
 
             async playCurrentRhythm() {
+                await this.playRhythmPattern(this.currentPattern);
+            }
+
+            async playRhythmPattern(pattern) {
                 if (!this.audioContext || this.isPlaying) return;
 
                 this.isPlaying = true;
+                const originalText = this.rhythmDisplay.textContent;
                 this.rhythmDisplay.textContent = 'Playing rhythm... 🎵';
 
                 const beatDuration = 60000 / this.tempo; // milliseconds per beat
 
-                for (let i = 0; i < this.currentPattern.length; i++) {
-                    const beatType = this.currentPattern[i];
+                for (let i = 0; i < pattern.length; i++) {
+                    const beatType = pattern[i];
 
                     if (beatType === 1) {
                         // Quarter note
@@ -355,7 +658,7 @@ custom_css: |
                 }
 
                 this.isPlaying = false;
-                this.rhythmDisplay.textContent = 'Now tap the rhythm back!';
+                this.rhythmDisplay.textContent = originalText;
             }
 
             playBeep(frequency, duration) {
@@ -381,55 +684,14 @@ custom_css: |
                 return new Promise(resolve => setTimeout(resolve, ms));
             }
 
-            handleBeatClick(button) {
-                if (this.isPlaying) return;
-
-                const beatNumber = parseInt(button.dataset.beat);
-
-                // Add to user pattern
-                this.userPattern.push(beatNumber);
-
-                // Visual feedback
-                button.classList.add('active');
-                setTimeout(() => button.classList.remove('active'), 200);
-
-                // Update display
-                this.rhythmDisplay.textContent = `Tapped: ${this.userPattern.join(', ')}`;
-
-                // Play feedback sound
-                this.playBeep(660, 0.1);
-            }
-
-            clearUserInput() {
-                this.userPattern = [];
-                this.rhythmDisplay.textContent = 'Ready to tap!';
-
-                // Remove all visual feedback
-                document.querySelectorAll('.beat-button').forEach(btn => {
-                    btn.classList.remove('correct', 'incorrect', 'active');
-                });
-            }
-
             checkAnswer() {
-                if (this.userPattern.length === 0) {
-                    this.rhythmDisplay.textContent = 'Please tap some beats first!';
+                if (this.selectedChoice === null) {
+                    this.rhythmDisplay.textContent = 'Please select an answer first!';
                     return;
                 }
 
-                // Convert pattern to expected user input
-                const expectedBeats = [];
-                for (let i = 0; i < this.currentPattern.length; i++) {
-                    if (this.currentPattern[i] === 1) {
-                        expectedBeats.push(i + 1); // Beat numbers are 1-indexed
-                    } else if (this.currentPattern[i] === 2) {
-                        expectedBeats.push(i + 1); // For eighth notes, still count as one beat press
-                    }
-                }
-
-                // Check if user input matches expected beats
-                const isCorrect = this.arraysEqual(this.userPattern.sort(), expectedBeats.sort());
-
-                this.showResults(isCorrect, expectedBeats);
+                const isCorrect = this.selectedChoice === this.correctAnswer;
+                this.showResults(isCorrect);
 
                 if (isCorrect) {
                     this.score += 10 + (this.level * 5);
@@ -447,39 +709,28 @@ custom_css: |
 
                 // Reset for next round
                 setTimeout(() => {
-                    this.clearUserInput();
-                    this.playBtn.disabled = true;
-                    this.checkBtn.disabled = true;
-                }, 2000);
+                    this.resetGame();
+                    this.rhythmDisplay.textContent = 'Ready for next rhythm!';
+                }, 3000);
             }
 
-            showResults(isCorrect, expectedBeats) {
-                const buttons = document.querySelectorAll('.beat-button');
+            showResults(isCorrect) {
+                const container = this.gameMode === 'listen' ? this.notationChoices : this.audioChoices;
+                const buttons = container.querySelectorAll('.choice-button');
 
                 buttons.forEach((btn, index) => {
-                    const beatNumber = index + 1;
-                    const wasExpected = expectedBeats.includes(beatNumber);
-                    const wasClicked = this.userPattern.includes(beatNumber);
-
-                    if (wasExpected && wasClicked) {
+                    if (index === this.correctAnswer) {
                         btn.classList.add('correct');
-                    } else if (wasClicked && !wasExpected) {
+                    } else if (index === this.selectedChoice && !isCorrect) {
                         btn.classList.add('incorrect');
-                    } else if (wasExpected && !wasClicked) {
-                        btn.classList.add('incorrect');
-                        btn.style.opacity = '0.5';
                     }
                 });
 
                 if (isCorrect) {
-                    this.rhythmDisplay.textContent = '🎉 Correct! Great rhythm!';
+                    this.rhythmDisplay.textContent = '🎉 Correct! Great rhythm recognition!';
                 } else {
-                    this.rhythmDisplay.textContent = `❌ Not quite right. Expected beats: ${expectedBeats.join(', ')}`;
+                    this.rhythmDisplay.textContent = '❌ Not quite right. The correct answer is highlighted in green.';
                 }
-            }
-
-            arraysEqual(a, b) {
-                return a.length === b.length && a.every((val, i) => val === b[i]);
             }
 
             updateDisplay() {
@@ -489,9 +740,12 @@ custom_css: |
             }
         }
 
+        // Global reference for audio choice playback
+        let game;
+
         // Initialize game when page loads
         document.addEventListener('DOMContentLoaded', () => {
-            new RhythmGame();
+            game = new RhythmGame();
         });
     </script>
 

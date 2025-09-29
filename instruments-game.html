@@ -22,9 +22,13 @@ custom_css: |
         }
 
         .instrument-visual {
-            font-size: 8em;
+            width: auto;
+            max-width: 500px;
+            max-height: 300px;
+            height: auto;
             margin: 20px 0;
-            color: #007bff;
+            border-radius: 10px;
+            border: 2px solid #007bff;
         }
 
         .instrument-name {
@@ -174,7 +178,9 @@ custom_css: |
 
         @media (max-width: 768px) {
             .instrument-visual {
-                font-size: 6em;
+                width: auto;
+                max-height: 150px;
+                height: auto;
             }
 
             .instrument-name {
@@ -220,7 +226,7 @@ custom_css: |
             </div>
 
             <div class="instrument-display" id="instrumentDisplay">
-                <div class="instrument-visual" id="instrumentVisual">🎵</div>
+                <img class="instrument-visual" id="instrumentVisual" src="images/instruments/violin.jpg" alt="Instrument">
                 <div class="instrument-name" id="instrumentName">Welcome!</div>
                 <div class="question-text" id="questionText">Click "New Question" to start!</div>
             </div>
@@ -269,67 +275,67 @@ custom_css: |
                     {
                         name: 'Violin',
                         family: 'String',
-                        visual: '🎻',
+                        visual: 'images/instruments/violin.jpg',
                         description: 'A small string instrument played with a bow'
                     },
                     {
                         name: 'Cello',
                         family: 'String',
-                        visual: '🎻',
+                        visual: 'images/instruments/cello.jpg',
                         description: 'A large string instrument played with a bow, held between the knees'
                     },
                     {
                         name: 'Trumpet',
                         family: 'Wind',
-                        visual: '🎺',
+                        visual: 'images/instruments/trumpet.jpg',
                         description: 'A brass wind instrument with valves'
                     },
                     {
                         name: 'Horn',
                         family: 'Wind',
-                        visual: '📯',
+                        visual: 'images/instruments/horn.jpg',
                         description: 'A brass wind instrument with a curved shape'
                     },
                     {
                         name: 'Trombone',
                         family: 'Wind',
-                        visual: '🎺',
+                        visual: 'images/instruments/trombone.jpg',
                         description: 'A brass wind instrument with a sliding tube'
                     },
                     {
                         name: 'Flute',
                         family: 'Wind',
-                        visual: '🪈',
+                        visual: 'images/instruments/flute.jpg',
                         description: 'A woodwind instrument played by blowing across a hole'
                     },
                     {
                         name: 'Oboe',
                         family: 'Wind',
-                        visual: '🎶',
+                        visual: 'images/instruments/oboe.jpg',
                         description: 'A woodwind instrument with a double reed'
                     },
                     {
                         name: 'Clarinet',
                         family: 'Wind',
-                        visual: '🎵',
+                        visual: 'images/instruments/clarinet.jpg',
                         description: 'A woodwind instrument with a single reed'
                     },
                     {
                         name: 'Bassoon',
                         family: 'Wind',
-                        visual: '🎼',
+                        visual: 'images/instruments/bassoon.jpg',
                         description: 'A large woodwind instrument with a double reed'
                     },
                     {
                         name: 'Bass Drum',
                         family: 'Percussion',
-                        visual: '🥁',
+                        visual: 'images/instruments/bass_drum.jpg',
                         description: 'A large drum that produces low-pitched sounds'
                     },
                     {
                         name: 'Timpani',
                         family: 'Percussion',
-                        visual: '🥁',
+                        visual: 'images/instruments/timpani.jpg',
                         description: 'Tunable drums also called kettledrums'
                     }
                 ];
@@ -394,7 +400,8 @@ custom_css: |
             }
 
             displayInstrument() {
-                this.instrumentVisual.textContent = this.currentInstrument.visual;
+                this.instrumentVisual.src = this.currentInstrument.visual;
+                this.instrumentVisual.alt = this.currentInstrument.name;
 
                 if (this.currentQuestion === 'identify') {
                     this.instrumentName.textContent = '?';

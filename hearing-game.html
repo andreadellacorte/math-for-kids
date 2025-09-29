@@ -206,10 +206,9 @@ custom_css: |
                 <strong>Pattern Types:</strong><br>
                 <strong>Ascending:</strong> Notes go up (Low → Medium → High)<br>
                 <strong>Descending:</strong> Notes go down (High → Medium → Low)<br>
-                <strong>Up-Down:</strong> Notes go up then down (Low → High → Medium)<br>
-                <strong>Down-Up:</strong> Notes go down then up (High → Low → Medium)<br>
-                <strong>Steady:</strong> Notes stay similar (Around the same pitch)<br>
-                <strong>Valley:</strong> Notes go down then up (Medium → Low → Medium)
+                <strong>Up-down:</strong> Notes go up then down (Low → High → Medium)<br>
+                <strong>Down-up:</strong> Notes go down then up (High → Low → Medium)<br>
+                <strong>Repeat:</strong> Same note played three times (Same → Same → Same)
             </div>
 
             <div class="info-box" style="margin-top: 30px;">
@@ -230,38 +229,32 @@ custom_css: |
                     {
                         name: 'Ascending',
                         description: 'Going Up',
-                        visual: '♪\n ♪\n  ♪',
+                        visual: '♪ ↗ ♪ ↗ ♪',
                         generator: () => this.generateAscending()
                     },
                     {
                         name: 'Descending',
                         description: 'Going Down',
-                        visual: '  ♪\n ♪\n♪',
+                        visual: '♪ ↘ ♪ ↘ ♪',
                         generator: () => this.generateDescending()
                     },
                     {
-                        name: 'Up-Down',
+                        name: 'Up-down',
                         description: 'Up then Down',
-                        visual: ' ♪\n♪ ♪',
+                        visual: '♪ ↗ ♪ ↘ ♪',
                         generator: () => this.generateUpDown()
                     },
                     {
-                        name: 'Down-Up',
+                        name: 'Down-up',
                         description: 'Down then Up',
-                        visual: '♪ ♪\n ♪',
+                        visual: '♪ ↘ ♪ ↗ ♪',
                         generator: () => this.generateDownUp()
                     },
                     {
-                        name: 'Steady',
-                        description: 'Similar Pitch',
-                        visual: '♪ ♪ ♪',
-                        generator: () => this.generateSteady()
-                    },
-                    {
-                        name: 'Valley',
-                        description: 'Down then Up',
-                        visual: '♪  ♪\n ♪',
-                        generator: () => this.generateValley()
+                        name: 'Repeat',
+                        description: 'Same Note',
+                        visual: '♪ → ♪ → ♪',
+                        generator: () => this.generateRepeat()
                     }
                 ];
 
@@ -408,25 +401,16 @@ custom_css: |
                 ];
             }
 
-            generateSteady() {
-                // Three notes around the same pitch
-                const base = Math.floor(Math.random() * 4) + 2; // 2-5
+            generateRepeat() {
+                // Three notes of the same pitch
+                const base = Math.floor(Math.random() * 6) + 1; // 1-6
                 return [
                     this.baseFrequencies[base],
-                    this.baseFrequencies[base + 1],
+                    this.baseFrequencies[base],
                     this.baseFrequencies[base]
                 ];
             }
 
-            generateValley() {
-                // Medium, low, medium
-                const base = Math.floor(Math.random() * 3) + 2; // 2-4
-                return [
-                    this.baseFrequencies[base],
-                    this.baseFrequencies[base - 2],
-                    this.baseFrequencies[base]
-                ];
-            }
 
             async playCurrentSequence() {
                 if (!this.audioContext || this.currentSequence.length === 0) return;
