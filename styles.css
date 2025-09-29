@@ -24,6 +24,21 @@ body {
     min-height: calc(100vh - 40px);
 }
 
+.content-wrapper {
+    display: flex;
+    gap: 30px;
+    align-items: flex-start;
+}
+
+.main-content {
+    flex: 1;
+}
+
+.sidebar {
+    width: 280px;
+    flex-shrink: 0;
+}
+
 /* Header Styles */
 .header {
     display: flex;
@@ -413,6 +428,138 @@ h1 {
     color: #667eea;
 }
 
+/* Donation Appeal Sidebar */
+.donation-appeal {
+    background: linear-gradient(135deg, #ffeaa7 0%, #fab1a0 100%);
+    border-radius: 15px;
+    padding: 25px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    border: 3px solid #e17055;
+    position: sticky;
+    top: 20px;
+}
+
+.donation-appeal h3 {
+    color: #2d3748;
+    font-size: 1.4em;
+    margin-bottom: 15px;
+    text-align: center;
+    font-weight: bold;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.donation-appeal p {
+    color: #4a5568;
+    margin-bottom: 20px;
+    line-height: 1.5;
+    text-align: center;
+    font-size: 1em;
+}
+
+.donation-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.donation-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 15px 20px;
+    border-radius: 12px;
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 1em;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    border: 2px solid transparent;
+}
+
+.unicef-btn {
+    background: linear-gradient(135deg, #00b4d8 0%, #0077b6 100%);
+    color: white;
+}
+
+.unicef-btn:hover {
+    background: linear-gradient(135deg, #0077b6 0%, #005577 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.redcross-btn {
+    background: linear-gradient(135deg, #e63946 0%, #d62828 100%);
+    color: white;
+}
+
+.redcross-btn:hover {
+    background: linear-gradient(135deg, #d62828 0%, #ba181b 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.msf-btn {
+    background: linear-gradient(135deg, #2e8b57 0%, #228b22 100%);
+    color: white;
+}
+
+.msf-btn:hover {
+    background: linear-gradient(135deg, #228b22 0%, #006400 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.savechildren-btn {
+    background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+    color: white;
+}
+
+.savechildren-btn:hover {
+    background: linear-gradient(135deg, #f7931e 0%, #e67e22 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.dec-btn {
+    background: linear-gradient(135deg, #8e44ad 0%, #9b59b6 100%);
+    color: white;
+}
+
+.dec-btn:hover {
+    background: linear-gradient(135deg, #7d3c98 0%, #8e44ad 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.islamic-relief-btn {
+    background: linear-gradient(135deg, #1abc9c 0%, #16a085 100%);
+    color: white;
+}
+
+.islamic-relief-btn:hover {
+    background: linear-gradient(135deg, #16a085 0%, #138d75 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.btn-icon {
+    font-size: 1.3em;
+}
+
+.btn-text {
+    font-size: 0.95em;
+}
+
+.appeal-note {
+    font-size: 0.9em;
+    color: #666;
+    font-style: italic;
+    text-align: center;
+    margin: 0;
+}
+
 /* Visit Counter */
 .visit-counter {
     text-align: center;
@@ -564,6 +711,25 @@ h1 {
         min-height: calc(100vh - 20px);
     }
 
+    .content-wrapper {
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .sidebar {
+        width: 100%;
+        order: 2;
+    }
+
+    .main-content {
+        order: 1;
+    }
+
+    .donation-appeal {
+        position: static;
+        margin-top: 20px;
+    }
+
     h1 {
         font-size: 2em;
     }
@@ -611,6 +777,23 @@ h1 {
     .container {
         padding: 15px;
         margin: 5px;
+    }
+
+    .content-wrapper {
+        gap: 15px;
+    }
+
+    .donation-appeal {
+        padding: 20px;
+    }
+
+    .donation-appeal h3 {
+        font-size: 1.2em;
+    }
+
+    .donation-btn {
+        padding: 12px 15px;
+        font-size: 0.9em;
     }
 
     h1 {
