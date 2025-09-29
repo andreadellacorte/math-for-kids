@@ -853,11 +853,11 @@ function optimizeGivensBackward(model, difficulty) {
 
   // Step 3: Remove numbers strategically until we hit target difficulty
   let attempts = 0;
-  const maxAttempts = 200; // Prevent infinite loops
+  const maxAttempts = difficulty === 'expert' ? 1000 : 500; // Allow more attempts for expert
 
   while (currentGivens.size > difficultyTargets.maxGivens && attempts < maxAttempts) {
     attempts++;
-    const bestRemoval = findBestNumberToRemove(grid, equations, currentGivens);
+    const bestRemoval = findBestNumberToRemove(grid, equations, currentGivens, difficulty);
 
     if (!bestRemoval) {
       console.log(`No more removals found at ${currentGivens.size}/${allNumberPositions.length} givens (${Math.round(currentGivens.size/allNumberPositions.length*100)}%) - target was ${difficultyTargets.maxGivens}`);
@@ -865,7 +865,13 @@ function optimizeGivensBackward(model, difficulty) {
     }
 
     if (attempts % 10 === 0) {
-      console.log(`Attempt ${attempts}: ${currentGivens.size}/${allNumberPositions.length} givens (${Math.round(currentGivens.size/allNumberPositions.length*100)}%) - removing next...`);
+      const currentPercentage = Math.round(currentGivens.size/allNumberPositions.length*100);
+      console.log(`Attempt ${attempts}: ${currentGivens.size}/${allNumberPositions.length} givens (${currentPercentage}%) - removing next...`);
+
+      // Update UI progress
+      if (typeof window !== 'undefined' && window.stat) {
+        window.stat.textContent = `🔄 Optimizing ${difficulty} difficulty... ${currentPercentage}% → ${difficultyTargets.percentage.max}% (attempt ${attempts})`;
+      }
     }
 
     currentGivens.delete(bestRemoval);
@@ -907,13 +913,13 @@ function optimizeGivensBackward(model, difficulty) {
   };
 }
 
-function findBestNumberToRemove(grid, equations, currentGivens) {
+function findBestNumberToRemove(grid, equations, currentGivens, difficulty = 'expert') {
   const candidates = [];
 
   // Analyze each given number for removal potential
   for (const givenPos of currentGivens) {
     const [r, c] = givenPos.split(',').map(Number);
-    const removalScore = calculateRemovalScore(grid, equations, currentGivens, r, c);
+    const removalScore = calculateRemovalScore(grid, equations, currentGivens, r, c, difficulty);
 
     if (removalScore > 0) {
       candidates.push({pos: givenPos, score: removalScore, r, c});
@@ -936,7 +942,7 @@ function findBestNumberToRemove(grid, equations, currentGivens) {
   return candidates[0].pos;
 }
 
-function calculateRemovalScore(grid, equations, currentGivens, r, c) {
+function calculateRemovalScore(grid, equations, currentGivens, r, c, difficulty = 'expert') {
   let score = 0;
 
   // Find which equation(s) this number belongs to
@@ -965,9 +971,22 @@ function calculateRemovalScore(grid, equations, currentGivens, r, c) {
 
     const currentEqGivens = eqPositions.filter(pos => currentGivens.has(pos)).length;
 
-    // CRITICAL: Never remove the last given from an equation
-    if (currentEqGivens <= 1) {
-      return 0; // Cannot remove - would create equation with 0 givens
+    // Difficulty-based removal constraints
+    if (difficulty === 'expert') {
+      // EXPERT: Allow aggressive removal, rely on intersection constraints
+      if (currentEqGivens === 1) {
+        // Only allow if this number has strong intersection constraints
+        const intersectionCount = countIntersectionConstraints(grid, equations, currentGivens, r, c);
+        if (intersectionCount < 2) {
+          return 0; // Need at least 2 intersections to safely remove last number
+        }
+        score += 30; // High reward for aggressive expert removal
+      }
+    } else {
+      // EASIER MODES: More conservative - never remove last given
+      if (currentEqGivens <= 1) {
+        return 0; // Cannot remove - would create equation with 0 givens
+      }
     }
 
     // EXPERT MODE: Be much more aggressive about removal scoring
@@ -1298,13 +1317,30 @@ function createRandomCrossword(numEquations, difficulty = 'expert') {
           {k: 'num', ch: String(eq.C)}
         ];
 
-        // Place equation
+        // Validate equation placement first - ensure values match constraints
+        let canPlaceEquation = true;
         for (let i = 0; i < 5; i++) {
           const r = intersection.across ? intersection.row : intersection.row + i;
           const c = intersection.across ? intersection.col + i : intersection.col;
-          if (!grid[r][c]) {
-            grid[r][c] = {...sequence[i], id: eqNum};
+          if (grid[r][c] && grid[r][c].k === 'num' && grid[r][c].ch !== sequence[i].ch) {
+            console.warn(`Constraint mismatch at (${r},${c}): expected ${sequence[i].ch}, found ${grid[r][c].ch}`);
+            canPlaceEquation = false;
+            break;
           }
+        }
+
+        // Only place if validation passes
+        if (canPlaceEquation) {
+          for (let i = 0; i < 5; i++) {
+            const r = intersection.across ? intersection.row : intersection.row + i;
+            const c = intersection.across ? intersection.col + i : intersection.col;
+            if (!grid[r][c]) {
+              grid[r][c] = {...sequence[i], id: eqNum};
+            }
+          }
+        } else {
+          // Skip this placement attempt and try next intersection
+          continue;
         }
 
         equations.push({
@@ -1421,6 +1457,47 @@ function createRandomCrossword(numEquations, difficulty = 'expert') {
     if (!placed) {
       console.log(`Could not place equation ${eqNum} after ${maxAttempts} attempts`);
     }
+  }
+
+  // Final validation: ensure all equations in the grid are mathematically correct
+  console.log('Performing final equation validation...');
+  let validationErrors = 0;
+  for (const eq of equations) {
+    const positions = [];
+    for (let i = 0; i < 5; i += 2) { // Only number positions: 0, 2, 4
+      const r = eq.across ? eq.row : eq.row + i;
+      const c = eq.across ? eq.col + i : eq.col;
+      if (r < 24 && c < 24 && grid[r][c]) {
+        positions.push(parseInt(grid[r][c].ch));
+      } else {
+        console.error(`Missing grid value at (${r},${c}) for equation`);
+        validationErrors++;
+      }
+    }
+
+    if (positions.length === 3) {
+      const [A, B, C] = positions;
+      const op = eq.across ? grid[eq.row][eq.col + 1].ch : grid[eq.row + 1][eq.col].ch;
+
+      let isValid = false;
+      switch (op) {
+        case '+': isValid = (A + B === C); break;
+        case '-': isValid = (A - B === C); break;
+        case '×': isValid = (A * B === C); break;
+        case '÷': isValid = (B !== 0 && A / B === C); break;
+      }
+
+      if (!isValid) {
+        console.error(`Invalid equation in grid: ${A} ${op} ${B} = ${C}`);
+        validationErrors++;
+      }
+    }
+  }
+
+  if (validationErrors > 0) {
+    console.warn(`Found ${validationErrors} validation errors in generated crossword`);
+  } else {
+    console.log('All equations validated successfully');
   }
 
   return {grid, equations};
@@ -1551,12 +1628,12 @@ function buildEquationWithConstraints(constraints) {
 function getNewDifficultyTargets(difficulty, totalNumbers) {
   console.log(`getNewDifficultyTargets called with: ${difficulty}, ${totalNumbers}`);
 
-  // Define difficulty levels with appropriate percentages
+  // Define difficulty levels with target percentages
   const difficultySettings = {
-    expert: { min: 0.03, max: 0.08, name: 'Expert' },    // 3-8% - Ultra minimal for serious deduction
-    hard:   { min: 0.15, max: 0.22, name: 'Hard' },     // 15-22% - Requires logical thinking
-    medium: { min: 0.25, max: 0.35, name: 'Medium' },   // 25-35% - Moderate challenge
-    easy:   { min: 0.35, max: 0.45, name: 'Easy' }      // 35-45% - More guidance
+    expert: { min: 0.05, max: 0.40, name: 'Expert' },    // Target ≤40% - Ultra minimal for serious deduction
+    hard:   { min: 0.35, max: 0.50, name: 'Hard' },     // Target ~50% - Requires logical thinking
+    medium: { min: 0.55, max: 0.65, name: 'Medium' },   // Target ~60% - Moderate challenge
+    easy:   { min: 0.65, max: 0.75, name: 'Easy' }      // Target ~70% - More guidance
   };
 
   const setting = difficultySettings[difficulty] || difficultySettings.medium;
@@ -1878,12 +1955,12 @@ function createsMathematicalAmbiguity(grid, equations, givenPositions) {
 }
 
 function getDifficultyTargets(difficulty, totalNumbers) {
-  // Define difficulty levels - Expert requires serious deduction
+  // Define difficulty levels with target percentages
   const difficultySettings = {
-    expert: { min: 0.03, max: 0.08, name: 'Expert' },    // Ultra minimal clues for serious deduction
-    hard:   { min: 0.15, max: 0.22, name: 'Hard' },     // Reduced from previous
-    medium: { min: 0.25, max: 0.35, name: 'Medium' },   // Unchanged
-    easy:   { min: 0.35, max: 0.45, name: 'Easy' }      // Slightly more clues
+    expert: { min: 0.05, max: 0.40, name: 'Expert' },    // Target ≤40% - Ultra minimal clues for serious deduction
+    hard:   { min: 0.35, max: 0.50, name: 'Hard' },     // Target ~50% - Requires logical thinking
+    medium: { min: 0.55, max: 0.65, name: 'Medium' },   // Target ~60% - Moderate challenge
+    easy:   { min: 0.65, max: 0.75, name: 'Easy' }      // Target ~70% - More guidance
   };
 
   const setting = difficultySettings[difficulty] || difficultySettings.medium;
@@ -2825,14 +2902,15 @@ function saveSettings() {
 }
 
 function regenerate(printAfter=false){
-  // Show immediate feedback
-  stat.textContent='🔄 Generating puzzle...';
+  // Show immediate feedback with difficulty info
+  const selectedDifficulty = difficultySelect.value || 'medium';
+  stat.textContent=`🔄 Generating ${selectedDifficulty} puzzle... (this may take longer for precise difficulty targeting)`;
   stat.style.background = '#fff3cd';
   stat.style.color = '#856404';
   stat.style.border = '2px solid #ffeeba';
 
   // Use setTimeout to ensure UI updates immediately
-  setTimeout(() => {
+  setTimeout(async () => {
     const numEquations = parseInt(eqSlider.value) || 30;
     const difficulty = difficultySelect.value || 'medium';
 
@@ -2848,36 +2926,185 @@ function regenerate(printAfter=false){
 
     saveSettings();
 
-    try {
-      // Use backward generation algorithm for better optimal puzzles
-      const model = generateBackwardCrossword(numEquations, difficulty);
-      if (!model) {
-        stat.textContent = '⚠️ Failed to generate puzzle. Please try again.';
-        stat.style.background = '#f8d7da';
-        stat.style.color = '#721c24';
-        stat.style.border = '2px solid #f5c6cb';
-        return;
+    // Define target percentage ranges for each difficulty
+    const targetRanges = {
+      expert: { min: 5, max: 40 },   // ≤40% for expert
+      hard:   { min: 35, max: 50 },  // ~50% for hard
+      medium: { min: 55, max: 65 },  // ~60% for medium
+      easy:   { min: 65, max: 75 }   // ~70% for easy
+    };
+
+    const targetRange = targetRanges[difficulty] || targetRanges.medium;
+    let attempt = 0;
+    let finalModel = null;
+    let finalMeta = null;
+    let finalPercentage = 0;
+
+    // Add big spinner in puzzle area
+    const addPuzzleSpinner = () => {
+      // Add spinner CSS if not already present
+      if (!document.getElementById('spinnerStyles')) {
+        const style = document.createElement('style');
+        style.id = 'spinnerStyles';
+        style.textContent = `
+          .puzzle-spinner-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+            background: rgba(248, 249, 250, 0.8);
+            border-radius: 12px;
+            border: 2px dashed #dee2e6;
+          }
+          .puzzle-spinner {
+            width: 60px;
+            height: 60px;
+            border: 6px solid #f3f3f3;
+            border-top: 6px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1.2s linear infinite;
+            margin-bottom: 20px;
+          }
+          .spinner-text {
+            font-size: 16px;
+            color: #6c757d;
+            font-weight: 500;
+          }
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `;
+        document.head.appendChild(style);
       }
 
-      const meta = drawCompletedCrossword(model, difficulty);
-      const percentage = Math.round((meta.actualGivens / meta.numTotal) * 100);
+      // Create spinner container in puzzle area
+      const spinnerContainer = document.createElement('div');
+      spinnerContainer.className = 'puzzle-spinner-container';
+      spinnerContainer.id = 'puzzleSpinnerContainer';
+
+      const spinner = document.createElement('div');
+      spinner.className = 'puzzle-spinner';
+
+      const spinnerText = document.createElement('div');
+      spinnerText.className = 'spinner-text';
+      spinnerText.id = 'spinnerText';
+      spinnerText.textContent = 'Generating puzzle...';
+
+      spinnerContainer.appendChild(spinner);
+      spinnerContainer.appendChild(spinnerText);
+
+      // Insert spinner where the screen grid normally goes
+      const screenGrid = document.getElementById('screenGrid');
+      if (screenGrid && screenGrid.parentNode) {
+        screenGrid.parentNode.insertBefore(spinnerContainer, screenGrid);
+      }
+    };
+
+    const removePuzzleSpinner = () => {
+      const spinnerContainer = document.getElementById('puzzleSpinnerContainer');
+      if (spinnerContainer) spinnerContainer.remove();
+    };
+
+    // Hide puzzle grids during generation
+    const svg = document.getElementById('grid');
+    const screenGrid = document.getElementById('screenGrid');
+    const printGrid = document.getElementById('printGrid');
+    const ans = document.getElementById('ans');
+
+    if (svg) svg.style.display = 'none';
+    if (screenGrid) screenGrid.style.display = 'none';
+    if (printGrid) printGrid.style.display = 'none';
+    if (ans) ans.style.display = 'none';
+
+    // Show big spinner in puzzle area
+    addPuzzleSpinner();
+
+    // Infinite retry loop until we hit the target percentage range
+    while (true) {
+      attempt++;
+
+      // Update spinner text and status
+      const spinnerText = document.getElementById('spinnerText');
+      if (spinnerText) {
+        spinnerText.textContent = `Generating ${difficulty} puzzle... (attempt ${attempt})`;
+      }
+
+      stat.textContent = `🔄 Targeting ${targetRange.min}-${targetRange.max}% difficulty (attempt ${attempt})`;
+
+      // Add small delay to allow UI updates and cancellation
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      try {
+        // Use backward generation algorithm for better optimal puzzles
+        const model = generateBackwardCrossword(numEquations, difficulty);
+        if (!model) {
+          console.log(`Attempt ${attempt} failed to generate model`);
+          continue;
+        }
+
+        const meta = drawCompletedCrossword(model, difficulty);
+        const percentage = Math.round((meta.actualGivens / meta.numTotal) * 100);
+
+        // Check if this attempt hit our target range
+        if (percentage >= targetRange.min && percentage <= targetRange.max) {
+          finalModel = model;
+          finalMeta = meta;
+          finalPercentage = percentage;
+          break;
+        } else {
+          console.log(`Attempt ${attempt}: ${percentage}% (outside target ${targetRange.min}-${targetRange.max}%), retrying...`);
+        }
+
+      } catch (e) {
+        console.log(`Attempt ${attempt} failed:`, e);
+        continue;
+      }
+    }
+
+    // Remove spinner
+    removePuzzleSpinner();
+
+    // Show only the screen grid (colorful version)
+    if (screenGrid) screenGrid.style.display = '';
+    if (ans) ans.style.display = '';
+    // Keep print grid hidden (only for printing)
+    if (printGrid) printGrid.style.display = 'none';
+
+    // Display results
+    if (finalModel && finalMeta) {
       const range = getNumberRange();
 
       // Success styling
       stat.style.background = '#d4edda';
       stat.style.color = '#155724';
       stat.style.border = '2px solid #c3e6cb';
-      stat.textContent=`✅ Generated ${meta.difficulty.name} puzzle (${range.min}-${range.max}) with ${model.equations.length} equations, showing ${meta.actualGivens}/${meta.numTotal} numbers (${percentage}%)`;
+      stat.textContent=`✅ Generated ${finalMeta.difficulty.name} puzzle (${range.min}-${range.max}) with ${finalModel.equations.length} equations, showing ${finalMeta.actualGivens}/${finalMeta.numTotal} numbers (${finalPercentage}%) [attempt ${attempt}]`;
 
       if(printAfter) setTimeout(() => window.print(), 100);
-    } catch(e) {
-      console.error('Error generating crossword:', e);
-      stat.textContent = '⚠️ Error generating puzzle. Please try again.';
+    } else {
+      // This shouldn't happen with infinite retries
+      stat.textContent = `⚠️ Unexpected error during generation.`;
       stat.style.background = '#f8d7da';
       stat.style.color = '#721c24';
       stat.style.border = '2px solid #f5c6cb';
+      return;
     }
-  }, 10); // Small delay to ensure UI updates
+  }, 10); // End setTimeout
+}
+
+// Additional error handling wrapper
+function safeRegenerate(printAfter=false) {
+  try {
+    regenerate(printAfter);
+  } catch(e) {
+    console.error('Error generating crossword:', e);
+    stat.textContent = '⚠️ Error generating puzzle. Please try again.';
+    stat.style.background = '#f8d7da';
+    stat.style.color = '#721c24';
+    stat.style.border = '2px solid #f5c6cb';
+  }
 }
 
 function printColorVersion() {
