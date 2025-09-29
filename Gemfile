@@ -1,5 +1,9 @@
 source "https://rubygems.org"
 
-# Match GitHub Pages environment for painless local bundler
-gem "github-pages", group: :jekyll_plugins
+# Match GitHub Pages Jekyll version
+gem "jekyll", "~> 3.10.0"
 gem "webrick"
+
+# Jekyll plugins
+gem "jekyll-feed"
+gem "jekyll-sitemap"
