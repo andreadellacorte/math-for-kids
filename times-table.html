@@ -1,8 +1,8 @@
 ---
-title: "Brain Training Speed Math - Math Fun for Kids!"
+title: "Times Table Training - Math Fun for Kids!"
 custom_css: |
     .brain-training-container {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
         border-radius: 20px;
         padding: 40px;
         margin-bottom: 30px;
@@ -103,10 +103,10 @@ custom_css: |
     }
 
     .equation-item.current {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
         color: white;
         transform: scale(1.05);
-        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        box-shadow: 0 8px 25px rgba(240, 147, 251, 0.4);
         animation: currentPulse 2s ease-in-out infinite;
     }
 
@@ -138,8 +138,8 @@ custom_css: |
     }
 
     @keyframes currentPulse {
-        0%, 100% { box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4); }
-        50% { box-shadow: 0 12px 35px rgba(102, 126, 234, 0.6); }
+        0%, 100% { box-shadow: 0 8px 25px rgba(240, 147, 251, 0.4); }
+        50% { box-shadow: 0 12px 35px rgba(240, 147, 251, 0.6); }
     }
 
     @keyframes currentArrow {
@@ -193,8 +193,8 @@ custom_css: |
 
     .keyboard-input input:focus {
         outline: none;
-        border-color: #667eea;
-        box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+        border-color: #f093fb;
+        box-shadow: 0 4px 20px rgba(240, 147, 251, 0.3);
     }
 
     .keyboard-input button {
@@ -227,7 +227,7 @@ custom_css: |
     .answer-btn:hover {
         transform: translateY(-2px);
         box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
-        border-color: #667eea;
+        border-color: #f093fb;
     }
 
     .answer-btn.correct {
@@ -363,6 +363,43 @@ custom_css: |
         border-color: #ffed4e;
         transform: translateY(-2px);
         box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
+    }
+
+    .specific-table-selector {
+        margin-top: 10px;
+    }
+
+    .table-buttons {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+
+    .table-btn {
+        background: rgba(255, 255, 255, 0.9);
+        color: #333;
+        border: 3px solid transparent;
+        padding: 12px;
+        border-radius: 12px;
+        font-size: 1.2em;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-align: center;
+    }
+
+    .table-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .table-btn.selected {
+        background: #f093fb;
+        color: white;
+        border-color: #f5576c;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(240, 147, 251, 0.4);
     }
 
     .time-selector {
@@ -512,7 +549,7 @@ custom_css: |
     .certificate .cert-title {
         font-size: 2.2em;
         font-weight: 900;
-        color: #667eea;
+        color: #f093fb;
         margin: 10px 0 20px 0;
     }
     .certificate .cert-name {
@@ -560,7 +597,7 @@ custom_css: |
     .brain-age {
         font-size: 3em;
         font-weight: bold;
-        color: #667eea;
+        color: #f093fb;
         margin: 20px 0;
     }
 
@@ -579,7 +616,7 @@ custom_css: |
     }
 
     .result-item h3 {
-        color: #667eea;
+        color: #f093fb;
         margin-bottom: 10px;
     }
 
@@ -694,37 +731,71 @@ custom_css: |
         .checkbox-setting label, .radio-setting label {
             font-size: 1em;
         }
+
+        .table-buttons {
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+
+        .table-btn {
+            padding: 10px;
+            font-size: 1em;
+        }
     }
 ---
     <div class="container">
         <div class="header">
             <a href="index.html" class="back-btn">← Back Home</a>
-            <h1>🧠 Brain Training Speed Math</h1>
+            <h1>✖️ Times Table Training</h1>
         </div>
 
         <div class="brain-training-container">
             <div id="setupScreen">
-                <h2>Train Your Brain with Speed Math!</h2>
-                <p>Solve as many problems as you can. How young is your brain? 🤔</p>
+                <h2>Master Your Times Tables!</h2>
+                <p>Practice multiplication facts and become a times table expert! 🚀</p>
 
                 <div class="settings-section">
                     <h3>⚙️ Game Settings</h3>
 
                     <div class="setting-group">
-                        <label>Difficulty Level:</label>
+                        <label>Times Table Range:</label>
                         <div class="difficulty-buttons">
                             <button class="difficulty-btn selected" data-difficulty="easy">
-                                Easy<br><small>1-digit + 1-digit</small>
+                                Easy<br><small>2-5 times tables</small>
                             </button>
                             <button class="difficulty-btn" data-difficulty="medium">
-                                Medium<br><small>2-digit + 1-digit</small>
+                                Medium<br><small>2-9 times tables</small>
                             </button>
                             <button class="difficulty-btn" data-difficulty="hard">
-                                Hard<br><small>2-digit + 2-digit</small>
+                                Hard<br><small>2-12 times tables</small>
                             </button>
                             <button class="difficulty-btn" data-difficulty="expert">
-                                Expert<br><small>3-digit mixed ops</small>
+                                Expert<br><small>All times tables up to 15</small>
                             </button>
+                        </div>
+                    </div>
+
+                    <div class="setting-group">
+                        <label>Or Practice Specific Table:</label>
+                        <div class="specific-table-selector">
+                            <div class="table-buttons" id="tableButtons">
+                                <button class="table-btn" data-table="1">1</button>
+                                <button class="table-btn" data-table="2">2</button>
+                                <button class="table-btn" data-table="3">3</button>
+                                <button class="table-btn" data-table="4">4</button>
+                                <button class="table-btn" data-table="5">5</button>
+                                <button class="table-btn" data-table="6">6</button>
+                                <button class="table-btn" data-table="7">7</button>
+                                <button class="table-btn" data-table="8">8</button>
+                                <button class="table-btn" data-table="9">9</button>
+                                <button class="table-btn" data-table="10">10</button>
+                                <button class="table-btn" data-table="11">11</button>
+                                <button class="table-btn" data-table="12">12</button>
+                            </div>
+                            <div class="checkbox-setting" style="margin-top: 15px;">
+                                <input type="checkbox" id="randomOrder" checked>
+                                <label for="randomOrder">Random order (uncheck for sequential: 1×1, 1×2, 1×3...)</label>
+                            </div>
                         </div>
                     </div>
 
@@ -755,7 +826,7 @@ custom_css: |
                     </div>
                 </div>
 
-                <button id="startBtn" class="start-btn">Start Brain Training!</button>
+                <button id="startBtn" class="start-btn">Start Times Table Training!</button>
             </div>
 
             <div id="gameScreen" class="hidden">
@@ -805,7 +876,7 @@ custom_css: |
 
             <div id="resultsScreen" class="hidden">
                 <div class="results-screen">
-                    <h2>🎉 Brain Training Complete!</h2>
+                    <h2>🎉 Times Table Training Complete!</h2>
 
                     <div class="brain-age" id="brainAge">Brain Age: 25</div>
 
@@ -830,7 +901,7 @@ custom_css: |
 
                     <div class="certificate" id="certificate">
                         <h3>Certificate of Achievement</h3>
-                        <div class="cert-title">Brain Training Speed Math</div>
+                        <div class="cert-title">Times Table Training</div>
                         <div id="certNameWrapper">
                             <input id="playerNameInput" class="cert-name-input" type="text" placeholder="Type your name...">
                             <div id="playerNameDisplay" class="cert-name" style="display:none;"></div>
@@ -843,7 +914,7 @@ custom_css: |
                             <span class="badge">Level: <span id="certLevel">–</span></span>
                             <span class="badge">Date: <span id="certDate">–</span></span>
                         </div>
-                        <div class="cert-footer">Well done! Keep practicing to get even faster and smarter!</div>
+                        <div class="cert-footer">Fantastic work! Keep practicing to become a multiplication master!</div>
                         <button id="printCertificateBtn" class="btn secondary print-cert-btn">Print Certificate</button>
                     </div>
 
@@ -861,7 +932,7 @@ custom_css: |
     </div>
 
     <script>
-        class BrainTraining {
+        class TimesTableTraining {
             constructor() {
                 this.setupElements();
                 this.resetGame();
@@ -873,6 +944,8 @@ custom_css: |
                 this.gameScreen = document.getElementById('gameScreen');
                 this.resultsScreen = document.getElementById('resultsScreen');
                 this.difficultyButtons = document.querySelectorAll('.difficulty-btn');
+                this.tableButtons = document.querySelectorAll('.table-btn');
+                this.randomOrderCheckbox = document.getElementById('randomOrder');
                 this.timeLimitSlider = document.getElementById('timeLimit');
                 this.timeDisplay = document.getElementById('timeDisplay');
                 this.buttonModeRadio = document.getElementById('buttonMode');
@@ -895,7 +968,6 @@ custom_css: |
                 this.playAgainBtn = document.getElementById('playAgainBtn');
                 this.shareSocreBtn = document.getElementById('shareSocreBtn');
                 this.feedbackOverlay = document.getElementById('feedbackOverlay');
-                // Certificate elements
                 this.playerNameInput = document.getElementById('playerNameInput');
                 this.playerNameDisplay = document.getElementById('playerNameDisplay');
                 this.printCertificateBtn = document.getElementById('printCertificateBtn');
@@ -903,7 +975,6 @@ custom_css: |
             }
 
             setupAudio() {
-                // Create audio context for sound effects
                 try {
                     this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 } catch (e) {
@@ -946,20 +1017,19 @@ custom_css: |
                 this.gameActive = false;
                 this.currentAnswer = null;
                 this.hintTimer = null;
-
-                // Initialize equation queue
                 this.equationQueue = [];
-                this.currentEquationIndex = 0; // Start at first equation
+                this.currentEquationIndex = 0;
                 this.completedProblems = [];
                 this.keyboardMode = false;
+                this.sequentialIndex = 0;
 
-                // Pre-generate initial equations
                 this.initializeEquationQueue();
                 this.assistedMode = this.assistedModeRadio.checked;
                 this.keyboardMode = this.keyboardModeRadio.checked;
                 this.selectedDifficulty = document.querySelector('.difficulty-btn.selected')?.dataset.difficulty || 'easy';
+                this.specificTable = document.querySelector('.table-btn.selected')?.dataset.table || null;
+                this.randomOrder = this.randomOrderCheckbox.checked;
 
-                // Load settings from cookies
                 this.loadSettings();
             }
 
@@ -975,15 +1045,12 @@ custom_css: |
             }
 
             loadSettings() {
-                // Load input mode
-                const inputMode = this.getCookie('inputMode');
+                const inputMode = this.getCookie('timesTableInputMode');
                 if (inputMode !== null) {
-                    // Uncheck all radio buttons first
                     this.buttonModeRadio.checked = false;
                     this.assistedModeRadio.checked = false;
                     this.keyboardModeRadio.checked = false;
 
-                    // Check the correct radio button
                     switch(inputMode) {
                         case 'button':
                             this.buttonModeRadio.checked = true;
@@ -1007,19 +1074,15 @@ custom_css: |
                     }
                 }
 
-                // Load time limit
-                const timeLimit = this.getCookie('timeLimit');
+                const timeLimit = this.getCookie('timesTableTimeLimit');
                 if (timeLimit !== null) {
                     this.timeLimitSlider.value = timeLimit;
                     this.timeDisplay.textContent = `${timeLimit}s`;
                 }
 
-                // Load difficulty
-                const difficulty = this.getCookie('difficulty');
+                const difficulty = this.getCookie('timesTableDifficulty');
                 if (difficulty !== null) {
-                    // Remove selected class from all buttons
                     this.difficultyButtons.forEach(btn => btn.classList.remove('selected'));
-                    // Add selected class to the saved difficulty
                     const savedBtn = document.querySelector(`[data-difficulty="${difficulty}"]`);
                     if (savedBtn) {
                         savedBtn.classList.add('selected');
@@ -1027,40 +1090,51 @@ custom_css: |
                     }
                 }
 
-                // Initialize input mode display
                 this.updateInputModeDisplay();
 
-                // Load player name (shared across games)
                 const savedName = this.getCookie('playerName');
                 if (savedName) {
                     this.playerNameInput.value = savedName;
                 }
+
+                const specificTable = this.getCookie('timesTableSpecific');
+                if (specificTable !== null && specificTable !== 'null') {
+                    const savedTableBtn = document.querySelector(`[data-table="${specificTable}"]`);
+                    if (savedTableBtn) {
+                        savedTableBtn.classList.add('selected');
+                        this.specificTable = specificTable;
+                    }
+                }
+
+                const randomOrder = this.getCookie('timesTableRandomOrder');
+                if (randomOrder !== null) {
+                    this.randomOrderCheckbox.checked = randomOrder === 'true';
+                    this.randomOrder = randomOrder === 'true';
+                }
             }
 
             saveSettings() {
-                // Save input mode based on which radio button is checked
                 let inputMode = 'button';
                 if (this.assistedModeRadio.checked) {
                     inputMode = 'assisted';
                 } else if (this.keyboardModeRadio.checked) {
                     inputMode = 'keyboard';
                 }
-                this.setCookie('inputMode', inputMode);
-                this.setCookie('timeLimit', this.timeLimitSlider.value);
-                this.setCookie('difficulty', this.selectedDifficulty);
-                // Save player name if present
+                this.setCookie('timesTableInputMode', inputMode);
+                this.setCookie('timesTableTimeLimit', this.timeLimitSlider.value);
+                this.setCookie('timesTableDifficulty', this.selectedDifficulty);
+                this.setCookie('timesTableSpecific', this.specificTable || 'null');
+                this.setCookie('timesTableRandomOrder', this.randomOrder);
                 const name = (this.playerNameInput?.value || '').trim();
                 if (name) this.setCookie('playerName', name);
             }
 
             initializeEquationQueue() {
-                // Generate initial 5 equations
                 this.equationQueue = [];
                 for (let i = 0; i < 5; i++) {
                     this.equationQueue.push(this.generateProblem());
                 }
 
-                // Generate additional equations ahead of time
                 for (let i = 0; i < 10; i++) {
                     this.equationQueue.push(this.generateProblem());
                 }
@@ -1074,47 +1148,39 @@ custom_css: |
                     const equationText = equationItem.querySelector('.equation-text');
                     const equationStatus = equationItem.querySelector('.equation-status');
 
-                    // Remove all state classes
                     equationItem.classList.remove('completed', 'current', 'future');
 
-                    // Determine which equation to show in each slot
                     let equationIndex;
 
                     if (this.currentProblem < 3) {
-                        // First 3 problems: show equations 0-4
                         equationIndex = i;
                     } else {
-                        // After 3rd problem: scrolling window
                         equationIndex = (this.currentProblem - 2) + i;
                     }
 
                     const equation = this.equationQueue[equationIndex];
 
                     if (equationIndex < this.currentProblem) {
-                        // Completed equation
                         equationItem.classList.add('completed');
                         if (equation) {
-                            equationText.textContent = `${equation.num1} ${equation.operation} ${equation.num2} = ${equation.answer}`;
-                            // Check if this was answered correctly
+                            equationText.textContent = `${equation.num1} × ${equation.num2} = ${equation.answer}`;
                             const wasCorrect = this.completedProblems[equationIndex]?.correct ?? true;
                             equationStatus.textContent = wasCorrect ? '✓' : '✗';
                             equationStatus.style.color = wasCorrect ? '#28a745' : '#dc3545';
                         }
                     } else if (equationIndex === this.currentProblem) {
-                        // Current equation
                         equationItem.classList.add('current');
                         if (equation) {
-                            equationText.textContent = `${equation.num1} ${equation.operation} ${equation.num2} = ?`;
+                            equationText.textContent = `${equation.num1} × ${equation.num2} = ?`;
                             equationStatus.textContent = '❯';
                         } else {
                             equationText.textContent = 'Get Ready...';
                             equationStatus.textContent = '❯';
                         }
                     } else {
-                        // Future equation
                         equationItem.classList.add('future');
                         if (equation) {
-                            equationText.textContent = `${equation.num1} ${equation.operation} ${equation.num2} = ?`;
+                            equationText.textContent = `${equation.num1} × ${equation.num2} = ?`;
                         } else {
                             equationText.textContent = 'Loading...';
                         }
@@ -1124,26 +1190,21 @@ custom_css: |
             }
 
             moveToNextEquation(wasCorrect) {
-                // Store the completed problem result
                 this.completedProblems[this.currentProblem] = {
                     correct: wasCorrect
                 };
 
-                // Move to next problem
                 this.currentProblem++;
 
-                // Generate new equations if needed
                 while (this.equationQueue.length <= this.currentProblem + 5) {
                     this.equationQueue.push(this.generateProblem());
                 }
 
-                // Update current answer immediately to the next problem
                 const nextProblem = this.equationQueue[this.currentProblem];
                 if (nextProblem) {
                     this.currentAnswer = nextProblem.answer;
                 }
 
-                // Clear input field and refocus for keyboard mode
                 if (this.keyboardMode) {
                     this.answerInput.value = '';
                     setTimeout(() => {
@@ -1152,15 +1213,12 @@ custom_css: |
                     }, 100);
                 }
 
-                // Add smooth scrolling animation
                 this.animateEquationScroll();
             }
 
             animateEquationScroll() {
-                // Add gentle transition animation
                 this.equationsContainer.classList.add('transitioning');
 
-                // Update content after brief animation
                 setTimeout(() => {
                     this.updateEquationDisplay();
                     this.equationsContainer.classList.remove('transitioning');
@@ -1177,24 +1235,6 @@ custom_css: |
                 }
             }
 
-            toggleInputMode() {
-                this.keyboardMode = !this.keyboardMode;
-
-                if (this.keyboardMode) {
-                    this.answerOptions.style.display = 'none';
-                    this.keyboardInput.style.display = 'flex';
-                    this.toggleInputBtn.textContent = 'Use Buttons';
-                    this.answerInput.focus();
-                } else {
-                    this.answerOptions.style.display = 'grid';
-                    this.keyboardInput.style.display = 'none';
-                    this.toggleInputBtn.textContent = 'Use Keyboard';
-                }
-
-                // Clear input field when switching modes
-                this.answerInput.value = '';
-            }
-
             submitKeyboardAnswer() {
                 if (!this.gameActive || !this.keyboardMode) return;
 
@@ -1204,16 +1244,11 @@ custom_css: |
                     return;
                 }
 
-                // Ensure both values are numbers for comparison
                 const correctAnswer = parseInt(this.currentAnswer);
                 const isCorrect = userAnswer === correctAnswer;
 
-                // Debug logging
-                console.log('Keyboard - User answer:', userAnswer, typeof userAnswer, 'Correct answer:', correctAnswer, typeof correctAnswer, 'Original this.currentAnswer:', this.currentAnswer, typeof this.currentAnswer, 'Match:', isCorrect);
-
                 this.handleAnswer(isCorrect);
 
-                // Clear input for next problem
                 this.answerInput.value = '';
                 this.answerInput.focus();
             }
@@ -1221,18 +1256,14 @@ custom_css: |
             handleAnswer(isCorrect) {
                 if (!this.gameActive) return;
 
-                // Record response time
                 const responseTime = Date.now() - this.problemStartTime;
                 this.responseTimes.push(responseTime);
 
-                // Show feedback
                 this.showFeedback(isCorrect);
 
-                // Play sound
                 if (isCorrect) {
-                    this.playSound(523, 0.2); // C5
+                    this.playSound(523, 0.2);
                 } else {
-                    // Error sound sequence
                     setTimeout(() => this.playSound(250, 0.1), 100);
                     setTimeout(() => this.playSound(200, 0.2), 200);
                 }
@@ -1243,12 +1274,10 @@ custom_css: |
 
                 this.totalProblems++;
 
-                // Move to next equation in the display
                 this.moveToNextEquation(isCorrect);
 
                 this.updateUI();
 
-                // Move to next problem after delay
                 setTimeout(() => {
                     if (this.timeLeft > 0 && this.gameActive) {
                         this.showProblem();
@@ -1263,53 +1292,67 @@ custom_css: |
                 this.submitBtn.addEventListener('click', () => this.submitKeyboardAnswer());
                 this.printCertificateBtn.addEventListener('click', () => this.printCertificate());
                 this.playerNameInput.addEventListener('input', () => {
-                    // Persist live as kids type
                     this.setCookie('playerName', this.playerNameInput.value);
                 });
 
-                // Enter key handling for keyboard input
                 this.answerInput.addEventListener('keypress', (e) => {
                     if (e.key === 'Enter') {
                         this.submitKeyboardAnswer();
                     }
                 });
 
-                // Difficulty button selection
                 this.difficultyButtons.forEach(btn => {
                     btn.addEventListener('click', () => {
                         this.difficultyButtons.forEach(b => b.classList.remove('selected'));
                         btn.classList.add('selected');
-                        // Update the selectedDifficulty immediately
                         this.selectedDifficulty = btn.dataset.difficulty;
+                        // Deselect specific table when selecting difficulty
+                        this.tableButtons.forEach(tb => tb.classList.remove('selected'));
+                        this.specificTable = null;
                         this.saveSettings();
                     });
                 });
 
-                // Settings checkboxes
-                // Radio button event handlers
+                this.tableButtons.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        // Toggle table selection
+                        const wasSelected = btn.classList.contains('selected');
+                        this.tableButtons.forEach(b => b.classList.remove('selected'));
+
+                        if (!wasSelected) {
+                            btn.classList.add('selected');
+                            this.specificTable = btn.dataset.table;
+                            // Deselect difficulty when selecting specific table
+                            this.difficultyButtons.forEach(db => db.classList.remove('selected'));
+                        } else {
+                            this.specificTable = null;
+                        }
+                        this.saveSettings();
+                    });
+                });
+
+                this.randomOrderCheckbox.addEventListener('change', () => {
+                    this.randomOrder = this.randomOrderCheckbox.checked;
+                    this.saveSettings();
+                });
+
                 [this.buttonModeRadio, this.assistedModeRadio, this.keyboardModeRadio].forEach(radio => {
                     radio.addEventListener('change', () => {
                         if (radio.checked) {
-                            // Update mode variables
                             this.assistedMode = this.assistedModeRadio.checked;
                             this.keyboardMode = this.keyboardModeRadio.checked;
 
-                            // Update input display
                             this.updateInputModeDisplay();
 
-                            // Focus input if switching to keyboard mode
                             if (this.keyboardMode && this.gameActive) {
                                 setTimeout(() => this.answerInput.focus(), 100);
                             }
 
-                            // Save settings
                             this.saveSettings();
                         }
                     });
                 });
 
-
-                // Time slider update
                 this.timeLimitSlider.addEventListener('input', () => {
                     this.timeDisplay.textContent = `${this.timeLimitSlider.value}s`;
                     this.saveSettings();
@@ -1317,64 +1360,50 @@ custom_css: |
             }
 
             generateProblem() {
-                const difficulty = this.selectedDifficulty;
-                let num1, num2, operation, answer;
+                let num1, num2;
 
-                switch (difficulty) {
-                    case 'easy':
-                        num1 = Math.floor(Math.random() * 9) + 1;  // 1-9
-                        num2 = Math.floor(Math.random() * 9) + 1;  // 1-9
-                        operation = Math.random() < 0.8 ? '+' : '-';  // Mostly addition
-                        // For subtraction, ensure first number is larger to avoid negative results
-                        if (operation === '-' && num1 < num2) {
-                            [num1, num2] = [num2, num1];
-                        }
-                        break;
-                    case 'medium':
-                        num1 = Math.floor(Math.random() * 90) + 10;
-                        num2 = Math.floor(Math.random() * 9) + 1;
-                        operation = Math.random() < 0.6 ? '+' : '-';
-                        break;
-                    case 'hard':
-                        num1 = Math.floor(Math.random() * 90) + 10;
-                        num2 = Math.floor(Math.random() * 90) + 10;
-                        operation = Math.random() < 0.5 ? '+' : '-';
-                        break;
-                    case 'expert':
-                        num1 = Math.floor(Math.random() * 900) + 100;
-                        num2 = Math.floor(Math.random() * 90) + 10;
-                        const ops = ['+', '-', '×', '÷'];
-                        operation = ops[Math.floor(Math.random() * ops.length)];
-                        break;
+                // If specific table is selected
+                if (this.specificTable) {
+                    num1 = parseInt(this.specificTable);
+
+                    if (this.randomOrder) {
+                        // Random order
+                        num2 = Math.floor(Math.random() * 12) + 1; // 1-12
+                    } else {
+                        // Sequential order: 1, 2, 3, ... 12, then repeat
+                        num2 = (this.sequentialIndex % 12) + 1;
+                        this.sequentialIndex++;
+                    }
+                } else {
+                    // Use difficulty ranges
+                    const difficulty = this.selectedDifficulty;
+
+                    switch (difficulty) {
+                        case 'easy':
+                            // 2-5 times tables
+                            num1 = Math.floor(Math.random() * 4) + 2;  // 2-5
+                            num2 = Math.floor(Math.random() * 12) + 1; // 1-12
+                            break;
+                        case 'medium':
+                            // 2-9 times tables
+                            num1 = Math.floor(Math.random() * 8) + 2;  // 2-9
+                            num2 = Math.floor(Math.random() * 12) + 1; // 1-12
+                            break;
+                        case 'hard':
+                            // 2-12 times tables
+                            num1 = Math.floor(Math.random() * 11) + 2;  // 2-12
+                            num2 = Math.floor(Math.random() * 12) + 1;  // 1-12
+                            break;
+                        case 'expert':
+                            // All times tables up to 15
+                            num1 = Math.floor(Math.random() * 14) + 2;  // 2-15
+                            num2 = Math.floor(Math.random() * 15) + 1;  // 1-15
+                            break;
+                    }
                 }
 
-                // Calculate answer and ensure positive results for subtraction
-                switch (operation) {
-                    case '+':
-                        answer = num1 + num2;
-                        break;
-                    case '-':
-                        // For non-easy modes, ensure first number is larger
-                        if (difficulty !== 'easy' && num1 < num2) {
-                            [num1, num2] = [num2, num1];
-                        }
-                        answer = num1 - num2;
-                        break;
-                    case '×':
-                        // For multiplication, use smaller numbers
-                        num1 = Math.floor(Math.random() * 12) + 1;
-                        num2 = Math.floor(Math.random() * 12) + 1;
-                        answer = num1 * num2;
-                        break;
-                    case '÷':
-                        // For division, ensure whole number results
-                        answer = Math.floor(Math.random() * 12) + 1;
-                        num2 = Math.floor(Math.random() * 9) + 2;
-                        num1 = answer * num2;
-                        break;
-                }
-
-                return { num1, num2, operation, answer };
+                const answer = num1 * num2;
+                return { num1, num2, operation: '×', answer };
             }
 
             showProblem() {
@@ -1383,21 +1412,17 @@ custom_css: |
 
                 this.currentAnswer = problem.answer;
 
-                // Update input mode display
                 this.updateInputModeDisplay();
 
-                // Focus input field if in keyboard mode
                 if (this.keyboardMode) {
                     setTimeout(() => this.answerInput.focus(), 100);
                 }
 
-                // Clear any existing hint timer
                 if (this.hintTimer) {
                     clearTimeout(this.hintTimer);
                     this.hintTimer = null;
                 }
 
-                // Generate multiple choice options
                 const options = this.generateOptions(problem.answer);
                 this.answerOptions.innerHTML = '';
 
@@ -1407,7 +1432,6 @@ custom_css: |
                     button.textContent = option;
                     button.addEventListener('click', () => this.selectAnswer(option, button));
 
-                    // Store reference to correct answer button for assisted mode
                     if (option === this.currentAnswer) {
                         this.correctAnswerButton = button;
                     }
@@ -1417,13 +1441,12 @@ custom_css: |
 
                 this.problemStartTime = Date.now();
 
-                // Start hint timer for assisted mode
                 if (this.assistedMode) {
                     this.hintTimer = setTimeout(() => {
                         if (this.correctAnswerButton && this.gameActive) {
                             this.correctAnswerButton.classList.add('hint');
                         }
-                    }, 3000); // Start hinting after 3 seconds
+                    }, 3000);
                 }
             }
 
@@ -1434,10 +1457,8 @@ custom_css: |
                 while (options.length < 4) {
                     let option;
                     if (Math.random() < 0.5) {
-                        // Generate nearby wrong answers
                         option = correctAnswer + Math.floor(Math.random() * range) - Math.floor(range / 2);
                     } else {
-                        // Generate random wrong answers
                         option = Math.floor(Math.random() * (correctAnswer * 2)) + 1;
                     }
 
@@ -1446,14 +1467,12 @@ custom_css: |
                     }
                 }
 
-                // Shuffle options
                 return options.sort(() => Math.random() - 0.5);
             }
 
             selectAnswer(answer, button) {
                 if (!this.gameActive) return;
 
-                // Clear hint timer and remove hint animation
                 if (this.hintTimer) {
                     clearTimeout(this.hintTimer);
                     this.hintTimer = null;
@@ -1462,18 +1481,12 @@ custom_css: |
                     btn.classList.remove('hint');
                 });
 
-                // Ensure both values are numbers for comparison
                 const userAnswer = parseInt(answer);
                 const correctAnswer = parseInt(this.currentAnswer);
                 const isCorrect = userAnswer === correctAnswer;
 
-                // Debug logging
-                console.log('Button - User answer:', userAnswer, typeof userAnswer, 'Correct answer:', correctAnswer, typeof correctAnswer, 'Original this.currentAnswer:', this.currentAnswer, typeof this.currentAnswer, 'Match:', isCorrect);
-
-                // Visual feedback on button
                 button.classList.add(isCorrect ? 'correct' : 'incorrect');
 
-                // Disable all buttons temporarily
                 const allButtons = this.answerOptions.querySelectorAll('.answer-btn');
                 allButtons.forEach(btn => btn.style.pointerEvents = 'none');
 
@@ -1484,28 +1497,11 @@ custom_css: |
                 this.feedbackOverlay.textContent = isCorrect ? '✓ Correct!' : '✗ Wrong!';
                 this.feedbackOverlay.className = `feedback-overlay ${isCorrect ? 'correct' : 'incorrect'}`;
 
-                // Trigger animation by forcing reflow
                 this.feedbackOverlay.offsetHeight;
 
                 setTimeout(() => {
                     this.feedbackOverlay.className = 'feedback-overlay';
                 }, 600);
-            }
-
-
-            skipProblem() {
-                if (!this.gameActive) return;
-                this.totalProblems++;
-
-                // Move to next equation in the display
-                this.moveToNextEquation(false);
-
-                this.responseTimes.push(10000); // Penalty time
-                this.updateUI();
-
-                if (this.timeLeft > 0) {
-                    this.showProblem();
-                }
             }
 
             updateUI() {
@@ -1547,19 +1543,14 @@ custom_css: |
                     'expert': 0.6
                 }[this.selectedDifficulty];
 
-                // Base age calculation (lower is better)
                 let brainAge = 20;
 
-                // Accuracy factor (0-100%)
                 brainAge += (1 - accuracy) * 40;
 
-                // Speed factor (response time in seconds)
                 brainAge += Math.min((avgResponseTime / 1000) * 5, 30);
 
-                // Difficulty bonus
                 brainAge *= difficultyMultiplier;
 
-                // Problems solved bonus
                 brainAge -= Math.min(this.totalProblems * 0.2, 10);
 
                 return Math.max(8, Math.min(80, Math.round(brainAge)));
@@ -1570,17 +1561,14 @@ custom_css: |
                 this.gameActive = true;
                 this.showScreen('game');
 
-                // Enable audio context on user interaction
                 if (this.audioContext && this.audioContext.state === 'suspended') {
                     this.audioContext.resume();
                 }
 
-                // Start the game immediately
                 this.gameTimer = setInterval(() => this.updateTimer(), 1000);
                 this.updateEquationDisplay();
                 this.showProblem();
 
-                // Focus input if in keyboard mode
                 if (this.keyboardMode) {
                     setTimeout(() => {
                         this.answerInput.focus();
@@ -1593,34 +1581,39 @@ custom_css: |
                 this.gameActive = false;
                 clearInterval(this.gameTimer);
 
-                // Clear hint timer
                 if (this.hintTimer) {
                     clearTimeout(this.hintTimer);
                     this.hintTimer = null;
                 }
 
-                // Calculate results
                 const brainAge = this.calculateBrainAge();
                 const accuracy = this.totalProblems > 0 ? Math.round((this.correctAnswers / this.totalProblems) * 100) : 0;
                 const avgTime = this.responseTimes.length > 0 ?
                     (this.responseTimes.reduce((a, b) => a + b, 0) / this.responseTimes.length / 1000).toFixed(1) : '0.0';
 
-                // Get difficulty name
                 const difficultyNames = {
-                    'easy': 'Easy',
-                    'medium': 'Medium',
-                    'hard': 'Hard',
-                    'expert': 'Expert'
+                    'easy': 'Easy (2-5)',
+                    'medium': 'Medium (2-9)',
+                    'hard': 'Hard (2-12)',
+                    'expert': 'Expert (2-15)'
                 };
 
-                // Show results
+                let difficultyText;
+                if (this.specificTable) {
+                    difficultyText = `${this.specificTable} times table`;
+                    if (!this.randomOrder) {
+                        difficultyText += ' (sequential)';
+                    }
+                } else {
+                    difficultyText = difficultyNames[this.selectedDifficulty];
+                }
+
                 document.getElementById('brainAge').textContent = `Brain Age: ${brainAge}`;
                 document.getElementById('finalProblems').textContent = this.totalProblems;
                 document.getElementById('finalAccuracy').textContent = `${accuracy}%`;
                 document.getElementById('avgTime').textContent = `${avgTime}s`;
-                document.getElementById('finalDifficulty').textContent = difficultyNames[this.selectedDifficulty];
+                document.getElementById('finalDifficulty').textContent = difficultyText;
 
-                // Populate certificate
                 const name = (this.playerNameInput.value || '').trim();
                 if (name) {
                     this.playerNameDisplay.textContent = name;
@@ -1634,7 +1627,7 @@ custom_css: |
                 document.getElementById('certProblems').textContent = this.totalProblems;
                 document.getElementById('certAccuracy').textContent = `${accuracy}%`;
                 document.getElementById('certAvg').textContent = `${avgTime}s`;
-                document.getElementById('certLevel').textContent = difficultyNames[this.selectedDifficulty];
+                document.getElementById('certLevel').textContent = difficultyText;
                 try {
                     const dateStr = new Date().toLocaleDateString(undefined, {year: 'numeric', month: 'short', day: 'numeric'});
                     document.getElementById('certDate').textContent = dateStr;
@@ -1644,14 +1637,13 @@ custom_css: |
             }
 
             printCertificate() {
-                // Open a clean print view of the certificate only
                 const cert = document.getElementById('certificate');
                 if (!cert) return;
                 const html = `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Brain Training Certificate</title>
+  <title>Times Table Training Certificate</title>
   <style>
     * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     body { margin: 16mm; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
@@ -1678,11 +1670,11 @@ custom_css: |
                 const accuracy = document.getElementById('finalAccuracy').textContent;
                 const problems = document.getElementById('finalProblems').textContent;
 
-                const shareText = `🧠 I just completed Brain Training Speed Math!\n${brainAge}, solved ${problems} problems with ${accuracy} accuracy!\n\nTry it yourself: ${window.location.href}`;
+                const shareText = `✖️ I just completed Times Table Training!\n${brainAge}, solved ${problems} problems with ${accuracy} accuracy!\n\nTry it yourself: ${window.location.href}`;
 
                 if (navigator.share) {
                     navigator.share({
-                        title: 'Brain Training Speed Math Results',
+                        title: 'Times Table Training Results',
                         text: shareText
                     });
                 } else {
@@ -1717,7 +1709,7 @@ custom_css: |
         }
 
         // Initialize the game
-        new BrainTraining();
+        new TimesTableTraining();
     </script>
 
     </div>
