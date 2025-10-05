@@ -1,0 +1,314 @@
+// @ts-nocheck
+/**
+ * place-value-showdown game logic
+ * Migrated from place-value-showdown.html
+ */
+
+// Import utilities
+import { setCookie, getCookie } from '../storage-utils';
+
+// Declare globals that might be used
+declare const window: any;
+declare const document: any;
+
+(function(){
+  const state = {
+    difficulty: 3,
+    mode: '2players',
+    currentPlayer: 1,
+    currentRoll: null,
+    players: {
+      1: { digits: [], wins: 0 },
+      2: { digits: [], wins: 0 }
+    },
+    gameOver: false
+  };
+
+  const elements = {
+    difficultySelect: document.getElementById('difficultySelect'),
+    modeSelect: document.getElementById('modeSelect'),
+    settingsPanel: document.getElementById('settingsPanel'),
+    player1Area: document.getElementById('player1Area'),
+    player2Area: document.getElementById('player2Area'),
+    player2Name: document.getElementById('player2Name'),
+    p1Dice: document.getElementById('p1Dice'),
+    p2Dice: document.getElementById('p2Dice'),
+    p1Grid: document.getElementById('p1Grid'),
+    p2Grid: document.getElementById('p2Grid'),
+    p1Final: document.getElementById('p1Final'),
+    p2Final: document.getElementById('p2Final'),
+    p1Score: document.getElementById('p1Score'),
+    p2Score: document.getElementById('p2Score'),
+    statusMsg: document.getElementById('statusMsg'),
+    rollBtn: document.getElementById('rollBtn'),
+    newGameBtn: document.getElementById('newGameBtn'),
+    winnerModal: document.getElementById('winnerModal'),
+    winnerTitle: document.getElementById('winnerTitle'),
+    winnerP1: document.getElementById('winnerP1'),
+    winnerP2: document.getElementById('winnerP2'),
+    playAgainBtn: document.getElementById('playAgainBtn')
+  };
+
+  function updateSettings() {
+    state.difficulty = parseInt(elements.difficultySelect.value);
+    state.mode = elements.modeSelect.value;
+    elements.player2Name.textContent = state.mode === 'vsComputer' ? 'Computer' : 'Player 2';
+    resetGame();
+  }
+
+  function createPlaceSlots() {
+    const labels = ['Ones', 'Tens', 'Hundreds', 'Thousands', 'Ten-Thousands'];
+    elements.p1Grid.innerHTML = '';
+    elements.p2Grid.innerHTML = '';
+
+    for (let i = state.difficulty - 1; i >= 0; i--) {
+      const slot1 = createSlot(i, 1);
+      const slot2 = createSlot(i, 2);
+      elements.p1Grid.appendChild(slot1);
+      elements.p2Grid.appendChild(slot2);
+    }
+  }
+
+  function createSlot(index, player) {
+    const labels = ['Ones', 'Tens', 'Hundreds', 'Thousands', 'Ten-Thousands'];
+    const slot = document.createElement('div');
+    slot.className = 'place-slot';
+    slot.dataset.index = index;
+    slot.dataset.player = player;
+    slot.innerHTML = `
+      <div class="place-label">${labels[index]}</div>
+      <div class="place-digit">-</div>
+    `;
+    slot.addEventListener('click', () => handleSlotClick(slot));
+    return slot;
+  }
+
+  function handleSlotClick(slot) {
+    if (state.gameOver) return;
+    if (state.currentRoll === null) return;
+    const player = parseInt(slot.dataset.player);
+    if (player !== state.currentPlayer) return;
+    if (slot.classList.contains('filled')) return;
+
+    const index = parseInt(slot.dataset.index);
+    state.players[player].digits[index] = state.currentRoll;
+
+    slot.querySelector('.place-digit').textContent = state.currentRoll;
+    slot.classList.add('filled');
+
+    updateFinalNumber(player);
+
+    // Check if both players have filled all their slots
+    const p1Filled = state.players[1].digits.filter(d => d !== undefined).length === state.difficulty;
+    const p2Filled = state.players[2].digits.filter(d => d !== undefined).length === state.difficulty;
+
+    if (p1Filled && p2Filled) {
+      endGame();
+    } else if (state.mode === '2players') {
+      // In 2-player mode, alternate turns after each placement
+      switchPlayer();
+    } else {
+      // In vs Computer mode, handle computer's turn
+      if (state.currentPlayer === 1) {
+        // Player just placed, now computer's turn
+        computerTakeTurn();
+      } else {
+        // Computer just placed, back to player
+        switchPlayer();
+      }
+    }
+  }
+
+  function rollDice() {
+    if (state.gameOver) return;
+    const roll = Math.floor(Math.random() * 6) + 1;
+    state.currentRoll = roll;
+    elements.rollBtn.disabled = true;
+    updateDiceDisplay(state.currentPlayer, roll);
+    elements.statusMsg.textContent = `Player ${state.currentPlayer}: Place the ${roll}!`;
+  }
+
+  function updateDiceDisplay(player, value) {
+    const display = player === 1 ? elements.p1Dice : elements.p2Dice;
+    display.querySelector('.dice-value').textContent = value;
+  }
+
+  function updateFinalNumber(player) {
+    const digits = state.players[player].digits;
+    let number = 0;
+    for (let i = 0; i < digits.length; i++) {
+      if (digits[i] !== undefined) {
+        number += digits[i] * Math.pow(10, i);
+      }
+    }
+    const finalEl = player === 1 ? elements.p1Final : elements.p2Final;
+    finalEl.textContent = number || '-';
+  }
+
+  function switchPlayer() {
+    state.currentRoll = null;
+
+    // Toggle between player 1 and 2
+    state.currentPlayer = state.currentPlayer === 1 ? 2 : 1;
+
+    // Update active states
+    if (state.currentPlayer === 1) {
+      elements.player1Area.classList.add('active');
+      elements.player2Area.classList.remove('active');
+    } else {
+      elements.player1Area.classList.remove('active');
+      elements.player2Area.classList.add('active');
+    }
+
+    const playerName = state.currentPlayer === 1 ? 'Player 1' :
+                       (state.mode === 'vsComputer' ? 'Computer' : 'Player 2');
+    elements.statusMsg.textContent = `${playerName}: Roll the dice!`;
+    elements.rollBtn.disabled = false;
+  }
+
+  async function computerTakeTurn() {
+    state.currentPlayer = 2;
+    state.currentRoll = null;
+    elements.player1Area.classList.remove('active');
+    elements.player2Area.classList.add('active');
+    elements.statusMsg.textContent = 'Computer is thinking...';
+    elements.rollBtn.disabled = true;
+
+    await sleep(800);
+    const roll = Math.floor(Math.random() * 6) + 1;
+    state.currentRoll = roll;
+    updateDiceDisplay(2, roll);
+    elements.statusMsg.textContent = `Computer rolled ${roll}...`;
+
+    await sleep(600);
+
+    // Computer strategy: place high numbers in high places, low numbers in low places
+    const availableSlots = [];
+    for (let i = 0; i < state.difficulty; i++) {
+      if (state.players[2].digits[i] === undefined) {
+        availableSlots.push(i);
+      }
+    }
+
+    let chosenIndex;
+    if (roll >= 5) {
+      // High roll: prefer highest available slot
+      chosenIndex = Math.max(...availableSlots);
+    } else if (roll <= 2) {
+      // Low roll: prefer lowest available slot
+      chosenIndex = Math.min(...availableSlots);
+    } else {
+      // Medium roll: prefer middle slots
+      availableSlots.sort((a, b) => {
+        const midA = Math.abs(a - state.difficulty / 2);
+        const midB = Math.abs(b - state.difficulty / 2);
+        return midA - midB;
+      });
+      chosenIndex = availableSlots[0];
+    }
+
+    state.players[2].digits[chosenIndex] = roll;
+    const slot = elements.p2Grid.querySelector(`[data-index="${chosenIndex}"]`);
+    slot.querySelector('.place-digit').textContent = roll;
+    slot.classList.add('filled');
+    updateFinalNumber(2);
+
+    await sleep(500);
+
+    // Check if game is over
+    const p1Filled = state.players[1].digits.filter(d => d !== undefined).length === state.difficulty;
+    const p2Filled = state.players[2].digits.filter(d => d !== undefined).length === state.difficulty;
+
+    if (p1Filled && p2Filled) {
+      endGame();
+    } else {
+      switchPlayer();
+    }
+  }
+
+  function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  function calculateFinalNumber(player) {
+    const digits = state.players[player].digits;
+    let number = 0;
+    for (let i = 0; i < digits.length; i++) {
+      if (digits[i] !== undefined) {
+        number += digits[i] * Math.pow(10, i);
+      }
+    }
+    return number;
+  }
+
+  function endGame() {
+    state.gameOver = true;
+    elements.rollBtn.disabled = true;
+
+    const p1Number = calculateFinalNumber(1);
+    const p2Number = calculateFinalNumber(2);
+
+    let winner;
+    if (p1Number > p2Number) {
+      winner = 1;
+      state.players[1].wins++;
+    } else if (p2Number > p1Number) {
+      winner = 2;
+      state.players[2].wins++;
+    } else {
+      winner = 0; // Tie
+    }
+
+    elements.p1Score.textContent = state.players[1].wins;
+    elements.p2Score.textContent = state.players[2].wins;
+
+    const p2Name = state.mode === 'vsComputer' ? 'Computer' : 'Player 2';
+
+    if (winner === 0) {
+      elements.winnerTitle.textContent = '🤝 It\'s a Tie!';
+    } else {
+      const winnerName = winner === 1 ? 'Player 1' : p2Name;
+      elements.winnerTitle.textContent = `🎉 ${winnerName} Wins!`;
+    }
+
+    elements.winnerP1.innerHTML = `Player 1: <strong>${p1Number}</strong>`;
+    elements.winnerP2.innerHTML = `${p2Name}: <strong>${p2Number}</strong>`;
+
+    elements.winnerModal.classList.add('show');
+  }
+
+  function resetGame() {
+    state.currentPlayer = 1;
+    state.currentRoll = null;
+    state.gameOver = false;
+    state.players[1].digits = [];
+    state.players[2].digits = [];
+
+    elements.player1Area.classList.add('active');
+    elements.player2Area.classList.remove('active');
+    elements.rollBtn.disabled = false;
+    elements.statusMsg.textContent = 'Click "Roll Dice" to start!';
+    elements.winnerModal.classList.remove('show');
+
+    updateDiceDisplay(1, '?');
+    updateDiceDisplay(2, '?');
+    elements.p1Final.textContent = '-';
+    elements.p2Final.textContent = '-';
+
+    createPlaceSlots();
+  }
+
+  elements.difficultySelect.addEventListener('change', updateSettings);
+  elements.modeSelect.addEventListener('change', updateSettings);
+  elements.rollBtn.addEventListener('click', rollDice);
+  elements.newGameBtn.addEventListener('click', resetGame);
+  elements.playAgainBtn.addEventListener('click', resetGame);
+
+  // Initialize
+  createPlaceSlots();
+})();
+
+// Export init function if it exists
+if (typeof window !== 'undefined') {
+  // Initialization code runs automatically
+}

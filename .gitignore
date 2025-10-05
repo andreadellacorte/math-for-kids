@@ -15,3 +15,13 @@ Gemfile.lock
 
 # Logs
 *.log
+
+# Node
+node_modules/
+coverage/
+*.tgz
+package-lock.json
+
+# TypeScript
+*.tsbuildinfo
+Andrea's music games.pdf
