@@ -1,1 +1,447 @@
-(()=>{var se=Object.create;var q=Object.defineProperty;var re=Object.getOwnPropertyDescriptor;var ie=Object.getOwnPropertyNames;var le=Object.getPrototypeOf,ce=Object.prototype.hasOwnProperty;var S=(l=>typeof require<"u"?require:typeof Proxy<"u"?new Proxy(l,{get:(f,c)=>(typeof require<"u"?require:f)[c]}):l)(function(l){if(typeof require<"u")return require.apply(this,arguments);throw Error('Dynamic require of "'+l+'" is not supported')});var de=(l,f,c,d)=>{if(f&&typeof f=="object"||typeof f=="function")for(let x of ie(f))!ce.call(l,x)&&x!==c&&q(l,x,{get:()=>f[x],enumerable:!(d=re(f,x))||d.enumerable});return l};var C=(l,f,c)=>(c=l!=null?se(le(l)):{},de(f||!l||!l.__esModule?q(c,"default",{value:l,enumerable:!0}):c,l));var r=C(S("https://esm.sh/three@0.152.2")),O=C(S("https://esm.sh/oimo")),D=S("https://esm.sh/three@0.152.2/examples/jsm/controls/OrbitControls.js"),W=S("https://esm.sh/three@0.152.2/examples/jsm/geometries/RoundedBoxGeometry.js");(function(){let l=document.getElementById("dice3d"),f=document.getElementById("hud"),c=document.getElementById("rollBtn"),d=document.getElementById("stopBtn"),x=document.getElementById("resetBtn"),F=document.getElementById("statusToast"),G=document.getElementById("amountLabel"),$=document.getElementById("totalLabel"),Q=document.getElementById("turnLabel"),N=document.getElementById("playerDot"),B=document.getElementById("prescreen"),U=document.getElementById("onePlayer"),j=document.getElementById("twoPlayers"),P=101,L={pink:"#ffd1dc",blue:"#cce5ff"},n={numPlayers:0,currentPlayerIdx:0,players:[{name:"Player 1",color:L.blue,total:0},{name:"Player 2",color:L.pink,total:0}],rolling:!1,diceEntities:[],world:null,scene:null,camera:null,renderer:null,controls:null,settleTimer:0};function u(o){F.textContent=o}function X(){let o=l.clientWidth,e=l.clientHeight,t=new r.WebGLRenderer({antialias:!0,alpha:!0});t.shadowMap.enabled=!0,t.setPixelRatio(Math.min(window.devicePixelRatio||1,2)),t.setSize(o,e),l.appendChild(t.domElement);let s=new r.Scene,a=new r.PerspectiveCamera(50,o/e,.1,1e3);a.position.set(-10,14,14),a.lookAt(0,0,0);let i=new D.OrbitControls(a,t.domElement);i.enablePan=!1,i.enableZoom=!1,i.minPolarAngle=.2,i.maxPolarAngle=Math.PI/2-.1;let y=new r.AmbientLight(16777215,.9);s.add(y);let m=new r.DirectionalLight(16777215,1.2);m.position.set(-12,18,8),m.castShadow=!0,m.shadow.mapSize.set(1024,1024),s.add(m);let h=new r.PlaneGeometry(80,80),p=new r.MeshStandardMaterial({color:3114330,metalness:.2,roughness:.8}),w=new r.Mesh(h,p);w.rotation.x=-Math.PI/2,w.position.y=-1,w.receiveShadow=!0,s.add(w);let g=new O.World({timestep:1/60,iterations:8,broadphase:2,worldscale:1,random:!0,info:!1,gravity:[0,-9.8*3,0]});g.add({type:"box",size:[160,2,160],pos:[0,-2,0],rot:[0,0,0],move:!1,density:1});let v=20;g.add({type:"box",size:[1,30,160],pos:[-v,15,0],rot:[0,0,0],move:!1,density:1}),g.add({type:"box",size:[1,30,160],pos:[v,15,0],rot:[0,0,0],move:!1,density:1}),n.scene=s,n.camera=a,n.renderer=t,n.controls=i,n.world=g;function T(){requestAnimationFrame(T),n.world&&n.world.step(1/60);for(let E of n.diceEntities){let I=E.body.getPosition(),H=E.body.getQuaternion();E.mesh.position.set(I.x,I.y,I.z),E.mesh.quaternion.set(H.x,H.y,H.z,H.w)}i.update(),t.render(s,a)}requestAnimationFrame(T),window.addEventListener("resize",R);function R(){let E=l.clientWidth,I=l.clientHeight;t.setSize(E,I),a.aspect=E/I||1,a.updateProjectionMatrix()}}function b(o,e=256,t="#ffffff"){let s=document.createElement("canvas");s.width=s.height=e;let a=s.getContext("2d");if(!a)return new r.CanvasTexture(s);a.fillStyle=t,a.fillRect(0,0,e,e),a.strokeStyle="#e2e8f0",a.lineWidth=e*.06,a.strokeRect(a.lineWidth/2,a.lineWidth/2,e-a.lineWidth,e-a.lineWidth);let i=e*.08;a.fillStyle="#111827";function y(p,w){let g=[.2,.5,.8][p-1],v=[.2,.5,.8][w-1];a.beginPath(),a.arc(g*e,v*e,i,0,Math.PI*2),a.fill()}let m={1:[[2,2]],2:[[1,1],[3,3]],3:[[1,1],[2,2],[3,3]],4:[[1,1],[3,1],[1,3],[3,3]],5:[[1,1],[3,1],[2,2],[1,3],[3,3]],6:[[1,1],[1,2],[1,3],[3,1],[3,2],[3,3]]};for(let p of m[o]||m[1])y(p[0],p[1]);let h=new r.CanvasTexture(s);return h.anisotropy=8,h.needsUpdate=!0,h}function Y(o){let e={1:b(1,256,o),2:b(2,256,o),3:b(3,256,o),4:b(4,256,o),5:b(5,256,o),6:b(6,256,o)},t=y=>({map:y,roughness:.45,metalness:.05}),s=[new r.MeshStandardMaterial(t(e[3])),new r.MeshStandardMaterial(t(e[4])),new r.MeshStandardMaterial(t(e[1])),new r.MeshStandardMaterial(t(e[6])),new r.MeshStandardMaterial(t(e[2])),new r.MeshStandardMaterial(t(e[5]))],a=new W.RoundedBoxGeometry(2,2,2,6,.24),i=new r.Mesh(a,s);return i.castShadow=!0,i.receiveShadow=!1,i}function Z(o){for(let t of n.diceEntities)n.scene.remove(t.mesh);n.diceEntities=[];let e=[{x:-1.4,y:14,z:0},{x:1.4,y:15,z:0}];for(let t=0;t<2;t++){let s=Y(o);s.position.set(e[t].x,e[t].y,e[t].z),n.scene.add(s);let a=n.world.add({type:"box",size:[2,2,2],pos:[e[t].x,e[t].y,e[t].z],rot:[Math.random()*360,Math.random()*360,Math.random()*360],move:!0,density:2,friction:.5,restitution:.75});n.diceEntities.push({mesh:s,body:a,color:o})}}function _(o){let e=new r.Vector3(0,1,0),t=[{n:new r.Vector3(1,0,0),v:3},{n:new r.Vector3(-1,0,0),v:4},{n:new r.Vector3(0,1,0),v:1},{n:new r.Vector3(0,-1,0),v:6},{n:new r.Vector3(0,0,1),v:2},{n:new r.Vector3(0,0,-1),v:5}],s={dot:-1/0,value:1};for(let a of t){let y=a.n.clone().applyQuaternion(o).dot(e);y>s.dot&&(s={dot:y,value:a.v})}return s.value}function J(){return n.diceEntities.map(o=>{let e=o.body.getQuaternion(),t=new r.Quaternion(e.x,e.y,e.z,e.w);return _(t)})}function M(o){G.textContent=`Amount: ${o||"-"}`;let e=n.players[n.currentPlayerIdx];$.textContent=`Total: ${e.total}`,Q.textContent=n.numPlayers===2?n.currentPlayerIdx===0?"Player 1":"Player 2":"Player",N.className="chip-dot "+(n.currentPlayerIdx===0?"blue":"pink")}function K(o){let e=new Map;for(let a of o)e.set(a,(e.get(a)||0)+1);let t=o[0],s=-1;for(let[a,i]of e)i>s&&(t=a,s=i);return t}async function ee(o=7,e=50){let t=Array.from({length:n.diceEntities.length},()=>[]);for(let s=0;s<o;s++){let a=J();for(let i=0;i<a.length;i++)t[i].push(a[i]);await new Promise(i=>setTimeout(i,e))}return t.map(s=>K(s))}function V(o){let e=o&&o.getLinearVelocity?o.getLinearVelocity():{x:0,y:0,z:0},t=o&&o.getAngularVelocity?o.getAngularVelocity():{x:0,y:0,z:0},s=Math.sqrt((e.x||0)*(e.x||0)+(e.y||0)*(e.y||0)+(e.z||0)*(e.z||0)),a=Math.sqrt((t.x||0)*(t.x||0)+(t.y||0)*(t.y||0)+(t.z||0)*(t.z||0));return{lin:s,ang:a}}function te(o=7e3,e=.1,t=.1,s=30,a=900,i=300){return new Promise(y=>{let m=0,h=performance.now();function p(){let w=performance.now(),g=n.diceEntities.length>0&&n.diceEntities.every(T=>{let R=V(T.body);return R.lin<e&&R.ang<t});w-h>=a&&(g?m++:m=0);let v=w-h>o;m>=s||v?setTimeout(()=>{let T=n.diceEntities.length>0&&n.diceEntities.every(R=>{let E=V(R.body);return E.lin<e&&E.ang<t});y(T)},i):requestAnimationFrame(p)}requestAnimationFrame(p)})}function k(){n.numPlayers===2&&(n.currentPlayerIdx=(n.currentPlayerIdx+1)%2,u(`Turn: ${n.currentPlayerIdx===0?"Player 1":"Player 2"}`),M(0))}function z(){let o=n.players[0],e=n.players[1];if(n.numPlayers===1){o.total>P&&u(`Bust! Over by ${o.total-P}.`);return}if(n.currentPlayerIdx===1&&e.total>=0){let t=o.total<=P?o.total:-1/0,s=e.total<=P?e.total:-1/0;t===s?u("Tie!"):t>s?u("Player 1 wins!"):u("Player 2 wins!")}}async function ne(){if(n.rolling)return;n.rolling=!0,c.disabled=!0,d.disabled=!0;let o=n.players[n.currentPlayerIdx];u("Rolling..."),Z(o.color),await te(7e3,.08,.08,36,1100,350);let e=await ee(9,45),t=(e[0]||0)+(e[1]||0);if(o.total+=t,M(t),o.total===P){u("Exact 101! You win!"),n.rolling=!1,c.disabled=!0,d.disabled=!0;return}if(o.total>P){u(`Bust! Over by ${o.total-P}.`),n.rolling=!1,n.numPlayers===2?n.currentPlayerIdx===0?(k(),c.disabled=!1,d.disabled=!1):(z(),c.disabled=!0,d.disabled=!0):(c.disabled=!0,d.disabled=!0);return}u("Choose: Roll again or Stop."),n.rolling=!1,c.disabled=!1,d.disabled=!1}function oe(){n.rolling||(n.numPlayers===2?n.currentPlayerIdx===0?(k(),c.disabled=!1,d.disabled=!1):(z(),c.disabled=!0,d.disabled=!0):(u("Stopped."),c.disabled=!0,d.disabled=!0))}function ae(){for(let o of n.diceEntities)n.scene.remove(o.mesh);n.diceEntities=[],n.players[0].total=0,n.players[1].total=0,n.currentPlayerIdx=0,n.rolling=!1,M(0),u("Press Start"),c.disabled=!1,d.disabled=!1,B.style.display=""}function A(o){n.numPlayers=o,B.style.display="none",u(`Turn: ${o===2?"Player 1":"Player"}`),M(0)}U.addEventListener("click",()=>A(1)),j.addEventListener("click",()=>A(2)),c.addEventListener("click",ne),d.addEventListener("click",oe),x.addEventListener("click",ae),X(),M(0)})();})();
+"use strict";
+(() => {
+  var __create = Object.create;
+  var __defProp = Object.defineProperty;
+  var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+  var __getOwnPropNames = Object.getOwnPropertyNames;
+  var __getProtoOf = Object.getPrototypeOf;
+  var __hasOwnProp = Object.prototype.hasOwnProperty;
+  var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x, {
+    get: (a, b) => (typeof require !== "undefined" ? require : a)[b]
+  }) : x)(function(x) {
+    if (typeof require !== "undefined") return require.apply(this, arguments);
+    throw Error('Dynamic require of "' + x + '" is not supported');
+  });
+  var __copyProps = (to, from, except, desc) => {
+    if (from && typeof from === "object" || typeof from === "function") {
+      for (let key of __getOwnPropNames(from))
+        if (!__hasOwnProp.call(to, key) && key !== except)
+          __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+    }
+    return to;
+  };
+  var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+    // If the importer is in node compatibility mode or this is not an ESM
+    // file that has been converted to a CommonJS file using a Babel-
+    // compatible transform (i.e. "__esModule" has not been set), then set
+    // "default" to the CommonJS "module.exports" for node compatibility.
+    isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+    mod
+  ));
+
+  // js/games/dice-101.ts
+  var THREE = __toESM(__require("https://esm.sh/three@0.152.2"));
+  var OIMO = __toESM(__require("https://esm.sh/oimo"));
+  var import_OrbitControls = __require("https://esm.sh/three@0.152.2/examples/jsm/controls/OrbitControls.js");
+  var import_RoundedBoxGeometry = __require("https://esm.sh/three@0.152.2/examples/jsm/geometries/RoundedBoxGeometry.js");
+  (function() {
+    const diceContainer = document.getElementById("dice3d");
+    const hud = document.getElementById("hud");
+    const rollBtn = document.getElementById("rollBtn");
+    const stopBtn = document.getElementById("stopBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const statusToast = document.getElementById("statusToast");
+    const amountLabel = document.getElementById("amountLabel");
+    const totalLabel = document.getElementById("totalLabel");
+    const turnLabel = document.getElementById("turnLabel");
+    const playerDot = document.getElementById("playerDot");
+    const prescreen = document.getElementById("prescreen");
+    const onePlayerBtn = document.getElementById("onePlayer");
+    const twoPlayersBtn = document.getElementById("twoPlayers");
+    const TARGET = 101;
+    const COLORS = { pink: "#ffd1dc", blue: "#cce5ff" };
+    const state = {
+      numPlayers: 0,
+      currentPlayerIdx: 0,
+      players: [
+        { name: "Player 1", color: COLORS.blue, total: 0 },
+        { name: "Player 2", color: COLORS.pink, total: 0 }
+      ],
+      rolling: false,
+      diceEntities: [],
+      world: null,
+      scene: null,
+      camera: null,
+      renderer: null,
+      controls: null,
+      settleTimer: 0
+    };
+    function setStatus(text) {
+      statusToast.textContent = text;
+    }
+    function init3D() {
+      const width = diceContainer.clientWidth;
+      const height = diceContainer.clientHeight;
+      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.shadowMap.enabled = true;
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setSize(width, height);
+      diceContainer.appendChild(renderer.domElement);
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 1e3);
+      camera.position.set(-10, 14, 14);
+      camera.lookAt(0, 0, 0);
+      const controls = new import_OrbitControls.OrbitControls(camera, renderer.domElement);
+      controls.enablePan = false;
+      controls.enableZoom = false;
+      controls.minPolarAngle = 0.2;
+      controls.maxPolarAngle = Math.PI / 2 - 0.1;
+      const ambient = new THREE.AmbientLight(16777215, 0.9);
+      scene.add(ambient);
+      const dir = new THREE.DirectionalLight(16777215, 1.2);
+      dir.position.set(-12, 18, 8);
+      dir.castShadow = true;
+      dir.shadow.mapSize.set(1024, 1024);
+      scene.add(dir);
+      const planeGeo = new THREE.PlaneGeometry(80, 80);
+      const planeMat = new THREE.MeshStandardMaterial({ color: 3114330, metalness: 0.2, roughness: 0.8 });
+      const plane = new THREE.Mesh(planeGeo, planeMat);
+      plane.rotation.x = -Math.PI / 2;
+      plane.position.y = -1;
+      plane.receiveShadow = true;
+      scene.add(plane);
+      const world = new OIMO.World({
+        timestep: 1 / 60,
+        iterations: 8,
+        broadphase: 2,
+        worldscale: 1,
+        random: true,
+        info: false,
+        gravity: [0, -9.8 * 3, 0]
+      });
+      world.add({ type: "box", size: [160, 2, 160], pos: [0, -2, 0], rot: [0, 0, 0], move: false, density: 1 });
+      const BOUND_X = 20;
+      world.add({ type: "box", size: [1, 30, 160], pos: [-BOUND_X, 15, 0], rot: [0, 0, 0], move: false, density: 1 });
+      world.add({ type: "box", size: [1, 30, 160], pos: [BOUND_X, 15, 0], rot: [0, 0, 0], move: false, density: 1 });
+      state.scene = scene;
+      state.camera = camera;
+      state.renderer = renderer;
+      state.controls = controls;
+      state.world = world;
+      function animate() {
+        requestAnimationFrame(animate);
+        if (state.world) {
+          state.world.step(1 / 60);
+        }
+        for (const d of state.diceEntities) {
+          const p = d.body.getPosition();
+          const q = d.body.getQuaternion();
+          d.mesh.position.set(p.x, p.y, p.z);
+          d.mesh.quaternion.set(q.x, q.y, q.z, q.w);
+        }
+        controls.update();
+        renderer.render(scene, camera);
+      }
+      requestAnimationFrame(animate);
+      window.addEventListener("resize", onResize);
+      function onResize() {
+        const w = diceContainer.clientWidth;
+        const h = diceContainer.clientHeight;
+        renderer.setSize(w, h);
+        camera.aspect = w / h || 1;
+        camera.updateProjectionMatrix();
+      }
+    }
+    function createDieFaceTexture(value, size = 256, bgColor = "#ffffff") {
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = size;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        return new THREE.CanvasTexture(canvas);
+      }
+      ctx.fillStyle = bgColor;
+      ctx.fillRect(0, 0, size, size);
+      ctx.strokeStyle = "#e2e8f0";
+      ctx.lineWidth = size * 0.06;
+      ctx.strokeRect(ctx.lineWidth / 2, ctx.lineWidth / 2, size - ctx.lineWidth, size - ctx.lineWidth);
+      const pipRadius = size * 0.08;
+      ctx.fillStyle = "#111827";
+      function pip(ix, iy) {
+        const gx = [0.2, 0.5, 0.8][ix - 1];
+        const gy = [0.2, 0.5, 0.8][iy - 1];
+        ctx.beginPath();
+        ctx.arc(gx * size, gy * size, pipRadius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      const map = {
+        1: [[2, 2]],
+        2: [[1, 1], [3, 3]],
+        3: [[1, 1], [2, 2], [3, 3]],
+        4: [[1, 1], [3, 1], [1, 3], [3, 3]],
+        5: [[1, 1], [3, 1], [2, 2], [1, 3], [3, 3]],
+        6: [[1, 1], [1, 2], [1, 3], [3, 1], [3, 2], [3, 3]]
+      };
+      for (const pair of map[value] || map[1]) {
+        pip(pair[0], pair[1]);
+      }
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.anisotropy = 8;
+      texture.needsUpdate = true;
+      return texture;
+    }
+    function createDiceMesh(bgColor) {
+      const tex = {
+        1: createDieFaceTexture(1, 256, bgColor),
+        2: createDieFaceTexture(2, 256, bgColor),
+        3: createDieFaceTexture(3, 256, bgColor),
+        4: createDieFaceTexture(4, 256, bgColor),
+        5: createDieFaceTexture(5, 256, bgColor),
+        6: createDieFaceTexture(6, 256, bgColor)
+      };
+      const mopts = (t) => ({ map: t, roughness: 0.45, metalness: 0.05 });
+      const materials = [
+        new THREE.MeshStandardMaterial(mopts(tex[3])),
+        new THREE.MeshStandardMaterial(mopts(tex[4])),
+        new THREE.MeshStandardMaterial(mopts(tex[1])),
+        new THREE.MeshStandardMaterial(mopts(tex[6])),
+        new THREE.MeshStandardMaterial(mopts(tex[2])),
+        new THREE.MeshStandardMaterial(mopts(tex[5]))
+      ];
+      const geometry = new import_RoundedBoxGeometry.RoundedBoxGeometry(2, 2, 2, 6, 0.24);
+      const mesh = new THREE.Mesh(geometry, materials);
+      mesh.castShadow = true;
+      mesh.receiveShadow = false;
+      return mesh;
+    }
+    function spawnDicePair(color) {
+      for (const d of state.diceEntities) {
+        state.scene.remove(d.mesh);
+      }
+      state.diceEntities = [];
+      const positions = [{ x: -1.4, y: 14, z: 0 }, { x: 1.4, y: 15, z: 0 }];
+      for (let i = 0; i < 2; i++) {
+        const mesh = createDiceMesh(color);
+        mesh.position.set(positions[i].x, positions[i].y, positions[i].z);
+        state.scene.add(mesh);
+        const body = state.world.add({
+          type: "box",
+          size: [2, 2, 2],
+          pos: [positions[i].x, positions[i].y, positions[i].z],
+          rot: [Math.random() * 360, Math.random() * 360, Math.random() * 360],
+          move: true,
+          density: 2,
+          friction: 0.5,
+          restitution: 0.75
+        });
+        state.diceEntities.push({ mesh, body, color });
+      }
+    }
+    function quaternionToTopValue(q) {
+      const up = new THREE.Vector3(0, 1, 0);
+      const normals = [
+        { n: new THREE.Vector3(1, 0, 0), v: 3 },
+        { n: new THREE.Vector3(-1, 0, 0), v: 4 },
+        { n: new THREE.Vector3(0, 1, 0), v: 1 },
+        { n: new THREE.Vector3(0, -1, 0), v: 6 },
+        { n: new THREE.Vector3(0, 0, 1), v: 2 },
+        { n: new THREE.Vector3(0, 0, -1), v: 5 }
+      ];
+      let best = { dot: -Infinity, value: 1 };
+      for (const f of normals) {
+        const n = f.n.clone().applyQuaternion(q);
+        const d = n.dot(up);
+        if (d > best.dot) {
+          best = { dot: d, value: f.v };
+        }
+      }
+      return best.value;
+    }
+    function getDiceValues() {
+      return state.diceEntities.map((d) => {
+        const q = d.body.getQuaternion();
+        const qt = new THREE.Quaternion(q.x, q.y, q.z, q.w);
+        return quaternionToTopValue(qt);
+      });
+    }
+    function updateHUD(amount) {
+      amountLabel.textContent = `Amount: ${amount || "-"}`;
+      const player = state.players[state.currentPlayerIdx];
+      totalLabel.textContent = `Total: ${player.total}`;
+      turnLabel.textContent = state.numPlayers === 2 ? state.currentPlayerIdx === 0 ? "Player 1" : "Player 2" : "Player";
+      playerDot.className = "chip-dot " + (state.currentPlayerIdx === 0 ? "blue" : "pink");
+    }
+    function mostFrequentValue(arr) {
+      const counts = /* @__PURE__ */ new Map();
+      for (const v of arr) {
+        counts.set(v, (counts.get(v) || 0) + 1);
+      }
+      let bestVal = arr[0], bestCount = -1;
+      for (const [v, c] of counts) {
+        if (c > bestCount) {
+          bestVal = v;
+          bestCount = c;
+        }
+      }
+      return bestVal;
+    }
+    async function readStableValues(samples = 7, gapMs = 50) {
+      const readings = Array.from({ length: state.diceEntities.length }, () => []);
+      for (let i = 0; i < samples; i++) {
+        const vals = getDiceValues();
+        for (let d = 0; d < vals.length; d++) {
+          readings[d].push(vals[d]);
+        }
+        await new Promise((r) => setTimeout(r, gapMs));
+      }
+      return readings.map((list) => mostFrequentValue(list));
+    }
+    function getBodySpeed(body) {
+      const lv = body && body.getLinearVelocity ? body.getLinearVelocity() : { x: 0, y: 0, z: 0 };
+      const av = body && body.getAngularVelocity ? body.getAngularVelocity() : { x: 0, y: 0, z: 0 };
+      const lin = Math.sqrt((lv.x || 0) * (lv.x || 0) + (lv.y || 0) * (lv.y || 0) + (lv.z || 0) * (lv.z || 0));
+      const ang = Math.sqrt((av.x || 0) * (av.x || 0) + (av.y || 0) * (av.y || 0) + (av.z || 0) * (av.z || 0));
+      return { lin, ang };
+    }
+    function waitForSettle(timeoutMs = 7e3, linThresh = 0.1, angThresh = 0.1, consecutiveFrames = 30, minActiveMs = 900, graceMs = 300) {
+      return new Promise((resolve) => {
+        let settledCount = 0;
+        const start = performance.now();
+        function tick() {
+          const now = performance.now();
+          const allSettled = state.diceEntities.length > 0 && state.diceEntities.every((d) => {
+            const s = getBodySpeed(d.body);
+            return s.lin < linThresh && s.ang < angThresh;
+          });
+          if (now - start >= minActiveMs) {
+            if (allSettled) settledCount++;
+            else settledCount = 0;
+          }
+          const timedOut = now - start > timeoutMs;
+          if (settledCount >= consecutiveFrames || timedOut) {
+            setTimeout(() => {
+              const finallySettled = state.diceEntities.length > 0 && state.diceEntities.every((d) => {
+                const s = getBodySpeed(d.body);
+                return s.lin < linThresh && s.ang < angThresh;
+              });
+              resolve(finallySettled);
+            }, graceMs);
+          } else {
+            requestAnimationFrame(tick);
+          }
+        }
+        requestAnimationFrame(tick);
+      });
+    }
+    function nextPlayer() {
+      if (state.numPlayers === 2) {
+        state.currentPlayerIdx = (state.currentPlayerIdx + 1) % 2;
+        setStatus(`Turn: ${state.currentPlayerIdx === 0 ? "Player 1" : "Player 2"}`);
+        updateHUD(0);
+      }
+    }
+    function endGameIfNeeded() {
+      const p1 = state.players[0];
+      const p2 = state.players[1];
+      if (state.numPlayers === 1) {
+        if (p1.total > TARGET) {
+          setStatus(`Bust! Over by ${p1.total - TARGET}.`);
+        }
+        return;
+      }
+      if (state.currentPlayerIdx === 1 && p2.total >= 0) {
+        const s1 = p1.total <= TARGET ? p1.total : -Infinity;
+        const s2 = p2.total <= TARGET ? p2.total : -Infinity;
+        if (s1 === s2) {
+          setStatus("Tie!");
+        } else if (s1 > s2) {
+          setStatus("Player 1 wins!");
+        } else {
+          setStatus("Player 2 wins!");
+        }
+      }
+    }
+    async function startRoll() {
+      if (state.rolling) return;
+      state.rolling = true;
+      rollBtn.disabled = true;
+      stopBtn.disabled = true;
+      const player = state.players[state.currentPlayerIdx];
+      setStatus("Rolling...");
+      spawnDicePair(player.color);
+      await waitForSettle(7e3, 0.08, 0.08, 36, 1100, 350);
+      const values = await readStableValues(9, 45);
+      const amount = (values[0] || 0) + (values[1] || 0);
+      player.total += amount;
+      updateHUD(amount);
+      if (player.total === TARGET) {
+        setStatus("Exact 101! You win!");
+        state.rolling = false;
+        rollBtn.disabled = true;
+        stopBtn.disabled = true;
+        return;
+      }
+      if (player.total > TARGET) {
+        setStatus(`Bust! Over by ${player.total - TARGET}.`);
+        state.rolling = false;
+        if (state.numPlayers === 2) {
+          if (state.currentPlayerIdx === 0) {
+            nextPlayer();
+            rollBtn.disabled = false;
+            stopBtn.disabled = false;
+          } else {
+            endGameIfNeeded();
+            rollBtn.disabled = true;
+            stopBtn.disabled = true;
+          }
+        } else {
+          rollBtn.disabled = true;
+          stopBtn.disabled = true;
+        }
+        return;
+      }
+      setStatus("Choose: Roll again or Stop.");
+      state.rolling = false;
+      rollBtn.disabled = false;
+      stopBtn.disabled = false;
+    }
+    function stopTurn() {
+      if (state.rolling) return;
+      if (state.numPlayers === 2) {
+        if (state.currentPlayerIdx === 0) {
+          nextPlayer();
+          rollBtn.disabled = false;
+          stopBtn.disabled = false;
+        } else {
+          endGameIfNeeded();
+          rollBtn.disabled = true;
+          stopBtn.disabled = true;
+        }
+      } else {
+        setStatus("Stopped.");
+        rollBtn.disabled = true;
+        stopBtn.disabled = true;
+      }
+    }
+    function resetGame() {
+      for (const d of state.diceEntities) {
+        state.scene.remove(d.mesh);
+      }
+      state.diceEntities = [];
+      state.players[0].total = 0;
+      state.players[1].total = 0;
+      state.currentPlayerIdx = 0;
+      state.rolling = false;
+      updateHUD(0);
+      setStatus("Press Start");
+      rollBtn.disabled = false;
+      stopBtn.disabled = false;
+      prescreen.style.display = "";
+    }
+    function startMode(players) {
+      state.numPlayers = players;
+      prescreen.style.display = "none";
+      setStatus(`Turn: ${players === 2 ? "Player 1" : "Player"}`);
+      updateHUD(0);
+    }
+    onePlayerBtn.addEventListener("click", () => startMode(1));
+    twoPlayersBtn.addEventListener("click", () => startMode(2));
+    rollBtn.addEventListener("click", startRoll);
+    stopBtn.addEventListener("click", stopTurn);
+    resetBtn.addEventListener("click", resetGame);
+    init3D();
+    updateHUD(0);
+  })();
+  if (typeof window !== "undefined") {
+  }
+})();
+//# sourceMappingURL=dice-101.js.map

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * times-table game logic
  * Migrated from times-table.html
@@ -380,6 +379,40 @@ class TimesTableTraining {
                     }
                 });
 
+                // Arrow key controls for button mode
+                document.addEventListener('keydown', (e) => {
+                    if (!this.gameActive || this.keyboardMode) return;
+
+                    const buttons = this.answerOptions.querySelectorAll('.answer-btn');
+                    if (buttons.length !== 4) return;
+
+                    let targetButton = null;
+
+                    switch(e.key) {
+                        case 'ArrowLeft':
+                            targetButton = buttons[0];
+                            e.preventDefault();
+                            break;
+                        case 'ArrowUp':
+                            targetButton = buttons[1];
+                            e.preventDefault();
+                            break;
+                        case 'ArrowDown':
+                            targetButton = buttons[2];
+                            e.preventDefault();
+                            break;
+                        case 'ArrowRight':
+                            targetButton = buttons[3];
+                            e.preventDefault();
+                            break;
+                    }
+
+                    if (targetButton && targetButton.style.pointerEvents !== 'none') {
+                        const answer = targetButton.textContent;
+                        this.selectAnswer(answer, targetButton);
+                    }
+                });
+
                 this.difficultyButtons.forEach(btn => {
                     btn.addEventListener('click', () => {
                         this.difficultyButtons.forEach(b => b.classList.remove('selected'));
@@ -505,10 +538,23 @@ class TimesTableTraining {
                 const options = this.generateOptions(problem.answer);
                 this.answerOptions.innerHTML = '';
 
+                // Arrow key labels for each button position
+                const arrowLabels = ['←', '↑', '↓', '→'];
+
                 options.forEach((option, index) => {
                     const button = document.createElement('button');
                     button.className = 'answer-btn';
+
+                    // Create container for answer and arrow hint
+                    const arrowHint = document.createElement('span');
+                    arrowHint.className = 'arrow-hint';
+                    arrowHint.textContent = arrowLabels[index];
+                    arrowHint.style.cssText = 'position: absolute; top: 4px; right: 8px; opacity: 0.4; font-size: 0.8em;';
+
                     button.textContent = option;
+                    button.style.position = 'relative';
+                    button.appendChild(arrowHint);
+
                     button.addEventListener('click', () => this.selectAnswer(option, button));
 
                     if (option === this.currentAnswer) {

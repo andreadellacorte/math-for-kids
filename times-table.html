@@ -204,11 +204,13 @@ custom_css: |
     }
 
     .answer-options {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 20px;
-        max-width: 500px;
+        display: flex;
+        flex-direction: row;
+        gap: 15px;
+        max-width: 800px;
         margin: 30px auto;
+        justify-content: center;
+        align-items: center;
     }
 
     .answer-btn {
@@ -664,8 +666,9 @@ custom_css: |
         }
 
         .answer-options {
-            grid-template-columns: 1fr;
+            flex-direction: column;
             gap: 15px;
+            max-width: 300px;
         }
 
         .answer-btn {
