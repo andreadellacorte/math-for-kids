@@ -177,5 +177,18 @@ import GameLayout from '../../layouts/GameLayout.astro';
         </div>
     </div>
 
+    <script is:inline>
+        // Update slider display value
+        document.addEventListener('DOMContentLoaded', () => {
+            const slider = document.getElementById('eqSlider');
+            const output = document.getElementById('eqOut');
+
+            if (slider && output) {
+                slider.addEventListener('input', () => {
+                    output.textContent = slider.value;
+                });
+            }
+        });
+    </script>
     <script is:inline src="/math-for-kids/games/math-crossword.js"></script>
 </GameLayout>
