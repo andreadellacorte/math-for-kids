@@ -1,6 +1,3 @@
-# Run tests (deprecated during Astro migration)
-npm test
-
 # Run production build (now builds to dist/ which is gitignored)
 npm run build:prod
 
