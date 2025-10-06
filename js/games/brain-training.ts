@@ -550,7 +550,7 @@ class BrainTraining {
 
     generateProblem(): any {
                 const difficulty = this.selectedDifficulty;
-                let num1!, num2!, operation, answer;
+                let num1: number, num2: number, operation: string, answer: number;
 
                 switch (difficulty) {
                     case 'easy':
@@ -606,7 +606,7 @@ class BrainTraining {
                         break;
                 }
 
-                return { num1!, num2!, operation, answer };
+                return { num1, num2, operation, answer };
             }
 
     showProblem(): void {
