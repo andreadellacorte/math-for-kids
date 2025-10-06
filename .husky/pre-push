@@ -1,5 +1,1 @@
-# Type check before push
-npm run type-check
-
-# Run full test suite with coverage
-npm run test:coverage
+# Hooks deprecated after Astro migration
