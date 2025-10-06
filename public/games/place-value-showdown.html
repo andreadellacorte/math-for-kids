@@ -4,10 +4,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Place Value Showdown - Math Fun for Kids!</title>
-    <link rel="stylesheet" href="/math-for-kids/styles.css">
     
     
-        <style>.pvs-container {
+    
+        <style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Comic Sans MS', cursive, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; color: #333; padding: 20px; }
+.container { max-width: 1200px; margin: 0 auto; background: white; border-radius: 20px; padding: 30px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); min-height: calc(100vh - 40px); max-height: calc(100vh - 40px); overflow-y: auto; }
+.header { display: flex; align-items: center; margin-bottom: 30px; gap: 20px; }
+.back-btn { text-decoration: none; background: #f0f0f0; color: #666; padding: 10px 15px; border-radius: 10px; font-weight: bold; transition: all 0.3s ease; }
+.back-btn:hover { background: #e0e0e0; transform: translateX(-5px); }
+h1 { color: #4a5568; font-size: 2.5em; text-align: center; margin-bottom: 20px; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1); flex-grow: 1; }
+.subtitle { text-align: center; font-size: 1.2em; color: #666; margin-bottom: 40px; }
+.exercise-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px; margin-bottom: 40px; }
+.exercise-card { background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%); border-radius: 15px; padding: 25px; text-align: center; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1); transition: all 0.3s ease; border: 3px solid transparent; text-decoration: none; color: inherit; display: block; }
+.exercise-card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2); border-color: #ff6b6b; }
+.exercise-card h2 { font-size: 1.8em; margin-bottom: 15px; color: #2d3748; }
+.exercise-card p { font-size: 1.1em; margin-bottom: 20px; color: #4a5568; }
+.btn { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 15px 25px; border-radius: 25px; font-size: 1.1em; font-weight: bold; cursor: pointer; text-decoration: none; display: inline-block; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); }
+.btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3); }
+.btn.secondary { background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%); color: #333; }
+
+.pvs-container {
   background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
   border-radius: 20px;
   padding: 30px;
