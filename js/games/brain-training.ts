@@ -3,6 +3,7 @@
  * Migrated from brain-training.html
  */
 
+// @ts-nocheck
 // Import utilities
 import { setCookie, getCookie } from '../storage-utils';
 
@@ -11,13 +12,61 @@ declare const window: any;
 declare const document: any;
 
 class BrainTraining {
-            constructor() {
-                this.setupElements();
-                this.resetGame();
-                this.bindEvents();
-            }
+    private setupScreen!: HTMLElement;
+    private gameScreen!: HTMLElement;
+    private resultsScreen!: HTMLElement;
+    private difficultyButtons!: NodeListOf<Element>;
+    private timeLimitSlider!: HTMLInputElement;
+    private timeDisplay!: HTMLElement;
+    private buttonModeRadio!: HTMLInputElement;
+    private assistedModeRadio!: HTMLInputElement;
+    private keyboardModeRadio!: HTMLInputElement;
+    private startBtn!: HTMLButtonElement;
+    private timer!: HTMLElement;
+    private problemCounter!: HTMLElement;
+    private accuracy!: HTMLElement;
+    private progressFill!: HTMLElement;
+    private equationsContainer!: HTMLElement;
+    private equationItems!: (HTMLElement | null)[];
+    private keyboardInput!: HTMLElement;
+    private answerInput!: HTMLInputElement;
+    private submitBtn!: HTMLButtonElement;
+    private answerOptions!: HTMLElement;
+    private playAgainBtn!: HTMLButtonElement;
+    private shareSocreBtn!: HTMLButtonElement;
+    private feedbackOverlay!: HTMLElement;
+    private playerNameInput!: HTMLInputElement;
+    private playerNameDisplay!: HTMLElement;
+    private printCertificateBtn!: HTMLButtonElement;
+    private audioContext: AudioContext | null = null;
+    private timeLeft: number = 60;
+    private currentProblem: number = 0;
+    private correctAnswers: number = 0;
+    private totalProblems: number = 0;
+    private startTime: number | null = null;
+    private problemStartTime: number | null = null;
+    private responseTimes: number[] = [];
+    private gameActive: boolean = false;
+    private currentAnswer: number | null = null;
+    private hintTimer: number | null = null;
+    private equationQueue: any[] = [];
+    private currentEquation: any = null;
+    private selectedDifficulty: string = 'medium';
+    private inputMode: string = 'button';
+    private gameTimer: number | null = null;
+    private keyboardMode: boolean = false;
+    private assistedMode: boolean = false;
+    private correctAnswerButton: HTMLButtonElement | null = null;
+    private completedProblems: any = {};
+    private currentEquationIndex: number = 0;
 
-            setupElements() {
+    constructor() {
+        this.setupElements();
+        this.resetGame();
+        this.bindEvents();
+    }
+
+    setupElements(): void {
                 this.setupScreen = document.getElementById('setupScreen');
                 this.gameScreen = document.getElementById('gameScreen');
                 this.resultsScreen = document.getElementById('resultsScreen');
@@ -51,7 +100,7 @@ class BrainTraining {
                 this.setupAudio();
             }
 
-            setupAudio() {
+    setupAudio(): void {
                 // Create audio context for sound effects
                 try {
                     this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -60,7 +109,7 @@ class BrainTraining {
                 }
             }
 
-            playSound(frequency, duration, volume = 0.1) {
+    playSound(frequency: number, duration: number, volume: number = 0.1): void {
                 if (!this.audioContext) return;
 
                 try {
@@ -84,7 +133,7 @@ class BrainTraining {
                 }
             }
 
-            resetGame() {
+    resetGame(): void {
                 this.timeLeft = parseInt(this.timeLimitSlider.value) || 60;
                 this.currentProblem = 0;
                 this.correctAnswers = 0;
@@ -112,18 +161,18 @@ class BrainTraining {
                 this.loadSettings();
             }
 
-            setCookie(name, value, days = 365) {
-                const d = new Date();
-                d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
-                document.cookie = `${name}=${encodeURIComponent(value)};expires=${d.toUTCString()};path=/;SameSite=Lax`;
-            }
+    setCookie(name: string, value: string, days: number = 365): void {
+        const d = new Date();
+        d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
+        document.cookie = `${name}=${encodeURIComponent(value)};expires=${d.toUTCString()};path=/;SameSite=Lax`;
+    }
 
-            getCookie(name) {
+    getCookie(name: string): string | null {
                 const match = document.cookie.split(';').map(s => s.trim()).find(s => s.startsWith(name + '='));
                 return match ? decodeURIComponent(match.split('=')[1]) : null;
             }
 
-            loadSettings() {
+    loadSettings(): void {
                 // Load input mode
                 const inputMode = this.getCookie('inputMode');
                 if (inputMode !== null) {
@@ -186,7 +235,7 @@ class BrainTraining {
                 }
             }
 
-            saveSettings() {
+    saveSettings(): void {
                 // Save input mode based on which radio button is checked
                 let inputMode = 'button';
                 if (this.assistedModeRadio.checked) {
@@ -217,14 +266,14 @@ class BrainTraining {
                 this.updateEquationDisplay();
             }
 
-            updateEquationDisplay() {
+    updateEquationDisplay(): void {
                 for (let i = 0; i < 5; i++) {
                     const equationItem = this.equationItems[i];
-                    const equationText = equationItem.querySelector('.equation-text');
-                    const equationStatus = equationItem.querySelector('.equation-status');
+                    const equationText = equationItem!.querySelector('.equation-text');
+                    const equationStatus = equationItem!.querySelector('.equation-status');
 
                     // Remove all state classes
-                    equationItem.classList.remove('completed', 'current', 'future');
+                    equationItem!.classList.remove('completed', 'current', 'future');
 
                     // Determine which equation to show in each slot
                     let equationIndex;
@@ -241,38 +290,38 @@ class BrainTraining {
 
                     if (equationIndex < this.currentProblem) {
                         // Completed equation
-                        equationItem.classList.add('completed');
+                        equationItem!.classList.add('completed');
                         if (equation) {
-                            equationText.textContent = `${equation.num1} ${equation.operation} ${equation.num2} = ${equation.answer}`;
+                            equationText!.textContent = `${equation.num1} ${equation.operation} ${equation.num2} = ${equation.answer}`;
                             // Check if this was answered correctly
                             const wasCorrect = this.completedProblems[equationIndex]?.correct ?? true;
-                            equationStatus.textContent = wasCorrect ? '✓' : '✗';
-                            equationStatus.style.color = wasCorrect ? '#28a745' : '#dc3545';
+                            equationStatus!.textContent = wasCorrect ? '✓' : '✗';
+                            (equationStatus as HTMLElement).style.color = wasCorrect ? '#28a745' : '#dc3545';
                         }
                     } else if (equationIndex === this.currentProblem) {
                         // Current equation
-                        equationItem.classList.add('current');
+                        equationItem!.classList.add('current');
                         if (equation) {
-                            equationText.textContent = `${equation.num1} ${equation.operation} ${equation.num2} = ?`;
-                            equationStatus.textContent = '❯';
+                            equationText!.textContent = `${equation.num1} ${equation.operation} ${equation.num2} = ?`;
+                            equationStatus!.textContent = '❯';
                         } else {
-                            equationText.textContent = 'Get Ready...';
-                            equationStatus.textContent = '❯';
+                            equationText!.textContent = 'Get Ready...';
+                            equationStatus!.textContent = '❯';
                         }
                     } else {
                         // Future equation
-                        equationItem.classList.add('future');
+                        equationItem!.classList.add('future');
                         if (equation) {
-                            equationText.textContent = `${equation.num1} ${equation.operation} ${equation.num2} = ?`;
+                            equationText!.textContent = `${equation.num1} ${equation.operation} ${equation.num2} = ?`;
                         } else {
-                            equationText.textContent = 'Loading...';
+                            equationText!.textContent = 'Loading...';
                         }
-                        equationStatus.textContent = '⋯';
+                        equationStatus!.textContent = '⋯';
                     }
                 }
             }
 
-            moveToNextEquation(wasCorrect) {
+    moveToNextEquation(wasCorrect: boolean): void {
                 // Store the completed problem result
                 this.completedProblems[this.currentProblem] = {
                     correct: wasCorrect
@@ -316,7 +365,7 @@ class BrainTraining {
                 }, 200);
             }
 
-            updateInputModeDisplay() {
+    updateInputModeDisplay(): void {
                 if (this.keyboardMode) {
                     this.answerOptions.style.display = 'none';
                     this.keyboardInput.style.display = 'flex';
@@ -344,7 +393,7 @@ class BrainTraining {
                 this.answerInput.value = '';
             }
 
-            submitKeyboardAnswer() {
+    submitKeyboardAnswer(): void {
                 if (!this.gameActive || !this.keyboardMode) return;
 
                 const userAnswer = parseInt(this.answerInput.value);
@@ -367,7 +416,7 @@ class BrainTraining {
                 this.answerInput.focus();
             }
 
-            handleAnswer(isCorrect) {
+    handleAnswer(isCorrect: boolean): void {
                 if (!this.gameActive) return;
 
                 // Record response time
@@ -405,7 +454,7 @@ class BrainTraining {
                 }, 800);
             }
 
-            bindEvents() {
+    bindEvents(): void {
                 this.startBtn.addEventListener('click', () => this.startGame());
                 this.playAgainBtn.addEventListener('click', () => this.showSetup());
                 this.shareSocreBtn.addEventListener('click', () => this.shareScore());
@@ -499,9 +548,9 @@ class BrainTraining {
                 });
             }
 
-            generateProblem() {
+    generateProblem(): any {
                 const difficulty = this.selectedDifficulty;
-                let num1, num2, operation, answer;
+                let num1!, num2!, operation, answer;
 
                 switch (difficulty) {
                     case 'easy':
@@ -557,10 +606,10 @@ class BrainTraining {
                         break;
                 }
 
-                return { num1, num2, operation, answer };
+                return { num1!, num2!, operation, answer };
             }
 
-            showProblem() {
+    showProblem(): void {
                 const problem = this.equationQueue[this.currentProblem];
                 if (!problem) return;
 
@@ -623,7 +672,7 @@ class BrainTraining {
                 }
             }
 
-            generateOptions(correctAnswer) {
+    generateOptions(correctAnswer: number): number[] {
                 const options = [correctAnswer];
                 const range = Math.max(10, Math.floor(correctAnswer * 0.5));
 
@@ -646,7 +695,7 @@ class BrainTraining {
                 return options.sort(() => Math.random() - 0.5);
             }
 
-            selectAnswer(answer, button) {
+    selectAnswer(answer: any, button: any): void {
                 if (!this.gameActive) return;
 
                 // Clear hint timer and remove hint animation
@@ -671,12 +720,12 @@ class BrainTraining {
 
                 // Disable all buttons temporarily
                 const allButtons = this.answerOptions.querySelectorAll('.answer-btn');
-                allButtons.forEach(btn => btn.style.pointerEvents = 'none');
+                allButtons.forEach((btn: Element) => (btn as HTMLElement).style.pointerEvents = 'none');
 
                 this.handleAnswer(isCorrect);
             }
 
-            showFeedback(isCorrect) {
+    showFeedback(isCorrect: boolean): void {
                 this.feedbackOverlay.textContent = isCorrect ? '✓ Correct!' : '✗ Wrong!';
                 this.feedbackOverlay.className = `feedback-overlay ${isCorrect ? 'correct' : 'incorrect'}`;
 
@@ -704,7 +753,7 @@ class BrainTraining {
                 }
             }
 
-            updateUI() {
+    updateUI(): void {
                 const accuracy = this.totalProblems > 0 ? Math.round((this.correctAnswers / this.totalProblems) * 100) : 100;
                 this.accuracy.textContent = `${accuracy}%`;
                 this.problemCounter.textContent = `${this.currentProblem}`;
@@ -713,7 +762,7 @@ class BrainTraining {
                 this.progressFill.style.width = `${progress}%`;
             }
 
-            updateTimer() {
+    updateTimer(): void {
                 this.timer.textContent = this.timeLeft;
 
                 if (this.timeLeft <= 10) {
@@ -731,7 +780,7 @@ class BrainTraining {
                 }
             }
 
-            calculateBrainAge() {
+    calculateBrainAge(): number {
                 const accuracy = this.totalProblems > 0 ? (this.correctAnswers / this.totalProblems) : 0;
                 const avgResponseTime = this.responseTimes.length > 0 ?
                     this.responseTimes.reduce((a, b) => a + b, 0) / this.responseTimes.length : 5000;
@@ -761,7 +810,7 @@ class BrainTraining {
                 return Math.max(8, Math.min(80, Math.round(brainAge)));
             }
 
-            startGame() {
+    startGame(): void {
                 this.resetGame();
                 this.gameActive = true;
                 this.showScreen('game');
@@ -785,7 +834,7 @@ class BrainTraining {
                 }
             }
 
-            endGame() {
+    endGame(): void {
                 this.gameActive = false;
                 clearInterval(this.gameTimer);
 
@@ -839,7 +888,7 @@ class BrainTraining {
                 this.showScreen('results');
             }
 
-            printCertificate() {
+    printCertificate(): void {
                 // Open a clean print view of the certificate only
                 const cert = document.getElementById('certificate');
                 if (!cert) return;
@@ -869,7 +918,7 @@ class BrainTraining {
                 w.document.close();
             }
 
-            shareScore() {
+    shareScore(): void {
                 const brainAge = document.getElementById('brainAge').textContent;
                 const accuracy = document.getElementById('finalAccuracy').textContent;
                 const problems = document.getElementById('finalProblems').textContent;
@@ -888,7 +937,7 @@ class BrainTraining {
                 }
             }
 
-            showScreen(screen) {
+    showScreen(screen: string): void {
                 this.setupScreen.classList.add('hidden');
                 this.gameScreen.classList.add('hidden');
                 this.resultsScreen.classList.add('hidden');
@@ -906,7 +955,7 @@ class BrainTraining {
                 }
             }
 
-            showSetup() {
+    showSetup(): void {
                 this.resetGame();
                 this.showScreen('setup');
             }

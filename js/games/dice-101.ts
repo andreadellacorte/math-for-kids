@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * dice-101 game logic
  * Migrated from dice-101.html
@@ -11,10 +10,39 @@ import { setCookie, getCookie } from '../storage-utils';
 declare const window: any;
 declare const document: any;
 
-import * as THREE from 'https://esm.sh/three@0.152.2';
-import * as OIMO from 'https://esm.sh/oimo';
-import { OrbitControls } from 'https://esm.sh/three@0.152.2/examples/jsm/controls/OrbitControls.js';
-import { RoundedBoxGeometry } from 'https://esm.sh/three@0.152.2/examples/jsm/geometries/RoundedBoxGeometry.js';
+// Declare external libraries loaded from CDN as globals
+declare const THREE: any;
+declare const OIMO: any;
+
+// Get OrbitControls and RoundedBoxGeometry from global THREE object
+const OrbitControls = (window as any).THREE ? (window as any).THREE.OrbitControls : class {};
+const RoundedBoxGeometry = (window as any).THREE ? (window as any).THREE.RoundedBoxGeometry : class {};
+
+interface DiceEntity {
+  mesh: any;
+  body: any;
+  color: string;
+}
+
+interface Player {
+  name: string;
+  color: string;
+  total: number;
+}
+
+interface GameState {
+  numPlayers: number;
+  currentPlayerIdx: number;
+  players: Player[];
+  rolling: boolean;
+  diceEntities: DiceEntity[];
+  world: any;
+  scene: any;
+  camera: any;
+  renderer: any;
+  controls: any;
+  settleTimer: number;
+}
 
 (function(){
   const diceContainer = document.getElementById('dice3d');
@@ -34,7 +62,7 @@ import { RoundedBoxGeometry } from 'https://esm.sh/three@0.152.2/examples/jsm/ge
   const TARGET = 101;
   const COLORS = { pink: '#ffd1dc', blue: '#cce5ff' };
 
-  const state = {
+  const state: GameState = {
     numPlayers: 0,
     currentPlayerIdx: 0,
     players: [
@@ -51,9 +79,9 @@ import { RoundedBoxGeometry } from 'https://esm.sh/three@0.152.2/examples/jsm/ge
     settleTimer: 0
   };
 
-  function setStatus(text){ statusToast.textContent = text; }
+  function setStatus(text: string): void { statusToast.textContent = text; }
 
-  function init3D(){
+  function init3D(): void {
     const width = diceContainer.clientWidth;
     const height = diceContainer.clientHeight;
 
@@ -132,7 +160,7 @@ import { RoundedBoxGeometry } from 'https://esm.sh/three@0.152.2/examples/jsm/ge
     }
   }
 
-  function createDieFaceTexture(value, size=256, bgColor='#ffffff'){
+  function createDieFaceTexture(value: number, size: number = 256, bgColor: string = '#ffffff'): any {
     const canvas = document.createElement('canvas');
     canvas.width = canvas.height = size;
     const ctx = canvas.getContext('2d');
@@ -146,22 +174,22 @@ import { RoundedBoxGeometry } from 'https://esm.sh/three@0.152.2/examples/jsm/ge
     ctx.strokeRect(ctx.lineWidth/2, ctx.lineWidth/2, size-ctx.lineWidth, size-ctx.lineWidth);
     const pipRadius = size * 0.08;
     ctx.fillStyle = '#111827';
-    function pip(ix, iy){
+    function pip(ix: number, iy: number): void {
       const gx = [0.2, 0.5, 0.8][ix-1];
       const gy = [0.2, 0.5, 0.8][iy-1];
       ctx.beginPath(); ctx.arc(gx*size, gy*size, pipRadius, 0, Math.PI*2); ctx.fill();
     }
-    const map = {
+    const map: { [key: number]: number[][] } = {
       1: [[2,2]], 2: [[1,1],[3,3]], 3: [[1,1],[2,2],[3,3]],
       4: [[1,1],[3,1],[1,3],[3,3]], 5: [[1,1],[3,1],[2,2],[1,3],[3,3]], 6: [[1,1],[1,2],[1,3],[3,1],[3,2],[3,3]]
     };
-    for (const pair of (map[value]||map[1])){ pip(pair[0], pair[1]); }
+    for (const pair of (map[value] || map[1])){ pip(pair[0], pair[1]); }
     const texture = new THREE.CanvasTexture(canvas);
     texture.anisotropy = 8; texture.needsUpdate = true;
     return texture;
   }
 
-  function createDiceMesh(bgColor){
+  function createDiceMesh(bgColor: string): any {
     const tex = {
       1: createDieFaceTexture(1, 256, bgColor),
       2: createDieFaceTexture(2, 256, bgColor),
@@ -170,7 +198,7 @@ import { RoundedBoxGeometry } from 'https://esm.sh/three@0.152.2/examples/jsm/ge
       5: createDieFaceTexture(5, 256, bgColor),
       6: createDieFaceTexture(6, 256, bgColor)
     };
-    const mopts = (t)=>({ map: t, roughness: 0.45, metalness: 0.05 });
+    const mopts = (t: any) => ({ map: t, roughness: 0.45, metalness: 0.05 });
     const materials = [
       new THREE.MeshStandardMaterial(mopts(tex[3])),
       new THREE.MeshStandardMaterial(mopts(tex[4])),
@@ -185,17 +213,17 @@ import { RoundedBoxGeometry } from 'https://esm.sh/three@0.152.2/examples/jsm/ge
     return mesh;
   }
 
-  function spawnDicePair(color){
-    for (const d of state.diceEntities){ state.scene.remove(d.mesh); }
+  function spawnDicePair(color: string): void {
+    for (const d of state.diceEntities){ state.scene!.remove(d.mesh); }
     state.diceEntities = [];
 
     const positions = [ {x:-1.4, y:14, z:0}, {x:1.4, y:15, z:0} ];
     for (let i=0; i<2; i++){
       const mesh = createDiceMesh(color);
       mesh.position.set(positions[i].x, positions[i].y, positions[i].z);
-      state.scene.add(mesh);
+      state.scene!.add(mesh);
 
-      const body = state.world.add({
+      const body = state.world!.add({
         type: 'box', size: [2.0,2.0,2.0], pos: [positions[i].x, positions[i].y, positions[i].z],
         rot: [Math.random()*360, Math.random()*360, Math.random()*360],
         move: true, density: 2, friction: 0.5, restitution: 0.75
@@ -204,7 +232,7 @@ import { RoundedBoxGeometry } from 'https://esm.sh/three@0.152.2/examples/jsm/ge
     }
   }
 
-  function quaternionToTopValue(q){
+  function quaternionToTopValue(q: any): number {
     const up = new THREE.Vector3(0,1,0);
     const normals = [
       { n: new THREE.Vector3( 1, 0, 0), v: 3 },
@@ -223,7 +251,7 @@ import { RoundedBoxGeometry } from 'https://esm.sh/three@0.152.2/examples/jsm/ge
     return best.value;
   }
 
-  function getDiceValues(){
+  function getDiceValues(): number[] {
     return state.diceEntities.map(d => {
       const q = d.body.getQuaternion();
       const qt = new THREE.Quaternion(q.x, q.y, q.z, q.w);
@@ -231,7 +259,7 @@ import { RoundedBoxGeometry } from 'https://esm.sh/three@0.152.2/examples/jsm/ge
     });
   }
 
-  function updateHUD(amount){
+  function updateHUD(amount: number | null): void {
     amountLabel.textContent = `Amount: ${amount || '-'}`;
     const player = state.players[state.currentPlayerIdx];
     totalLabel.textContent = `Total: ${player.total}`;
@@ -239,16 +267,16 @@ import { RoundedBoxGeometry } from 'https://esm.sh/three@0.152.2/examples/jsm/ge
     playerDot.className = 'chip-dot ' + (state.currentPlayerIdx===0? 'blue':'pink');
   }
 
-  function mostFrequentValue(arr){
-    const counts = new Map();
-    for (const v of arr){ counts.set(v, (counts.get(v)||0)+1); }
+  function mostFrequentValue(arr: number[]): number {
+    const counts = new Map<number, number>();
+    for (const v of arr){ counts.set(v, (counts.get(v) || 0) + 1); }
     let bestVal = arr[0], bestCount = -1;
-    for (const [v,c] of counts){ if (c > bestCount){ bestVal = v; bestCount = c; } }
+    for (const [v, c] of counts){ if (c > bestCount){ bestVal = v; bestCount = c; } }
     return bestVal;
   }
 
-  async function readStableValues(samples=7, gapMs=50){
-    const readings = Array.from({ length: state.diceEntities.length }, () => []);
+  async function readStableValues(samples: number = 7, gapMs: number = 50): Promise<number[]> {
+    const readings: number[][] = Array.from({ length: state.diceEntities.length }, () => []);
     for (let i=0; i<samples; i++){
       const vals = getDiceValues();
       for (let d=0; d<vals.length; d++){ readings[d].push(vals[d]); }
@@ -257,7 +285,7 @@ import { RoundedBoxGeometry } from 'https://esm.sh/three@0.152.2/examples/jsm/ge
     return readings.map(list => mostFrequentValue(list));
   }
 
-  function getBodySpeed(body){
+  function getBodySpeed(body: any): { lin: number; ang: number } {
     const lv = body && body.getLinearVelocity ? body.getLinearVelocity() : { x:0, y:0, z:0 };
     const av = body && body.getAngularVelocity ? body.getAngularVelocity() : { x:0, y:0, z:0 };
     const lin = Math.sqrt((lv.x||0)*(lv.x||0) + (lv.y||0)*(lv.y||0) + (lv.z||0)*(lv.z||0));
@@ -265,8 +293,8 @@ import { RoundedBoxGeometry } from 'https://esm.sh/three@0.152.2/examples/jsm/ge
     return { lin, ang };
   }
 
-  function waitForSettle(timeoutMs=7000, linThresh=0.10, angThresh=0.10, consecutiveFrames=30, minActiveMs=900, graceMs=300){
-    return new Promise(resolve => {
+  function waitForSettle(timeoutMs: number = 7000, linThresh: number = 0.10, angThresh: number = 0.10, consecutiveFrames: number = 30, minActiveMs: number = 900, graceMs: number = 300): Promise<boolean> {
+    return new Promise((resolve) => {
       let settledCount = 0;
     const start = performance.now();
       function tick(){
@@ -296,7 +324,7 @@ import { RoundedBoxGeometry } from 'https://esm.sh/three@0.152.2/examples/jsm/ge
     });
   }
 
-  function nextPlayer(){
+  function nextPlayer(): void {
     if (state.numPlayers === 2){
       state.currentPlayerIdx = (state.currentPlayerIdx + 1) % 2;
       setStatus(`Turn: ${state.currentPlayerIdx===0? 'Player 1':'Player 2'}`);
@@ -304,7 +332,7 @@ import { RoundedBoxGeometry } from 'https://esm.sh/three@0.152.2/examples/jsm/ge
     }
   }
 
-  function endGameIfNeeded(){
+  function endGameIfNeeded(): void {
     const p1 = state.players[0];
     const p2 = state.players[1];
     if (state.numPlayers === 1){
@@ -320,7 +348,7 @@ import { RoundedBoxGeometry } from 'https://esm.sh/three@0.152.2/examples/jsm/ge
     }
   }
 
-  async function startRoll(){
+  async function startRoll(): Promise<void> {
     if (state.rolling) return;
     state.rolling = true;
     rollBtn.disabled = true; stopBtn.disabled = true;
@@ -361,7 +389,7 @@ import { RoundedBoxGeometry } from 'https://esm.sh/three@0.152.2/examples/jsm/ge
     rollBtn.disabled = false; stopBtn.disabled = false;
   }
 
-  function stopTurn(){
+  function stopTurn(): void {
     if (state.rolling) return;
     if (state.numPlayers === 2){
       if (state.currentPlayerIdx === 0){
@@ -377,8 +405,8 @@ import { RoundedBoxGeometry } from 'https://esm.sh/three@0.152.2/examples/jsm/ge
     }
   }
 
-  function resetGame(){
-    for (const d of state.diceEntities){ state.scene.remove(d.mesh); }
+  function resetGame(): void {
+    for (const d of state.diceEntities){ state.scene!.remove(d.mesh); }
     state.diceEntities = [];
     state.players[0].total = 0; state.players[1].total = 0;
     state.currentPlayerIdx = 0; state.rolling = false;
@@ -388,7 +416,7 @@ import { RoundedBoxGeometry } from 'https://esm.sh/three@0.152.2/examples/jsm/ge
     prescreen.style.display = '';
   }
 
-  function startMode(players){
+  function startMode(players: number): void {
     state.numPlayers = players;
     prescreen.style.display = 'none';
     setStatus(`Turn: ${players===2? 'Player 1' : 'Player'}`);

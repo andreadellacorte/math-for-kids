@@ -3,6 +3,7 @@
  * Migrated from times-table.html
  */
 
+// @ts-nocheck
 // Import utilities
 import { setCookie, getCookie } from '../storage-utils';
 

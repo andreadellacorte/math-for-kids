@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * instruments-game game logic
  * Migrated from instruments-game.html
@@ -11,7 +10,38 @@ import { setCookie, getCookie } from '../storage-utils';
 declare const window: any;
 declare const document: any;
 
+interface Instrument {
+    name: string;
+    family: string;
+    visual: string;
+    description: string;
+}
+
+type QuestionType = 'identify' | 'family';
+type GameMode = 'identify' | 'family' | 'mixed';
+
 class InstrumentsGame {
+            private instruments: Instrument[];
+            private currentInstrument: Instrument | null;
+            private currentQuestion: QuestionType | null;
+            private selectedAnswer: string | null;
+            private score: number;
+            private level: number;
+            private streak: number;
+            private gameMode: GameMode;
+            private scoreElement!: HTMLElement | null;
+            private levelElement!: HTMLElement | null;
+            private streakElement!: HTMLElement | null;
+            private instrumentDisplay!: HTMLElement | null;
+            private instrumentVisual!: HTMLImageElement | null;
+            private instrumentName!: HTMLElement | null;
+            private questionText!: HTMLElement | null;
+            private resultDisplay!: HTMLElement | null;
+            private optionsContainer!: HTMLElement | null;
+            private gameModeSelect!: HTMLSelectElement | null;
+            private newQuestionBtn!: HTMLElement | null;
+            private showAnswerBtn!: HTMLButtonElement | null;
+
             constructor() {
                 this.instruments = [
                     {
@@ -95,34 +125,35 @@ class InstrumentsGame {
                 this.updateDisplay();
             }
 
-            initializeElements() {
+            initializeElements(): void {
                 this.scoreElement = document.getElementById('score');
                 this.levelElement = document.getElementById('level');
                 this.streakElement = document.getElementById('streak');
                 this.instrumentDisplay = document.getElementById('instrumentDisplay');
-                this.instrumentVisual = document.getElementById('instrumentVisual');
+                this.instrumentVisual = document.getElementById('instrumentVisual') as HTMLImageElement;
                 this.instrumentName = document.getElementById('instrumentName');
                 this.questionText = document.getElementById('questionText');
                 this.resultDisplay = document.getElementById('resultDisplay');
                 this.optionsContainer = document.getElementById('optionsContainer');
-                this.gameModeSelect = document.getElementById('gameMode');
+                this.gameModeSelect = document.getElementById('gameMode') as HTMLSelectElement;
 
                 this.newQuestionBtn = document.getElementById('newQuestionBtn');
-                this.showAnswerBtn = document.getElementById('showAnswerBtn');
+                this.showAnswerBtn = document.getElementById('showAnswerBtn') as HTMLButtonElement;
             }
 
-            attachEventListeners() {
-                this.newQuestionBtn.addEventListener('click', () => this.generateNewQuestion());
-                this.showAnswerBtn.addEventListener('click', () => this.showAnswer());
-                this.gameModeSelect.addEventListener('change', (e) => {
-                    this.gameMode = e.target.value;
+            attachEventListeners(): void {
+                this.newQuestionBtn!.addEventListener('click', () => this.generateNewQuestion());
+                this.showAnswerBtn!.addEventListener('click', () => this.showAnswer());
+                this.gameModeSelect!.addEventListener('change', (e: Event) => {
+                    const target = e.target as HTMLSelectElement;
+                    this.gameMode = target.value as GameMode;
                 });
             }
 
-            generateNewQuestion() {
+            generateNewQuestion(): void {
                 // Reset game state
                 this.selectedAnswer = null;
-                this.resultDisplay.style.display = 'none';
+                this.resultDisplay!.style.display = 'none';
                 this.clearOptions();
 
                 // Select random instrument
@@ -132,37 +163,37 @@ class InstrumentsGame {
                 if (this.gameMode === 'mixed') {
                     this.currentQuestion = Math.random() < 0.5 ? 'identify' : 'family';
                 } else {
-                    this.currentQuestion = this.gameMode;
+                    this.currentQuestion = this.gameMode as QuestionType;
                 }
 
                 this.displayInstrument();
                 this.generateOptions();
 
-                this.showAnswerBtn.disabled = false;
+                this.showAnswerBtn!.disabled = false;
             }
 
-            displayInstrument() {
-                this.instrumentVisual.src = this.currentInstrument.visual;
-                this.instrumentVisual.alt = this.currentInstrument.name;
+            displayInstrument(): void {
+                this.instrumentVisual!.src = this.currentInstrument!.visual;
+                this.instrumentVisual!.alt = this.currentInstrument!.name;
 
                 if (this.currentQuestion === 'identify') {
-                    this.instrumentName.textContent = '?';
-                    this.questionText.textContent = 'What instrument is this?';
+                    this.instrumentName!.textContent = '?';
+                    this.questionText!.textContent = 'What instrument is this?';
                 } else if (this.currentQuestion === 'family') {
-                    this.instrumentName.textContent = this.currentInstrument.name;
-                    this.questionText.textContent = 'What family does this instrument belong to?';
+                    this.instrumentName!.textContent = this.currentInstrument!.name;
+                    this.questionText!.textContent = 'What family does this instrument belong to?';
                 }
             }
 
-            generateOptions() {
-                this.optionsContainer.innerHTML = '';
+            generateOptions(): void {
+                this.optionsContainer!.innerHTML = '';
 
-                let options = [];
+                let options: string[] = [];
                 let correctAnswer = '';
 
                 if (this.currentQuestion === 'identify') {
                     // Generate instrument name options
-                    correctAnswer = this.currentInstrument.name;
+                    correctAnswer = this.currentInstrument!.name;
                     options = [correctAnswer];
 
                     // Add 3 random wrong answers
@@ -175,7 +206,7 @@ class InstrumentsGame {
                     }
                 } else if (this.currentQuestion === 'family') {
                     // Generate family options
-                    correctAnswer = this.currentInstrument.family;
+                    correctAnswer = this.currentInstrument!.family;
                     options = ['String', 'Wind', 'Percussion'];
                 }
 
@@ -188,15 +219,16 @@ class InstrumentsGame {
                     button.className = 'option-button';
                     button.textContent = option;
                     button.addEventListener('click', () => this.selectAnswer(option, button, correctAnswer));
-                    this.optionsContainer.appendChild(button);
+                    this.optionsContainer!.appendChild(button);
                 });
             }
 
-            selectAnswer(answer, button, correctAnswer) {
+            selectAnswer(answer: string, button: HTMLElement, correctAnswer: string): void {
                 // Disable all buttons
                 const allButtons = document.querySelectorAll('.option-button');
-                allButtons.forEach(btn => {
-                    btn.style.pointerEvents = 'none';
+                allButtons.forEach((btn: Element) => {
+                    const htmlBtn = btn as HTMLElement;
+                    htmlBtn.style.pointerEvents = 'none';
                 });
 
                 this.selectedAnswer = answer;
@@ -208,7 +240,7 @@ class InstrumentsGame {
                 } else {
                     button.classList.add('incorrect');
                     // Highlight correct answer
-                    allButtons.forEach(btn => {
+                    allButtons.forEach((btn: Element) => {
                         if (btn.textContent === correctAnswer) {
                             btn.classList.add('correct');
                         }
@@ -233,67 +265,69 @@ class InstrumentsGame {
                 // Reset for next round
                 setTimeout(() => {
                     this.clearOptions();
-                    this.showAnswerBtn.disabled = true;
+                    this.showAnswerBtn!.disabled = true;
                 }, 3000);
             }
 
-            showResult(isCorrect, correctAnswer) {
-                this.resultDisplay.style.display = 'flex';
-                this.resultDisplay.className = `result-display ${isCorrect ? 'correct' : 'incorrect'}`;
+            showResult(isCorrect: boolean, correctAnswer: string): void {
+                this.resultDisplay!.style.display = 'flex';
+                this.resultDisplay!.className = `result-display ${isCorrect ? 'correct' : 'incorrect'}`;
 
                 if (isCorrect) {
-                    this.resultDisplay.textContent = '🎉 Correct! Well done!';
+                    this.resultDisplay!.textContent = '🎉 Correct! Well done!';
                 } else {
                     if (this.currentQuestion === 'identify') {
-                        this.resultDisplay.textContent = `❌ Incorrect. This is a ${correctAnswer}.`;
+                        this.resultDisplay!.textContent = `❌ Incorrect. This is a ${correctAnswer}.`;
                     } else {
-                        this.resultDisplay.textContent = `❌ Incorrect. The ${this.currentInstrument.name} belongs to the ${correctAnswer} family.`;
+                        this.resultDisplay!.textContent = `❌ Incorrect. The ${this.currentInstrument!.name} belongs to the ${correctAnswer} family.`;
                     }
                 }
 
                 // Show instrument description
                 setTimeout(() => {
-                    this.resultDisplay.textContent += ` ${this.currentInstrument.description}`;
+                    this.resultDisplay!.textContent += ` ${this.currentInstrument!.description}`;
                 }, 1500);
             }
 
-            showAnswer() {
-                this.instrumentName.textContent = this.currentInstrument.name;
-                this.questionText.textContent = `This is a ${this.currentInstrument.name} from the ${this.currentInstrument.family} family.`;
+            showAnswer(): void {
+                this.instrumentName!.textContent = this.currentInstrument!.name;
+                this.questionText!.textContent = `This is a ${this.currentInstrument!.name} from the ${this.currentInstrument!.family} family.`;
 
                 // Highlight correct answer
                 const allButtons = document.querySelectorAll('.option-button');
                 const correctAnswer = this.currentQuestion === 'identify' ?
-                    this.currentInstrument.name :
-                    this.currentInstrument.family;
+                    this.currentInstrument!.name :
+                    this.currentInstrument!.family;
 
-                allButtons.forEach(button => {
+                allButtons.forEach((button: Element) => {
+                    const htmlBtn = button as HTMLElement;
                     if (button.textContent === correctAnswer) {
                         button.classList.add('correct');
                     }
-                    button.style.pointerEvents = 'none';
+                    htmlBtn.style.pointerEvents = 'none';
                 });
 
-                this.showAnswerBtn.disabled = true;
+                this.showAnswerBtn!.disabled = true;
 
                 // Show description
-                this.resultDisplay.style.display = 'flex';
-                this.resultDisplay.className = 'result-display';
-                this.resultDisplay.style.background = '#e2e3e5';
-                this.resultDisplay.style.color = '#383d41';
-                this.resultDisplay.style.border = '2px solid #d6d8db';
-                this.resultDisplay.textContent = this.currentInstrument.description;
+                this.resultDisplay!.style.display = 'flex';
+                this.resultDisplay!.className = 'result-display';
+                this.resultDisplay!.style.background = '#e2e3e5';
+                this.resultDisplay!.style.color = '#383d41';
+                this.resultDisplay!.style.border = '2px solid #d6d8db';
+                this.resultDisplay!.textContent = this.currentInstrument!.description;
             }
 
-            clearOptions() {
+            clearOptions(): void {
                 const allButtons = document.querySelectorAll('.option-button');
-                allButtons.forEach(button => {
-                    button.style.pointerEvents = 'auto';
+                allButtons.forEach((button: Element) => {
+                    const htmlBtn = button as HTMLElement;
+                    htmlBtn.style.pointerEvents = 'auto';
                     button.classList.remove('selected', 'correct', 'incorrect');
                 });
             }
 
-            shuffleArray(array) {
+            shuffleArray<T>(array: T[]): T[] {
                 const shuffled = [...array];
                 for (let i = shuffled.length - 1; i > 0; i--) {
                     const j = Math.floor(Math.random() * (i + 1));
@@ -302,10 +336,10 @@ class InstrumentsGame {
                 return shuffled;
             }
 
-            updateDisplay() {
-                this.scoreElement.textContent = this.score;
-                this.levelElement.textContent = this.level;
-                this.streakElement.textContent = this.streak;
+            updateDisplay(): void {
+                this.scoreElement!.textContent = String(this.score);
+                this.levelElement!.textContent = String(this.level);
+                this.streakElement!.textContent = String(this.streak);
             }
         }
 

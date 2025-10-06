@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * notation-game game logic
  * Migrated from notation-game.html
@@ -11,7 +10,33 @@ import { setCookie, getCookie } from '../storage-utils';
 declare const window: any;
 declare const document: any;
 
+interface Note {
+    name: string;
+    solfege: string;
+    position: string;
+    offset: number;
+    octave: number;
+}
+
 class NotationGame {
+            private notes: Note[];
+            private currentSequence: Note[];
+            private userSequence: Note[];
+            private score: number;
+            private level: number;
+            private streak: number;
+            private audioContext: AudioContext | null;
+            private scoreElement!: HTMLElement | null;
+            private levelElement!: HTMLElement | null;
+            private streakElement!: HTMLElement | null;
+            private staffElement!: HTMLElement | null;
+            private userSequenceElement!: HTMLElement | null;
+            private keyboardElement!: HTMLElement | null;
+            private newSequenceBtn!: HTMLElement | null;
+            private playBtn!: HTMLButtonElement | null;
+            private checkBtn!: HTMLButtonElement | null;
+            private clearBtn!: HTMLButtonElement | null;
+
             constructor() {
                 this.notes = [
                     { name: 'C', solfege: 'Do', position: 'below', offset: 10, octave: 4 },
@@ -47,7 +72,7 @@ class NotationGame {
                 this.updateDisplay();
             }
 
-            async initAudio() {
+            async initAudio(): Promise<void> {
                 try {
                     this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 } catch (error) {
@@ -55,7 +80,7 @@ class NotationGame {
                 }
             }
 
-            initializeElements() {
+            initializeElements(): void {
                 this.scoreElement = document.getElementById('score');
                 this.levelElement = document.getElementById('level');
                 this.streakElement = document.getElementById('streak');
@@ -69,26 +94,26 @@ class NotationGame {
                 this.clearBtn = document.getElementById('clearBtn');
             }
 
-            createStaff() {
-                this.staffElement.innerHTML = '';
+            createStaff(): void {
+                this.staffElement!.innerHTML = '';
 
                 // Create staff lines
                 for (let i = 0; i < 5; i++) {
                     const line = document.createElement('div');
                     line.className = 'staff-line';
                     line.style.top = `${40 + i * 30}px`;
-                    this.staffElement.appendChild(line);
+                    this.staffElement!.appendChild(line);
                 }
 
                 // Add treble clef
                 const clef = document.createElement('div');
                 clef.className = 'clef';
                 clef.textContent = '𝄞';
-                this.staffElement.appendChild(clef);
+                this.staffElement!.appendChild(clef);
             }
 
-            createKeyboard() {
-                this.keyboardElement.innerHTML = '';
+            createKeyboard(): void {
+                this.keyboardElement!.innerHTML = '';
 
                 const whiteKeys = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
                 const blackKeyPositions = [0, 1, 3, 4, 5]; // Positions relative to white keys
@@ -101,7 +126,7 @@ class NotationGame {
                     key.dataset.note = note;
                     key.textContent = note;
                     key.addEventListener('click', () => this.handleKeyClick(note));
-                    this.keyboardElement.appendChild(key);
+                    this.keyboardElement!.appendChild(key);
                 });
 
                 // Create black keys with proper positioning
@@ -117,18 +142,18 @@ class NotationGame {
                     key.style.left = `${(position + 1) * whiteKeyWidth}px`;
 
                     key.addEventListener('click', () => this.handleKeyClick(name));
-                    this.keyboardElement.appendChild(key);
+                    this.keyboardElement!.appendChild(key);
                 });
             }
 
-            attachEventListeners() {
-                this.newSequenceBtn.addEventListener('click', () => this.generateNewSequence());
-                this.playBtn.addEventListener('click', () => this.playSequence());
-                this.checkBtn.addEventListener('click', () => this.checkAnswer());
-                this.clearBtn.addEventListener('click', () => this.clearUserInput());
+            attachEventListeners(): void {
+                this.newSequenceBtn!.addEventListener('click', () => this.generateNewSequence());
+                this.playBtn!.addEventListener('click', () => this.playSequence());
+                this.checkBtn!.addEventListener('click', () => this.checkAnswer());
+                this.clearBtn!.addEventListener('click', () => this.clearUserInput());
             }
 
-            generateNewSequence() {
+            generateNewSequence(): void {
                 // Reset game state
                 this.currentSequence = [];
                 this.userSequence = [];
@@ -142,11 +167,11 @@ class NotationGame {
                 }
 
                 this.displayNotesOnStaff();
-                this.playBtn.disabled = false;
-                this.checkBtn.disabled = false;
+                this.playBtn!.disabled = false;
+                this.checkBtn!.disabled = false;
             }
 
-            displayNotesOnStaff() {
+            displayNotesOnStaff(): void {
                 this.clearStaffNotes();
 
                 this.currentSequence.forEach((note, index) => {
@@ -160,16 +185,16 @@ class NotationGame {
                     // Position vertically based on note
                     noteElement.style.top = `${70 + note.offset}px`;
 
-                    this.staffElement.appendChild(noteElement);
+                    this.staffElement!.appendChild(noteElement);
                 });
             }
 
-            clearStaffNotes() {
-                const notes = this.staffElement.querySelectorAll('.note');
-                notes.forEach(note => note.remove());
+            clearStaffNotes(): void {
+                const notes = this.staffElement!.querySelectorAll('.note');
+                notes.forEach((note: Element) => note.remove());
             }
 
-            handleKeyClick(noteName) {
+            handleKeyClick(noteName: string): void {
                 // Find all possible notes with this name
                 const possibleNotes = this.notes.filter(n => n.name === noteName);
                 if (possibleNotes.length === 0) return;
@@ -196,33 +221,35 @@ class NotationGame {
                 this.updateUserSequenceDisplay();
 
                 // Visual feedback
-                const key = document.querySelector(`[data-note="${noteName}"]`);
-                key.classList.add('active');
-                setTimeout(() => key.classList.remove('active'), 200);
+                const key = document.querySelector(`[data-note="${noteName}"]`) as HTMLElement;
+                if (key) {
+                    key.classList.add('active');
+                    setTimeout(() => key.classList.remove('active'), 200);
+                }
 
                 // Play note sound
                 this.playNote(selectedNote);
             }
 
-            updateUserSequenceDisplay() {
+            updateUserSequenceDisplay(): void {
                 const sequenceText = this.userSequence.map(note =>
                     `${note.name}${note.octave || 4} (${note.solfege})`
                 ).join(' → ');
 
-                this.userSequenceElement.textContent = sequenceText || 'Your sequence will appear here...';
+                this.userSequenceElement!.textContent = sequenceText || 'Your sequence will appear here...';
             }
 
-            clearUserInput() {
+            clearUserInput(): void {
                 this.userSequence = [];
                 this.updateUserSequenceDisplay();
 
                 // Remove all visual feedback from keys
-                document.querySelectorAll('.key').forEach(key => {
+                document.querySelectorAll('.key').forEach((key: Element) => {
                     key.classList.remove('correct', 'incorrect', 'active');
                 });
             }
 
-            async playSequence() {
+            async playSequence(): Promise<void> {
                 if (!this.audioContext) return;
 
                 for (let i = 0; i < this.currentSequence.length; i++) {
@@ -231,11 +258,11 @@ class NotationGame {
                 }
             }
 
-            playNote(note) {
+            playNote(note: Note): void {
                 if (!this.audioContext) return;
 
                 // Calculate frequency based on note and octave
-                const baseFrequencies = {
+                const baseFrequencies: { [key: string]: number } = {
                     'C': 261.63,
                     'C#': 277.18,
                     'D': 293.66,
@@ -273,13 +300,13 @@ class NotationGame {
                 oscillator.stop(this.audioContext.currentTime + 0.5);
             }
 
-            sleep(ms) {
+            sleep(ms: number): Promise<void> {
                 return new Promise(resolve => setTimeout(resolve, ms));
             }
 
-            checkAnswer() {
+            checkAnswer(): void {
                 if (this.userSequence.length === 0) {
-                    this.userSequenceElement.textContent = 'Please play some notes first!';
+                    this.userSequenceElement!.textContent = 'Please play some notes first!';
                     return;
                 }
 
@@ -302,12 +329,12 @@ class NotationGame {
                 // Reset for next round
                 setTimeout(() => {
                     this.clearUserInput();
-                    this.playBtn.disabled = true;
-                    this.checkBtn.disabled = true;
+                    this.playBtn!.disabled = true;
+                    this.checkBtn!.disabled = true;
                 }, 3000);
             }
 
-            sequencesMatch() {
+            sequencesMatch(): boolean {
                 if (this.userSequence.length !== this.currentSequence.length) {
                     return false;
                 }
@@ -325,33 +352,35 @@ class NotationGame {
                 return true;
             }
 
-            showResults(isCorrect) {
+            showResults(isCorrect: boolean): void {
                 // Show correct/incorrect feedback on keys
                 this.currentSequence.forEach((note, index) => {
-                    const key = document.querySelector(`[data-note="${note.name}"]`);
+                    const key = document.querySelector(`[data-note="${note.name}"]`) as HTMLElement;
                     const userNote = this.userSequence[index];
 
-                    if (userNote && userNote.name === note.name) {
-                        key.classList.add('correct');
-                    } else {
-                        key.classList.add('incorrect');
+                    if (key) {
+                        if (userNote && userNote.name === note.name) {
+                            key.classList.add('correct');
+                        } else {
+                            key.classList.add('incorrect');
+                        }
                     }
                 });
 
                 if (isCorrect) {
-                    this.userSequenceElement.innerHTML = '🎉 Perfect! You read the notes correctly!';
+                    this.userSequenceElement!.innerHTML = '🎉 Perfect! You read the notes correctly!';
                 } else {
                     const correctSequence = this.currentSequence.map(note =>
                         `${note.name}${note.octave || 4} (${note.solfege})`
                     ).join(' → ');
-                    this.userSequenceElement.innerHTML = `❌ Not quite right.<br>Correct sequence: ${correctSequence}`;
+                    this.userSequenceElement!.innerHTML = `❌ Not quite right.<br>Correct sequence: ${correctSequence}`;
                 }
             }
 
-            updateDisplay() {
-                this.scoreElement.textContent = this.score;
-                this.levelElement.textContent = this.level;
-                this.streakElement.textContent = this.streak;
+            updateDisplay(): void {
+                this.scoreElement!.textContent = this.score.toString();
+                this.levelElement!.textContent = this.level.toString();
+                this.streakElement!.textContent = this.streak.toString();
             }
         }
 

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * place-value-showdown game logic
  * Migrated from place-value-showdown.html
@@ -11,8 +10,25 @@ import { setCookie, getCookie } from '../storage-utils';
 declare const window: any;
 declare const document: any;
 
+interface PlayerState {
+  digits: (number | undefined)[];
+  wins: number;
+}
+
+interface GameState {
+  difficulty: number;
+  mode: string;
+  currentPlayer: 1 | 2;
+  currentRoll: number | null;
+  players: {
+    1: PlayerState;
+    2: PlayerState;
+  };
+  gameOver: boolean;
+}
+
 (function(){
-  const state = {
+  const state: GameState = {
     difficulty: 3,
     mode: '2players',
     currentPlayer: 1,
@@ -69,12 +85,12 @@ declare const document: any;
     }
   }
 
-  function createSlot(index, player) {
+  function createSlot(index: number, player: number): HTMLDivElement {
     const labels = ['Ones', 'Tens', 'Hundreds', 'Thousands', 'Ten-Thousands'];
     const slot = document.createElement('div');
     slot.className = 'place-slot';
-    slot.dataset.index = index;
-    slot.dataset.player = player;
+    slot.dataset.index = String(index);
+    slot.dataset.player = String(player);
     slot.innerHTML = `
       <div class="place-label">${labels[index]}</div>
       <div class="place-digit">-</div>
@@ -83,17 +99,18 @@ declare const document: any;
     return slot;
   }
 
-  function handleSlotClick(slot) {
+  function handleSlotClick(slot: HTMLElement): void {
     if (state.gameOver) return;
     if (state.currentRoll === null) return;
-    const player = parseInt(slot.dataset.player);
+    const player = parseInt(slot.dataset.player!) as 1 | 2;
     if (player !== state.currentPlayer) return;
     if (slot.classList.contains('filled')) return;
 
-    const index = parseInt(slot.dataset.index);
+    const index = parseInt(slot.dataset.index!);
     state.players[player].digits[index] = state.currentRoll;
 
-    slot.querySelector('.place-digit').textContent = state.currentRoll;
+    const placeDigit = slot.querySelector('.place-digit');
+    if (placeDigit) placeDigit.textContent = String(state.currentRoll);
     slot.classList.add('filled');
 
     updateFinalNumber(player);
@@ -128,21 +145,21 @@ declare const document: any;
     elements.statusMsg.textContent = `Player ${state.currentPlayer}: Place the ${roll}!`;
   }
 
-  function updateDiceDisplay(player, value) {
+  function updateDiceDisplay(player: number, value: number | string): void {
     const display = player === 1 ? elements.p1Dice : elements.p2Dice;
-    display.querySelector('.dice-value').textContent = value;
+    display.querySelector('.dice-value').textContent = String(value);
   }
 
-  function updateFinalNumber(player) {
+  function updateFinalNumber(player: 1 | 2): void {
     const digits = state.players[player].digits;
     let number = 0;
     for (let i = 0; i < digits.length; i++) {
       if (digits[i] !== undefined) {
-        number += digits[i] * Math.pow(10, i);
+        number += digits[i]! * Math.pow(10, i);
       }
     }
     const finalEl = player === 1 ? elements.p1Final : elements.p2Final;
-    finalEl.textContent = number || '-';
+    finalEl.textContent = String(number || '-');
   }
 
   function switchPlayer() {
@@ -226,16 +243,16 @@ declare const document: any;
     }
   }
 
-  function sleep(ms) {
+  function sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-  function calculateFinalNumber(player) {
+  function calculateFinalNumber(player: 1 | 2): number {
     const digits = state.players[player].digits;
     let number = 0;
     for (let i = 0; i < digits.length; i++) {
       if (digits[i] !== undefined) {
-        number += digits[i] * Math.pow(10, i);
+        number += digits[i]! * Math.pow(10, i);
       }
     }
     return number;

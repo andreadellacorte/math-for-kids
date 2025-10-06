@@ -1,8 +1,10 @@
-// @ts-nocheck
 /**
  * math-crossword game logic
  * Migrated from math-crossword.html
  */
+
+// @ts-nocheck
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 // Import utilities
 import { setCookie, getCookie } from '../storage-utils';
@@ -21,37 +23,54 @@ declare const document: any;
    - Values for sliders persist via cookies
 */
 
+interface Cell {
+  k: string;
+  ch: string;
+  id?: number;
+}
+
+interface Equation {
+  A: number;
+  B: number;
+  C: number;
+  op: string;
+}
+
+interface PlacedEquation {
+  id: number;
+  eq: Equation;
+}
+
+interface SegmentCell {
+  r: number;
+  c: number;
+  cell: Cell;
+}
+
+type Grid = (Cell | null)[][];
+
 const ROWS=24, COLS=24;
 const MAX_TRIES=25000;        // stronger search
 const REGEN_ATTEMPTS=250;
 
 const svg=document.getElementById('grid'), ans=document.getElementById('ans');
-const eqSlider=document.getElementById('eqSlider'), eqOut=document.getElementById('eqOut');
-const difficultySelect=document.getElementById('difficultySelect');
-const rangePreset=document.getElementById('rangePreset');
-const opAdd=document.getElementById('opAdd'), opSub=document.getElementById('opSub');
-const opMul=document.getElementById('opMul'), opDiv=document.getElementById('opDiv');
+const eqSlider=document.getElementById('eqSlider') as HTMLInputElement, eqOut=document.getElementById('eqOut');
+const difficultySelect=document.getElementById('difficultySelect') as HTMLSelectElement;
+const rangePreset=document.getElementById('rangePreset') as HTMLSelectElement;
+const opAdd=document.getElementById('opAdd') as HTMLInputElement, opSub=document.getElementById('opSub') as HTMLInputElement;
+const opMul=document.getElementById('opMul') as HTMLInputElement, opDiv=document.getElementById('opDiv') as HTMLInputElement;
 const stat=document.getElementById('stat');
 
-const R=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
-const pick=a=>a[Math.floor(Math.random()*a.length)];
-const inside=(r,c)=>r>=0&&r<ROWS&&c>=0&&c<COLS;
-const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
-
-function setCookie(name,value,days=365){
-  const d=new Date(); d.setTime(d.getTime()+days*24*60*60*1000);
-  document.cookie=`${name}=${encodeURIComponent(value)};expires=${d.toUTCString()};path=/;SameSite=Lax`;
-}
-function getCookie(name){
-  const m=document.cookie.split(';').map(s=>s.trim()).find(s=>s.startsWith(name+'='));
-  return m?decodeURIComponent(m.split('=')[1]):null;
-}
-function syncFromCookies(){
+const R = (a: number, b: number): number => Math.floor(Math.random()*(b-a+1))+a;
+const pick = <T>(a: T[]): T => a[Math.floor(Math.random()*a.length)];
+const inside = (r: number, c: number): boolean => r>=0&&r<ROWS&&c>=0&&c<COLS;
+const clamp = (x: number, a: number, b: number): number => Math.max(a,Math.min(b,x));
+function syncFromCookies(): void {
   const eqC=getCookie('mx_eq'), diffC=getCookie('mx_diff');
   const rangeC=getCookie('mx_range');
   const opsC=getCookie('mx_ops');
 
-  eqSlider.value = clamp(parseInt(eqC)||30,3,50);    // Start with 30 equations
+  eqSlider.value = clamp(parseInt(eqC||'30'),3,50).toString();    // Start with 30 equations
   difficultySelect.value = diffC || 'medium';       // Start with medium difficulty
   if(rangeC){
     rangePreset.value = rangeC;
@@ -59,7 +78,7 @@ function syncFromCookies(){
     rangePreset.value = '0-20';
   }
   // no custom range UI
-  eqOut.textContent = eqSlider.value;
+  eqOut!.textContent = eqSlider.value;
 
   // Restore operation settings
   const ops = opsC ? JSON.parse(opsC) : {add: true, sub: true, mul: true, div: true};
@@ -69,9 +88,9 @@ function syncFromCookies(){
   opDiv.checked = ops.div !== false;
 }
 
-function empty(){return Array.from({length:ROWS},()=>Array(COLS).fill(null))}
+function empty(): Grid {return Array.from({length:ROWS},()=>Array(COLS).fill(null))}
 
-function seq(e){return[
+function seq(e: Equation): Cell[] {return[
   {k:'num',ch:String(e.A)},
   {k:'op', ch:e.op},
   {k:'num',ch:String(e.B)},
@@ -79,35 +98,35 @@ function seq(e){return[
   {k:'num',ch:String(e.C)}
 ];}
 
-function segment(g, r, c, dr, dc){
+function segment(g: Grid, r: number, c: number, dr: number, dc: number): SegmentCell[] {
   // walk to start
   while(inside(r-dr,c-dc) && g[r-dr][c-dc]){ r-=dr; c-=dc; }
-  const cells=[];
+  const cells: SegmentCell[] = [];
   let i=0;
   while(inside(r+dr*i,c+dc*i) && g[r+dr*i][c+dc*i]){
-    cells.push({r:r+dr*i,c:c+dc*i,cell:g[r+dr*i][c+dc*i]}); i++;
+    cells.push({r:r+dr*i,c:c+dc*i,cell:g[r+dr*i][c+dc*i]!}); i++;
   }
   return cells;
 }
-function evalOk(a,op,b,c){
-  a=+a; b=+b; c=+c;
-  if(op==='+') return a+b===c;
-  if(op==='-') return a-b===c;
-  if(op==='×') return a*b===c;
-  if(op==='÷') return b!==0 && a/b===c;
+function evalOk(a: string | number, op: string, b: string | number, c: string | number): boolean {
+  const aNum = +a; const bNum = +b; const cNum = +c;
+  if(op==='+') return aNum+bNum===cNum;
+  if(op==='-') return aNum-bNum===cNum;
+  if(op==='×') return aNum*bNum===cNum;
+  if(op==='÷') return bNum!==0 && aNum/bNum===cNum;
   return false;
 }
-function validStrip(cells){
+function validStrip(cells: SegmentCell[]): boolean {
   if(cells.length!==5) return false;
-  const ks=cells.map(x=>x.cell.k);
+  const ks=cells.map((x: SegmentCell) => x.cell.k);
   if(ks.join(',')!=='num,op,num,eq,num') return false;
   return evalOk(cells[0].cell.ch,cells[1].cell.ch,cells[2].cell.ch,cells[4].cell.ch);
 }
 
 // placement rules: token-by-token match, and no segment > 5, and any completed segment must be valid
-function canPlace(g,r,c,dr,dc,s,needIntersect){
+function canPlace(g: Grid, r: number, c: number, dr: number, dc: number, s: Cell[], needIntersect: boolean): boolean {
   let inter=0;
-  const touched=[];
+  const touched: number[][]=[];
   for(let i=0;i<s.length;i++){
     const rr=r+dr*i, cc=c+dc*i; if(!inside(rr,cc)) return false;
     const cell=g[rr][cc];
@@ -138,25 +157,25 @@ function canPlace(g,r,c,dr,dc,s,needIntersect){
   }
   return true;
 }
-function segmentWithHypo(g, r, c, dr, dc){
+function segmentWithHypo(g: Grid, r: number, c: number, dr: number, dc: number): SegmentCell[] {
   // build segment including hypothetical filled cell at r,c (we only call this one when we know r,c is empty)
   // walk back
   let sr=r, sc=c;
   while(inside(sr-dr,sc-dc) && g[sr-dr][sc-dc]){ sr-=dr; sc-=dc; }
-  const out=[];
+  const out: SegmentCell[]=[];
   let i=0;
   while(true){
     const rr=sr+dr*i, cc=sc+dc*i;
     if(!inside(rr,cc)) break;
-    const cell = (rr===r && cc===c) ? {k:'__hypo__'} : g[rr][cc];
+    const cell = (rr===r && cc===c) ? {k:'__hypo__', ch:''} : g[rr][cc];
     if(!cell) break;
     out.push({r:rr,c:cc,cell});
     i++;
   }
   return out;
 }
-function place(g,r,c,dr,dc,s,id){
-  const coords=[];
+function place(g: Grid, r: number, c: number, dr: number, dc: number, s: Cell[], id: number): number[][] {
+  const coords: number[][]=[];
   for(let i=0;i<s.length;i++){
     const rr=r+dr*i, cc=c+dc*i;
     g[rr][cc]={...(g[rr][cc]||{}),...s[i], id};
@@ -165,8 +184,8 @@ function place(g,r,c,dr,dc,s,id){
   return coords;
 }
 
-function generateExact(target){
-  const g=empty(), placed=[];
+function generateExact(target: number): any {
+  const g=empty(), placed: PlacedEquation[]=[];
   // seed anywhere near center
   for(let seedTry=0; seedTry<300; seedTry++){
     const e0=generateRandomEquation(), s0=seq(e0), d0=Math.random()<0.5?'ac':'dn';
@@ -218,7 +237,7 @@ function generateExact(target){
   return {g,placed};
 }
 
-function score(g,r,c,dr,dc,s){
+function score(g: Grid, r: number, c: number, dr: number, dc: number, s: Cell[]): number {
   // prefer more intersections and centrality
   let inter=0; for(let i=0;i<s.length;i++){ if(g[r+dr*i][c+dc*i]) inter++; }
   const mr=(ROWS-1)/2, mc=(COLS-1)/2;
@@ -227,15 +246,15 @@ function score(g,r,c,dr,dc,s){
   return inter*10 - dist;
 }
 
-function cropBounds(g){
-  const cells=[]; for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++) if(g[r][c]) cells.push([r,c]);
-  const minR=Math.min(...cells.map(x=>x[0])), maxR=Math.max(...cells.map(x=>x[0]));
-  const minC=Math.min(...cells.map(x=>x[1])), maxC=Math.max(...cells.map(x=>x[1]));
+function cropBounds(g: Grid): any {
+  const cells: number[][]=[];for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++) if(g[r][c]) cells.push([r,c]);
+  const minR=Math.min(...cells.map((x: number[])=>x[0])), maxR=Math.max(...cells.map((x: number[])=>x[0]));
+  const minC=Math.min(...cells.map((x: number[])=>x[1])), maxC=Math.max(...cells.map((x: number[])=>x[1]));
   return {minR,maxR,minC,maxC,rows:maxR-minR+1,cols:maxC-minC+1};
 }
-function t(tag,attrs){const n=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const k in attrs)n.setAttribute(k,attrs[k]);return n}
+function t(tag: string, attrs: any): SVGElement {const n=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const k in attrs)n.setAttribute(k,attrs[k]);return n}
 
-function draw(model,givensCount){
+function draw(model: any, givensCount: number): void {
   const {g}=model;
   // collect number cells
   const numCells=[];
@@ -274,7 +293,7 @@ function draw(model,givensCount){
   return {numTotal:numCells.length};
 }
 
-function getSelectedOperations() {
+function getSelectedOperations(): any {
   const ops = [];
   if (opAdd.checked) ops.push('+');
   if (opSub.checked) ops.push('-');
@@ -283,7 +302,7 @@ function getSelectedOperations() {
   return ops.length > 0 ? ops : ['+']; // Fallback to addition if none selected
 }
 
-function getNumberRange() {
+function getNumberRange(): any {
   let min=0, max=20;
   const preset = rangePreset.value;
   if(/^(\d+)-(\d+)$/.test(preset)){
@@ -295,7 +314,7 @@ function getNumberRange() {
   return { min, max };
 }
 
-function validateEquation(A, B, C, op, range = null) {
+function validateEquation(A: any, B: any, C: any, op: any, range: any = null): any {
   A = parseInt(A); B = parseInt(B); C = parseInt(C);
 
   const currentRange = range || getNumberRange();
@@ -316,7 +335,7 @@ function validateEquation(A, B, C, op, range = null) {
   }
 }
 
-function generateRandomEquation() {
+function generateRandomEquation(): Equation {
   const operations = getSelectedOperations();
   const range = getNumberRange();
   const digits = 'auto';
@@ -372,11 +391,11 @@ function generateRandomEquation() {
   return {...fallbackRange, op: '÷'};
 }
 
-function getIntersectionValue(grid, r, c) {
+function getIntersectionValue(grid: any, r: any, c: any): any {
   return grid[r] && grid[r][c] && grid[r][c].k === 'num' ? parseInt(grid[r][c].ch) : null;
 }
 
-function findValidEquationForConstraints(constraints) {
+function findValidEquationForConstraints(constraints: any): any {
   // constraints: {pos0: value, pos2: value, pos4: value} where positions are 0=A, 2=B, 4=C
   const operations = ['+', '-', '×', '÷'];
 
@@ -494,7 +513,7 @@ function findValidEquationForConstraints(constraints) {
 // 2. Strategically remove numbers while maintaining unique solvability
 // 3. Stop when target difficulty percentage is reached
 
-function generateBackwardCrossword(targetEquations, difficulty) {
+function generateBackwardCrossword(targetEquations: any, difficulty: any): any {
   // Step 1: Generate a complete crossword with all numbers visible
   const fullModel = createRandomCrossword(targetEquations, difficulty);
   if (!fullModel) return null;
@@ -503,7 +522,7 @@ function generateBackwardCrossword(targetEquations, difficulty) {
   return optimizeGivensBackward(fullModel, difficulty);
 }
 
-function optimizeGivensBackward(model, difficulty) {
+function optimizeGivensBackward(model: any, difficulty: any): any {
   const {grid, equations} = model;
 
   // Start with ALL numbers as givens (complete solution)
@@ -595,7 +614,7 @@ function optimizeGivensBackward(model, difficulty) {
   };
 }
 
-function findBestNumberToRemove(grid, equations, currentGivens, difficulty = 'expert') {
+function findBestNumberToRemove(grid: any, equations: any, currentGivens: any, difficulty: any = 'expert') {
   const candidates = [];
 
   // Analyze each given number for removal potential
@@ -624,7 +643,7 @@ function findBestNumberToRemove(grid, equations, currentGivens, difficulty = 'ex
   return candidates[0].pos;
 }
 
-function calculateRemovalScore(grid, equations, currentGivens, r, c, difficulty = 'expert') {
+function calculateRemovalScore(grid: any, equations: any, currentGivens: any, r: any, c: any, difficulty: any = 'expert') {
   let score = 0;
 
   // Find which equation(s) this number belongs to
@@ -699,7 +718,7 @@ function calculateRemovalScore(grid, equations, currentGivens, r, c, difficulty 
   return score;
 }
 
-function countIntersectionConstraints(grid, equations, currentGivens, r, c) {
+function countIntersectionConstraints(grid: any, equations: any, currentGivens: any, r: any, c: any): any {
   let count = 0;
 
   for (const eq of equations) {
@@ -731,7 +750,7 @@ function countIntersectionConstraints(grid, equations, currentGivens, r, c) {
   return count;
 }
 
-function fixAnyIsolatedEquations(grid, equations, currentGivens) {
+function fixAnyIsolatedEquations(grid: any, equations: any, currentGivens: any): any {
   const fixedGivens = new Set([...currentGivens]);
   let fixes = 0;
 
@@ -797,7 +816,7 @@ function fixAnyIsolatedEquations(grid, equations, currentGivens) {
   return fixedGivens;
 }
 
-function createRandomCrossword(numEquations, difficulty = 'expert') {
+function createRandomCrossword(numEquations: any, difficulty: any = 'expert') {
   const grid = Array.from({length: 24}, () => Array(24).fill(null));
   const equations = [];
   const maxAttempts = 100;
@@ -1185,7 +1204,7 @@ function createRandomCrossword(numEquations, difficulty = 'expert') {
   return {grid, equations};
 }
 
-function findValidEquationForConstraints2(constraints) {
+function findValidEquationForConstraints2(constraints: any): any {
   // ENHANCED: Handle multiple constraints including operators and equals
   // constraints: {pos0: value, pos1: op, pos2: value, pos3: '=', pos4: value}
   const operations = getSelectedOperations().map(op => op.symbol);
@@ -1227,7 +1246,7 @@ function findValidEquationForConstraints2(constraints) {
   return generateRandomEquation();
 }
 
-function buildEquationWithConstraints(constraints) {
+function buildEquationWithConstraints(constraints: any): any {
   // Build equation systematically when we have specific number constraints
   const operations = getSelectedOperations().map(op => op.symbol);
 
@@ -1307,7 +1326,7 @@ function buildEquationWithConstraints(constraints) {
   return generateRandomEquation();
 }
 
-function getNewDifficultyTargets(difficulty, totalNumbers) {
+function getNewDifficultyTargets(difficulty: any, totalNumbers: any): any {
   console.log(`getNewDifficultyTargets called with: ${difficulty}, ${totalNumbers}`);
 
   // Define difficulty levels with target percentages

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * hearing-game game logic
  * Migrated from hearing-game.html
@@ -11,7 +10,36 @@ import { setCookie, getCookie } from '../storage-utils';
 declare const window: any;
 declare const document: any;
 
+interface Pattern {
+    name: string;
+    description: string;
+    visual: string;
+    generator: () => number[];
+}
+
 class HearingGame {
+            private patterns: Pattern[];
+            private baseFrequencies: number[];
+            private currentSequence: number[];
+            private currentPattern: Pattern | null;
+            private selectedPattern: string | null;
+            private score: number;
+            private level: number;
+            private streak: number;
+            private volume: number;
+            private audioContext: AudioContext | null;
+            private scoreElement!: HTMLElement | null;
+            private levelElement!: HTMLElement | null;
+            private streakElement!: HTMLElement | null;
+            private audioDisplay!: HTMLElement | null;
+            private sequenceDisplay!: HTMLElement | null;
+            private patternsContainer!: HTMLElement | null;
+            private volumeSlider!: HTMLInputElement | null;
+            private volumeValue!: HTMLElement | null;
+            private newSequenceBtn!: HTMLElement | null;
+            private playBtn!: HTMLButtonElement | null;
+            private checkBtn!: HTMLButtonElement | null;
+
             constructor() {
                 this.patterns = [
                     {
@@ -75,7 +103,7 @@ class HearingGame {
                 this.updateDisplay();
             }
 
-            async initAudio() {
+            async initAudio(): Promise<void> {
                 try {
                     this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 } catch (error) {
@@ -83,23 +111,23 @@ class HearingGame {
                 }
             }
 
-            initializeElements() {
+            initializeElements(): void {
                 this.scoreElement = document.getElementById('score');
                 this.levelElement = document.getElementById('level');
                 this.streakElement = document.getElementById('streak');
                 this.audioDisplay = document.getElementById('audioDisplay');
                 this.sequenceDisplay = document.getElementById('sequenceDisplay');
                 this.patternsContainer = document.getElementById('patternsContainer');
-                this.volumeSlider = document.getElementById('volumeSlider');
+                this.volumeSlider = document.getElementById('volumeSlider') as HTMLInputElement;
                 this.volumeValue = document.getElementById('volumeValue');
 
                 this.newSequenceBtn = document.getElementById('newSequenceBtn');
-                this.playBtn = document.getElementById('playBtn');
-                this.checkBtn = document.getElementById('checkBtn');
+                this.playBtn = document.getElementById('playBtn') as HTMLButtonElement;
+                this.checkBtn = document.getElementById('checkBtn') as HTMLButtonElement;
             }
 
-            createPatternOptions() {
-                this.patternsContainer.innerHTML = '';
+            createPatternOptions(): void {
+                this.patternsContainer!.innerHTML = '';
 
                 this.patterns.forEach((pattern, index) => {
                     const option = document.createElement('div');
@@ -113,22 +141,23 @@ class HearingGame {
                     `;
 
                     option.addEventListener('click', () => this.selectPattern(pattern.name, option));
-                    this.patternsContainer.appendChild(option);
+                    this.patternsContainer!.appendChild(option);
                 });
             }
 
-            attachEventListeners() {
-                this.newSequenceBtn.addEventListener('click', () => this.generateNewSequence());
-                this.playBtn.addEventListener('click', () => this.playCurrentSequence());
-                this.checkBtn.addEventListener('click', () => this.checkAnswer());
+            attachEventListeners(): void {
+                this.newSequenceBtn!.addEventListener('click', () => this.generateNewSequence());
+                this.playBtn!.addEventListener('click', () => this.playCurrentSequence());
+                this.checkBtn!.addEventListener('click', () => this.checkAnswer());
 
-                this.volumeSlider.addEventListener('input', (e) => {
-                    this.volume = e.target.value / 100;
-                    this.volumeValue.textContent = `${e.target.value}%`;
+                this.volumeSlider!.addEventListener('input', (e: Event) => {
+                    const target = e.target as HTMLInputElement;
+                    this.volume = Number(target.value) / 100;
+                    this.volumeValue!.textContent = `${target.value}%`;
                 });
             }
 
-            generateNewSequence() {
+            generateNewSequence(): void {
                 // Reset game state
                 this.currentSequence = [];
                 this.selectedPattern = null;
@@ -140,16 +169,16 @@ class HearingGame {
                 // Generate sequence based on pattern
                 this.currentSequence = this.currentPattern.generator();
 
-                this.audioDisplay.textContent = 'Playing sequence... 🎵';
-                this.sequenceDisplay.textContent = 'Listen carefully and select the pattern you hear...';
+                this.audioDisplay!.textContent = 'Playing sequence... 🎵';
+                this.sequenceDisplay!.textContent = 'Listen carefully and select the pattern you hear...';
 
                 this.playCurrentSequence();
 
-                this.playBtn.disabled = false;
-                this.checkBtn.disabled = false;
+                this.playBtn!.disabled = false;
+                this.checkBtn!.disabled = false;
             }
 
-            generateAscending() {
+            generateAscending(): number[] {
                 // Three notes going up
                 const start = Math.floor(Math.random() * 4); // 0-3
                 return [
@@ -159,7 +188,7 @@ class HearingGame {
                 ];
             }
 
-            generateDescending() {
+            generateDescending(): number[] {
                 // Three notes going down
                 const start = Math.floor(Math.random() * 4) + 4; // 4-7
                 return [
@@ -169,7 +198,7 @@ class HearingGame {
                 ];
             }
 
-            generateUpDown() {
+            generateUpDown(): number[] {
                 // Low, high, medium
                 const base = Math.floor(Math.random() * 3); // 0-2
                 return [
@@ -179,7 +208,7 @@ class HearingGame {
                 ];
             }
 
-            generateDownUp() {
+            generateDownUp(): number[] {
                 // High, low, medium
                 const base = Math.floor(Math.random() * 3) + 4; // 4-6
                 return [
@@ -189,7 +218,7 @@ class HearingGame {
                 ];
             }
 
-            generateRepeat() {
+            generateRepeat(): number[] {
                 // Three notes of the same pitch
                 const base = Math.floor(Math.random() * 6) + 1; // 1-6
                 return [
@@ -200,20 +229,20 @@ class HearingGame {
             }
 
 
-            async playCurrentSequence() {
+            async playCurrentSequence(): Promise<void> {
                 if (!this.audioContext || this.currentSequence.length === 0) return;
 
-                this.audioDisplay.textContent = 'Playing sequence... 🎵';
+                this.audioDisplay!.textContent = 'Playing sequence... 🎵';
 
                 for (let i = 0; i < this.currentSequence.length; i++) {
                     this.playNote(this.currentSequence[i], 0.8);
                     await this.sleep(900); // Pause between notes
                 }
 
-                this.audioDisplay.textContent = 'Select the pattern you heard!';
+                this.audioDisplay!.textContent = 'Select the pattern you heard!';
             }
 
-            playNote(frequency, duration) {
+            playNote(frequency: number, duration: number): void {
                 if (!this.audioContext) return;
 
                 const oscillator = this.audioContext.createOscillator();
@@ -232,11 +261,11 @@ class HearingGame {
                 oscillator.stop(this.audioContext.currentTime + duration);
             }
 
-            sleep(ms) {
+            sleep(ms: number): Promise<void> {
                 return new Promise(resolve => setTimeout(resolve, ms));
             }
 
-            selectPattern(patternName, element) {
+            selectPattern(patternName: string, element: HTMLElement): void {
                 // Clear previous selection
                 this.clearPatternSelection();
 
@@ -244,22 +273,22 @@ class HearingGame {
                 this.selectedPattern = patternName;
                 element.classList.add('selected');
 
-                this.sequenceDisplay.textContent = `Selected: ${patternName}`;
+                this.sequenceDisplay!.textContent = `Selected: ${patternName}`;
             }
 
-            clearPatternSelection() {
-                document.querySelectorAll('.pattern-option').forEach(option => {
+            clearPatternSelection(): void {
+                document.querySelectorAll('.pattern-option').forEach((option: Element) => {
                     option.classList.remove('selected', 'correct', 'incorrect');
                 });
             }
 
-            checkAnswer() {
+            checkAnswer(): void {
                 if (!this.selectedPattern) {
-                    this.sequenceDisplay.textContent = 'Please select a pattern first!';
+                    this.sequenceDisplay!.textContent = 'Please select a pattern first!';
                     return;
                 }
 
-                const isCorrect = this.selectedPattern === this.currentPattern.name;
+                const isCorrect = this.selectedPattern === this.currentPattern!.name;
                 this.showResults(isCorrect);
 
                 if (isCorrect) {
@@ -268,7 +297,7 @@ class HearingGame {
 
                     if (this.streak % 4 === 0) {
                         this.level++;
-                        this.audioDisplay.textContent = `🎉 Level Up! Now level ${this.level}!`;
+                        this.audioDisplay!.textContent = `🎉 Level Up! Now level ${this.level}!`;
                     }
                 } else {
                     this.streak = 0;
@@ -279,18 +308,19 @@ class HearingGame {
                 // Reset for next round
                 setTimeout(() => {
                     this.clearPatternSelection();
-                    this.playBtn.disabled = true;
-                    this.checkBtn.disabled = true;
-                    this.sequenceDisplay.textContent = 'Ready for the next sequence...';
+                    this.playBtn!.disabled = true;
+                    this.checkBtn!.disabled = true;
+                    this.sequenceDisplay!.textContent = 'Ready for the next sequence...';
                 }, 3000);
             }
 
-            showResults(isCorrect) {
+            showResults(isCorrect: boolean): void {
                 // Show correct answer and user selection
-                document.querySelectorAll('.pattern-option').forEach(option => {
-                    const patternName = option.dataset.pattern;
+                document.querySelectorAll('.pattern-option').forEach((option: Element) => {
+                    const el = option as HTMLElement;
+                    const patternName = el.dataset.pattern;
 
-                    if (patternName === this.currentPattern.name) {
+                    if (patternName === this.currentPattern!.name) {
                         option.classList.add('correct');
                     } else if (patternName === this.selectedPattern && !isCorrect) {
                         option.classList.add('incorrect');
@@ -298,18 +328,18 @@ class HearingGame {
                 });
 
                 if (isCorrect) {
-                    this.audioDisplay.textContent = '🎉 Excellent! You identified the pattern correctly!';
-                    this.sequenceDisplay.textContent = `✅ Correct! It was ${this.currentPattern.name}`;
+                    this.audioDisplay!.textContent = '🎉 Excellent! You identified the pattern correctly!';
+                    this.sequenceDisplay!.textContent = `✅ Correct! It was ${this.currentPattern!.name}`;
                 } else {
-                    this.audioDisplay.textContent = '❌ Not quite right. Try listening again!';
-                    this.sequenceDisplay.textContent = `❌ The correct pattern was: ${this.currentPattern.name}`;
+                    this.audioDisplay!.textContent = '❌ Not quite right. Try listening again!';
+                    this.sequenceDisplay!.textContent = `❌ The correct pattern was: ${this.currentPattern!.name}`;
                 }
             }
 
-            updateDisplay() {
-                this.scoreElement.textContent = this.score;
-                this.levelElement.textContent = this.level;
-                this.streakElement.textContent = this.streak;
+            updateDisplay(): void {
+                this.scoreElement!.textContent = String(this.score);
+                this.levelElement!.textContent = String(this.level);
+                this.streakElement!.textContent = String(this.streak);
             }
         }
 
