@@ -8,7 +8,7 @@
     "build:prod": "astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "test": "echo \"Note: Tests are deprecated in Astro migration\" && exit 0",
+    "test": "node test-puzzle-generation.cjs",
     "test:coverage": "echo \"Note: Coverage tests deprecated in Astro migration\" && exit 0",
     "type-check": "echo \"Note: TypeScript check deprecated in Astro migration\" && exit 0"
   },
