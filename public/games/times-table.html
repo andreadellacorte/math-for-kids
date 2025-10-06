@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Times Table Training - Math Fun for Kids!</title>
+    <link rel="stylesheet" href="/math-for-kids/styles.css">
+    
+    
+        <style>.brain-training-container {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    border-radius: 20px;
+    padding: 40px;
+    margin-bottom: 30px;
+    color: white;
+    text-align: center;
+}
+
+.game-status {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.timer {
+    background: rgba(255, 255, 255, 0.9);
+    color: #333;
+    padding: 25px 40px;
+    border-radius: 20px;
+    font-size: 3em;
+    font-weight: bold;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    border: 4px solid transparent;
+    min-width: 150px;
+}
+
+.problem-counter, .accuracy {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 15px 25px;
+    border-radius: 15px;
+    font-size: 1.5em;
+    font-weight: bold;
+    backdrop-filter: blur(10px);
+}
+
+.timer.warning {
+    background: rgba(255, 193, 7, 0.9);
+    color: #333;
+    border-color: #ffc107;
+    animation: pulse 1s infinite;
+}
+
+.timer.danger {
+    background: rgba(220, 53, 69, 0.9);
+    color: white;
+    border-color: #dc3545;
+    animation: pulse 0.5s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+.equations-container {
+    background: white;
+    color: #333;
+    border-radius: 20px;
+    padding: 20px;
+    margin: 30px 0;
+    min-height: 400px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+}
+
+.equation-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 30px;
+    margin: 5px 0;
+    border-radius: 15px;
+    transition: all 0.4s ease;
+    min-height: 60px;
+}
+
+.equation-item.completed {
+    background: rgba(40, 167, 69, 0.1);
+    color: #28a745;
+    opacity: 0.7;
+    transform: scale(0.95);
+}
+
+.equation-item.completed .equation-text {
+    font-size: 1.8em;
+    font-weight: bold;
+}
+
+.equation-item.completed .equation-status {
+    font-size: 2em;
+    color: #28a745;
+}
+
+.equation-item.current {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+    transform: scale(1.05);
+    box-shadow: 0 8px 25px rgba(240, 147, 251, 0.4);
+    animation: currentPulse 2s ease-in-out infinite;
+}
+
+.equation-item.current .equation-text {
+    font-size: 2.5em;
+    font-weight: bold;
+}
+
+.equation-item.current .equation-status {
+    font-size: 2.5em;
+    animation: currentArrow 1.5s ease-in-out infinite;
+}
+
+.equation-item.future {
+    background: rgba(108, 117, 125, 0.1);
+    color: #6c757d;
+    opacity: 0.6;
+    transform: scale(0.9);
+}
+
+.equation-item.future .equation-text {
+    font-size: 1.6em;
+    font-weight: normal;
+}
+
+.equation-item.future .equation-status {
+    font-size: 1.5em;
+    color: #6c757d;
+}
+
+@keyframes currentPulse {
+    0%, 100% { box-shadow: 0 8px 25px rgba(240, 147, 251, 0.4); }
+    50% { box-shadow: 0 12px 35px rgba(240, 147, 251, 0.6); }
+}
+
+@keyframes currentArrow {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(10px); }
+}
+
+.equation-text {
+    flex: 1;
+    text-align: left;
+}
+
+.equation-status {
+    margin-left: 20px;
+}
+
+.equations-container.transitioning .equation-item {
+    animation: gentleScroll 0.4s ease-out;
+}
+
+@keyframes gentleScroll {
+    0% {
+        transform: translateY(0);
+    }
+    100% {
+        transform: translateY(-10px);
+    }
+}
+
+.keyboard-input {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    align-items: center;
+    margin: 20px 0;
+    flex-wrap: wrap;
+}
+
+.keyboard-input input {
+    font-size: 2em;
+    padding: 15px 20px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-radius: 15px;
+    background: rgba(255, 255, 255, 0.9);
+    color: #333;
+    font-weight: bold;
+    text-align: center;
+    min-width: 150px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.keyboard-input input:focus {
+    outline: none;
+    border-color: #f093fb;
+    box-shadow: 0 4px 20px rgba(240, 147, 251, 0.3);
+}
+
+.keyboard-input button {
+    font-size: 1.5em;
+    padding: 15px 25px;
+    min-width: 120px;
+}
+
+.answer-options {
+    display: flex;
+    flex-direction: row;
+    gap: 15px;
+    max-width: 800px;
+    margin: 30px auto;
+    justify-content: center;
+    align-items: center;
+}
+
+.answer-btn {
+    font-size: 2em;
+    padding: 25px;
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.9);
+    color: #333;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    flex: 1;
+    min-width: 100px;
+    max-width: 180px;
+}
+
+.answer-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+    border-color: #f093fb;
+}
+
+.answer-btn.correct {
+    background: #28a745;
+    color: white;
+    border-color: #28a745;
+    animation: correctFlash 0.6s ease;
+}
+
+.answer-btn.incorrect {
+    background: #dc3545;
+    color: white;
+    border-color: #dc3545;
+    animation: incorrectShake 0.6s ease;
+}
+
+.answer-btn.hint {
+    animation: hintShake 1s ease-in-out infinite;
+}
+
+@keyframes correctFlash {
+    0% { background: #28a745; transform: scale(1); }
+    50% { background: #20c997; transform: scale(1.05); }
+    100% { background: #28a745; transform: scale(1); }
+}
+
+@keyframes incorrectShake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+}
+
+@keyframes hintShake {
+    0%, 100% { transform: scale(1) rotate(0deg); border-color: rgba(255, 255, 255, 0.3); }
+    25% { transform: scale(1.02) rotate(-1deg); border-color: #ffd700; }
+    75% { transform: scale(1.02) rotate(1deg); border-color: #ffd700; }
+}
+
+.feedback-overlay {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 4em;
+    font-weight: bold;
+    z-index: 1000;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.feedback-overlay.correct {
+    color: #28a745;
+    animation: feedbackBounce 0.6s ease;
+}
+
+.feedback-overlay.incorrect {
+    color: #dc3545;
+    animation: feedbackShake 0.6s ease;
+}
+
+@keyframes feedbackBounce {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+    50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+}
+
+@keyframes feedbackShake {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+    25% { opacity: 1; transform: translate(-50%, -50%) scale(1.1) rotate(-5deg); }
+    75% { opacity: 1; transform: translate(-50%, -50%) scale(1.1) rotate(5deg); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+}
+
+.game-controls {
+    margin: 30px 0;
+}
+
+.settings-section {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 15px;
+    padding: 25px;
+    margin-bottom: 20px;
+    backdrop-filter: blur(10px);
+}
+
+.settings-section h3 {
+    color: white;
+    font-weight: bold;
+    margin-bottom: 20px;
+    font-size: 1.3em;
+}
+
+.setting-group {
+    margin-bottom: 25px;
+}
+
+.setting-group label {
+    color: white;
+    font-weight: bold;
+    display: block;
+    margin-bottom: 10px;
+    font-size: 1.1em;
+}
+
+.difficulty-buttons {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 10px;
+}
+
+.difficulty-btn {
+    background: rgba(255, 255, 255, 0.9);
+    color: #333;
+    border: 3px solid transparent;
+    padding: 15px 20px;
+    border-radius: 15px;
+    font-size: 1em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+.difficulty-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+.difficulty-btn.selected {
+    background: #ffd700;
+    border-color: #ffed4e;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
+}
+
+.specific-table-selector {
+    margin-top: 10px;
+}
+
+.table-buttons {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.table-btn {
+    background: rgba(255, 255, 255, 0.9);
+    color: #333;
+    border: 3px solid transparent;
+    padding: 12px;
+    border-radius: 12px;
+    font-size: 1.2em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+.table-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.table-btn.selected {
+    background: #f093fb;
+    color: white;
+    border-color: #f5576c;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(240, 147, 251, 0.4);
+}
+
+.time-selector {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.time-slider {
+    flex: 1;
+    min-width: 200px;
+    height: 8px;
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.3);
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.time-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #ffd700;
+    cursor: pointer;
+    border: 3px solid white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.time-slider::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #ffd700;
+    cursor: pointer;
+    border: 3px solid white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.time-display {
+    background: rgba(255, 255, 255, 0.9);
+    color: #333;
+    padding: 8px 16px;
+    border-radius: 10px;
+    font-weight: bold;
+    font-size: 1.1em;
+    min-width: 80px;
+    text-align: center;
+}
+
+.checkbox-setting, .radio-setting {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 15px 20px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.checkbox-setting:hover, .radio-setting:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.checkbox-setting input[type="checkbox"], .radio-setting input[type="radio"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    transform: scale(1.2);
+}
+
+.checkbox-setting label, .radio-setting label {
+    margin: 0;
+    cursor: pointer;
+    font-size: 1.1em;
+}
+
+.input-mode-group {
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 15px;
+    padding: 15px;
+    margin: 10px 0;
+}
+
+.input-mode-group h4 {
+    margin: 0 0 15px 0;
+    font-size: 1.1em;
+    color: #ffd700;
+    text-align: center;
+}
+
+.start-btn {
+    background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+    color: #333;
+    border: none;
+    padding: 20px 40px;
+    border-radius: 25px;
+    font-size: 1.3em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+.start-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.start-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.results-screen {
+    background: white;
+    color: #333;
+    border-radius: 20px;
+    padding: 40px;
+    margin: 30px 0;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+/* Certificate styles */
+.certificate {
+    background: #fff;
+    border: 6px double #2d3748;
+    border-radius: 16px;
+    padding: 30px;
+    margin-top: 20px;
+    text-align: center;
+    position: relative;
+}
+.certificate h3 {
+    font-size: 1.4em;
+    color: #2d3748;
+    margin: 0 0 10px 0;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+.certificate .cert-title {
+    font-size: 2.2em;
+    font-weight: 900;
+    color: #f093fb;
+    margin: 10px 0 20px 0;
+}
+.certificate .cert-name {
+    font-size: 2.4em;
+    font-weight: 800;
+    color: #111827;
+    margin: 10px 0 0 0;
+}
+.certificate .cert-name-input {
+    font-size: 1.4em;
+    padding: 10px 14px;
+    border: 2px solid #cbd5e0;
+    border-radius: 10px;
+    width: min(420px, 90%);
+    text-align: center;
+    margin: 10px auto 0 auto;
+}
+.certificate .cert-details {
+    margin-top: 12px;
+    color: #4a5568;
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+.certificate .badge {
+    display: inline-block;
+    background: #f7fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 8px 12px;
+    font-weight: 700;
+    color: #2d3748;
+    min-width: 120px;
+}
+.certificate .cert-footer {
+    margin-top: 18px;
+    color: #718096;
+    font-size: 0.95em;
+}
+.print-cert-btn {
+    margin-top: 18px;
+}
+
+.brain-age {
+    font-size: 3em;
+    font-weight: bold;
+    color: #f093fb;
+    margin: 20px 0;
+}
+
+.results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin: 30px 0;
+}
+
+.result-item {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 15px;
+    text-align: center;
+}
+
+.result-item h3 {
+    color: #f093fb;
+    margin-bottom: 10px;
+}
+
+.result-value {
+    font-size: 2em;
+    font-weight: bold;
+    color: #333;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+    margin: 20px 0;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #ffd700, #ffed4e);
+    transition: width 0.3s ease;
+}
+
+.hidden {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .equations-container {
+        min-height: 300px;
+        padding: 15px;
+    }
+
+    .equation-item.current .equation-text {
+        font-size: 2em;
+    }
+
+    .equation-item.completed .equation-text {
+        font-size: 1.4em;
+    }
+
+    .equation-item.future .equation-text {
+        font-size: 1.2em;
+    }
+
+    .answer-options {
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .answer-btn {
+        font-size: 1.8em;
+        padding: 20px;
+    }
+
+    .game-status {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .timer {
+        font-size: 2.5em;
+        padding: 20px 30px;
+    }
+
+    .problem-counter, .accuracy {
+        font-size: 1.2em;
+        padding: 10px 20px;
+    }
+
+    .feedback-overlay {
+        font-size: 3em;
+    }
+
+    .brain-training-container {
+        padding: 20px;
+    }
+
+    .difficulty-buttons {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .difficulty-btn {
+        padding: 12px 15px;
+        font-size: 0.9em;
+    }
+
+    .settings-section {
+        padding: 20px;
+    }
+
+    .setting-group {
+        margin-bottom: 20px;
+    }
+
+    .time-selector {
+        justify-content: center;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .time-slider {
+        min-width: 100%;
+    }
+
+    .checkbox-setting, .radio-setting {
+        padding: 12px 15px;
+    }
+
+    .checkbox-setting label, .radio-setting label {
+        font-size: 1em;
+    }
+
+    .table-buttons {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+    }
+
+    .table-btn {
+        padding: 10px;
+        font-size: 1em;
+    }
+}
+</style>
+    
+</head>
+<body>
+        <div class="container">
+        <div class="header">
+            <a href="index.html" class="back-btn">← Back Home</a>
+            <h1>✖️ Times Table Training</h1>
+        </div>
+
+        <div class="brain-training-container">
+            <div id="setupScreen">
+                <h2>Master Your Times Tables!</h2>
+                <p>Practice multiplication facts and become a times table expert! 🚀</p>
+
+                <div class="settings-section">
+                    <h3>⚙️ Game Settings</h3>
+
+                    <div class="setting-group">
+                        <label>Times Table Range:</label>
+                        <div class="difficulty-buttons">
+                            <button class="difficulty-btn selected" data-difficulty="easy">
+                                Easy<br><small>2-5 times tables</small>
+                            </button>
+                            <button class="difficulty-btn" data-difficulty="medium">
+                                Medium<br><small>2-9 times tables</small>
+                            </button>
+                            <button class="difficulty-btn" data-difficulty="hard">
+                                Hard<br><small>2-12 times tables</small>
+                            </button>
+                            <button class="difficulty-btn" data-difficulty="expert">
+                                Expert<br><small>All times tables up to 15</small>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="setting-group">
+                        <label>Or Practice Specific Table:</label>
+                        <div class="specific-table-selector">
+                            <div class="table-buttons" id="tableButtons">
+                                <button class="table-btn" data-table="1">1</button>
+                                <button class="table-btn" data-table="2">2</button>
+                                <button class="table-btn" data-table="3">3</button>
+                                <button class="table-btn" data-table="4">4</button>
+                                <button class="table-btn" data-table="5">5</button>
+                                <button class="table-btn" data-table="6">6</button>
+                                <button class="table-btn" data-table="7">7</button>
+                                <button class="table-btn" data-table="8">8</button>
+                                <button class="table-btn" data-table="9">9</button>
+                                <button class="table-btn" data-table="10">10</button>
+                                <button class="table-btn" data-table="11">11</button>
+                                <button class="table-btn" data-table="12">12</button>
+                            </div>
+                            <div class="checkbox-setting" style="margin-top: 15px;">
+                                <input type="checkbox" id="randomOrder" checked>
+                                <label for="randomOrder">Random order (uncheck for sequential: 1×1, 1×2, 1×3...)</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="setting-group">
+                        <label>Time Limit:</label>
+                        <div class="time-selector">
+                            <input type="range" id="timeLimit" class="time-slider" min="40" max="120" step="10" value="60">
+                            <div class="time-display" id="timeDisplay">60s</div>
+                        </div>
+                    </div>
+
+                    <div class="setting-group">
+                        <div class="input-mode-group">
+                            <h4>Input Mode</h4>
+                            <div class="radio-setting">
+                                <input type="radio" id="buttonMode" name="inputMode" value="button" checked>
+                                <label for="buttonMode">Button Mode (click answer buttons)</label>
+                            </div>
+                            <div class="radio-setting">
+                                <input type="radio" id="assistedMode" name="inputMode" value="assisted">
+                                <label for="assistedMode">Assisted Mode (buttons + correct answer shakes when taking too long)</label>
+                            </div>
+                            <div class="radio-setting">
+                                <input type="radio" id="keyboardInputMode" name="inputMode" value="keyboard">
+                                <label for="keyboardInputMode">Keyboard Mode (type answers instead of clicking buttons)</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button id="startBtn" class="start-btn">Start Times Table Training!</button>
+            </div>
+
+            <div id="gameScreen" class="hidden">
+                <div class="game-status">
+                    <div class="timer" id="timer">60</div>
+                    <div class="problem-counter" id="problemCounter">0/100</div>
+                    <div class="accuracy" id="accuracy">100%</div>
+                </div>
+
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+
+                <div class="equations-container" id="equationsContainer">
+                    <div class="equation-item current" id="equation-0">
+                        <div class="equation-text">Get Ready...</div>
+                        <div class="equation-status">❯</div>
+                    </div>
+                    <div class="equation-item future" id="equation-1">
+                        <div class="equation-text">Get Ready...</div>
+                        <div class="equation-status">⋯</div>
+                    </div>
+                    <div class="equation-item future" id="equation-2">
+                        <div class="equation-text">Get Ready...</div>
+                        <div class="equation-status">⋯</div>
+                    </div>
+                    <div class="equation-item future" id="equation-3">
+                        <div class="equation-text">Get Ready...</div>
+                        <div class="equation-status">⋯</div>
+                    </div>
+                    <div class="equation-item future" id="equation-4">
+                        <div class="equation-text">Get Ready...</div>
+                        <div class="equation-status">⋯</div>
+                    </div>
+                </div>
+
+                <div class="answer-options" id="answerOptions">
+                    <!-- Answer buttons will be generated here -->
+                </div>
+
+                <div class="keyboard-input" id="keyboardInput" style="display: none;">
+                    <input type="number" id="answerInput" placeholder="Type your answer..." autocomplete="off">
+                    <button id="submitBtn" class="btn">Submit</button>
+                </div>
+
+            </div>
+
+            <div id="resultsScreen" class="hidden">
+                <div class="results-screen">
+                    <h2>🎉 Times Table Training Complete!</h2>
+
+                    <div class="brain-age" id="brainAge">Brain Age: 25</div>
+
+                    <div class="results-grid">
+                        <div class="result-item">
+                            <h3>Problems Solved</h3>
+                            <div class="result-value" id="finalProblems">0</div>
+                        </div>
+                        <div class="result-item">
+                            <h3>Accuracy</h3>
+                            <div class="result-value" id="finalAccuracy">0%</div>
+                        </div>
+                        <div class="result-item">
+                            <h3>Average Time</h3>
+                            <div class="result-value" id="avgTime">0.0s</div>
+                        </div>
+                        <div class="result-item">
+                            <h3>Difficulty</h3>
+                            <div class="result-value" id="finalDifficulty">Medium</div>
+                        </div>
+                    </div>
+
+                    <div class="certificate" id="certificate">
+                        <h3>Certificate of Achievement</h3>
+                        <div class="cert-title">Times Table Training</div>
+                        <div id="certNameWrapper">
+                            <input id="playerNameInput" class="cert-name-input" type="text" placeholder="Type your name...">
+                            <div id="playerNameDisplay" class="cert-name" style="display:none;"></div>
+                        </div>
+                        <div class="cert-details">
+                            <span class="badge">Brain Age: <span id="certAge">–</span></span>
+                            <span class="badge">Solved: <span id="certProblems">–</span></span>
+                            <span class="badge">Accuracy: <span id="certAccuracy">–</span></span>
+                            <span class="badge">Avg Time: <span id="certAvg">–</span></span>
+                            <span class="badge">Level: <span id="certLevel">–</span></span>
+                            <span class="badge">Date: <span id="certDate">–</span></span>
+                        </div>
+                        <div class="cert-footer">Fantastic work! Keep practicing to become a multiplication master!</div>
+                        <button id="printCertificateBtn" class="btn secondary print-cert-btn">Print Certificate</button>
+                    </div>
+
+                    <div class="game-controls">
+                        <button id="playAgainBtn" class="btn">Play Again</button>
+                        <button id="shareSocreBtn" class="btn secondary">Share Score</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Feedback overlay -->
+        <div id="feedbackOverlay" class="feedback-overlay"></div>
+
+    </div>
+
+    
+
+    </div>
+<script src="/math-for-kids/dist/times-table.js"></script>
+
+    <div class="footer">
+    <div class="footer-content">
+        <p class="footer-message">Have fun learning math! 🌟</p>
+        <div class="footer-links">
+            <div class="footer-item">
+                <span>Made with ❤️ by</span>
+                <span class="creators">Andrea & Defne</span>
+            </div>
+            <div class="footer-separator">•</div>
+            
+            <div class="footer-item">
+                <a href="/math-for-kids/changelog.html" class="changelog-link">
+                    <span>📝</span>
+                    Changelog
+                </a>
+            </div>
+            <div class="footer-separator">•</div>
+            
+            <div class="footer-item">
+                <a href="mailto:andrea@techinterview.coach" class="email-link">
+                    <span class="email-icon">📧</span>
+                    Contact
+                </a>
+            </div>
+            <div class="footer-separator">•</div>
+            <div class="footer-item">
+                <a href="https://github.com/andreadellacorte/math-for-kids" target="_blank" class="github-link">
+                    <i class="fab fa-github github-icon"></i>
+                    GitHub
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+    <div class="visit-counter">
+    <a href='http://www.freevisitorcounters.com'>freevisitorcounters.com</a>
+    <script type='text/javascript' src='https://www.freevisitorcounters.com/auth.php?id=b1a1886d259ff7d2d67be873ee14dcdda1cdba46'></script>
+    <script type="text/javascript" src="https://www.freevisitorcounters.com/en/home/counter/1397853/t/2"></script>
+</div>
+</body>
+</html>

@@ -1,8 +1,7 @@
-# Run tests
+# Run tests (deprecated during Astro migration)
 npm test
 
-# Run production build
+# Run production build (now builds to dist/ which is gitignored)
 npm run build:prod
 
-# Add built files to commit
-git add dist/
+# Note: dist/ is now built by GitHub Actions, not committed to git

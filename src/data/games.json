@@ -1,0 +1,74 @@
+[
+  {
+    "slug": "math-crossword",
+    "title": "Math Crossword",
+    "emoji": "🧩",
+    "description": "Create crossword puzzles with math equations!",
+    "buttonText": "Make Crosswords!",
+    "tags": ["math", "puzzle"],
+    "url": "/math-for-kids/games/math-crossword.html"
+  },
+  {
+    "slug": "brain-training",
+    "title": "Brain Training",
+    "emoji": "🧠",
+    "description": "Speed math challenge! How young is your brain?",
+    "buttonText": "Train Your Brain!",
+    "tags": ["math", "speed"],
+    "url": "/math-for-kids/games/brain-training.html"
+  },
+  {
+    "slug": "times-table",
+    "title": "Times Table Training",
+    "emoji": "✖️",
+    "description": "Master multiplication with speed drills!",
+    "buttonText": "Practice Times Tables!",
+    "tags": ["math", "multiplication"],
+    "url": "/math-for-kids/games/times-table.html"
+  },
+  {
+    "slug": "music-theory",
+    "title": "Music Theory",
+    "emoji": "🎵",
+    "description": "Musical brain training! Test your theory knowledge.",
+    "buttonText": "Train Your Ears!",
+    "tags": ["music", "theory"],
+    "url": "/math-for-kids/games/music-theory.html"
+  },
+  {
+    "slug": "music-trivia",
+    "title": "Music Trivia",
+    "emoji": "🎶",
+    "description": "Master rhythm, notation, hearing, and instruments!",
+    "buttonText": "Play Music Games!",
+    "tags": ["music", "trivia"],
+    "url": "/math-for-kids/games/music-trivia.html"
+  },
+  {
+    "slug": "dice-101",
+    "title": "Dice 101",
+    "emoji": "🎲",
+    "description": "Roll to reach 101 without going over!",
+    "buttonText": "Play Dice 101!",
+    "tags": ["math", "game"],
+    "url": "/math-for-kids/games/dice-101.html"
+  },
+  {
+    "slug": "cashier-challenge",
+    "title": "Cashier Challenge",
+    "emoji": "🧾",
+    "description": "Scan items, total the bill, and give change!",
+    "buttonText": "Be the Cashier!",
+    "tags": ["math", "money"],
+    "url": "/math-for-kids/games/cashier-challenge.html"
+  },
+  {
+    "slug": "place-value-showdown",
+    "title": "Place Value Showdown",
+    "emoji": "🎯",
+    "description": "Roll dice and place digits to build the biggest number!",
+    "buttonText": "Battle with Numbers!",
+    "tags": ["math", "place-value"],
+    "url": "/math-for-kids/games/place-value-showdown.html"
+  }
+]

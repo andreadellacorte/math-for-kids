@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rhythm Game - Music Trivia</title>
+    <link rel="stylesheet" href="/math-for-kids/styles.css">
+    
+    
+        <style>.rhythm-container {
+    max-width: 800px;
+    margin: 0 auto;
+    text-align: center;
+    padding: 20px;
+}
+
+.rhythm-display {
+    background: #f8f9fa;
+    border: 3px solid #007bff;
+    border-radius: 15px;
+    padding: 30px;
+    margin: 20px 0;
+    min-height: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3em;
+}
+
+.beat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    margin: 20px 0;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.choice-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    margin: 20px 0;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.choice-button {
+    padding: 20px;
+    border: 3px solid #007bff;
+    border-radius: 15px;
+    background: #fff;
+    font-size: 1.2em;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+    min-height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+
+.choice-button:hover {
+    background: #e7f3ff;
+    transform: scale(1.02);
+}
+
+.choice-button.selected {
+    background: #007bff;
+    color: white;
+}
+
+.choice-button.correct {
+    background: #28a745;
+    color: white;
+    border-color: #28a745;
+}
+
+.choice-button.incorrect {
+    background: #dc3545;
+    color: white;
+    border-color: #dc3545;
+}
+
+.mode-selector {
+    margin: 20px 0;
+    text-align: center;
+}
+
+.mode-button {
+    margin: 0 10px;
+    padding: 10px 20px;
+    border: 2px solid #007bff;
+    background: #fff;
+    color: #007bff;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.mode-button.active {
+    background: #007bff;
+    color: white;
+}
+
+.notation-display {
+    font-size: 3em;
+    text-align: center;
+    margin: 20px 0;
+    padding: 20px;
+    background: #f8f9fa;
+    border: 2px solid #dee2e6;
+    border-radius: 10px;
+    font-family: 'Courier New', monospace;
+}
+
+.beat-button {
+    width: 80px;
+    height: 80px;
+    border: 3px solid #007bff;
+    border-radius: 15px;
+    background: #fff;
+    font-size: 1.5em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.beat-button:hover {
+    background: #e7f3ff;
+    transform: scale(1.05);
+}
+
+.beat-button.active {
+    background: #007bff;
+    color: white;
+    transform: scale(0.95);
+}
+
+.beat-button.correct {
+    background: #28a745;
+    color: white;
+    border-color: #28a745;
+}
+
+.beat-button.incorrect {
+    background: #dc3545;
+    color: white;
+    border-color: #dc3545;
+}
+
+.rhythm-pattern {
+    font-family: 'Courier New', monospace;
+    font-size: 1.5em;
+    margin: 10px 0;
+    padding: 15px;
+    background: #fff;
+    border: 2px solid #dee2e6;
+    border-radius: 10px;
+}
+
+.controls {
+    margin: 20px 0;
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.game-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 15px;
+    margin: 20px 0;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.stat-card {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 10px;
+    border: 2px solid #dee2e6;
+}
+
+.stat-value {
+    font-size: 2em;
+    font-weight: bold;
+    color: #007bff;
+}
+
+.beat-number {
+    position: absolute;
+    top: -10px;
+    left: -10px;
+    background: #6c757d;
+    color: white;
+    border-radius: 50%;
+    width: 25px;
+    height: 25px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8em;
+}
+
+.tempo-slider {
+    margin: 20px 0;
+}
+
+.tempo-slider input {
+    width: 200px;
+}
+
+@media (max-width: 768px) {
+    .beat-grid {
+        grid-template-columns: repeat(2, 1fr);
+        max-width: 200px;
+    }
+
+    .beat-button {
+        width: 60px;
+        height: 60px;
+        font-size: 1.2em;
+    }
+}
+</style>
+    
+</head>
+<body>
+        <div class="container">
+        <div class="header">
+            <a href="music-trivia.html" class="back-btn">← Back to Music Trivia</a>
+            <h1>🥁 Rhythm Game</h1>
+        </div>
+
+        <div class="rhythm-container">
+            <p class="subtitle">Listen to the rhythm and tap it back!</p>
+
+            <div class="game-stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="score">0</div>
+                    <div>Score</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="level">1</div>
+                    <div>Level</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="streak">0</div>
+                    <div>Streak</div>
+                </div>
+            </div>
+
+            <div class="rhythm-display" id="rhythmDisplay">
+                Press "New Rhythm" to start!
+            </div>
+
+            <div class="rhythm-pattern" id="rhythmPattern"></div>
+
+            <div class="tempo-slider">
+                <label for="tempoSlider">Tempo: </label>
+                <input type="range" id="tempoSlider" min="60" max="150" value="100">
+                <span id="tempoValue">100</span> BPM
+            </div>
+
+            <div class="mode-selector">
+                <h3>Choose Game Mode:</h3>
+                <button class="mode-button active" id="listenModeBtn">Listen → Choose Notation</button>
+                <button class="mode-button" id="readModeBtn">Read Notation → Choose Audio</button>
+            </div>
+
+            <div class="controls">
+                <button class="btn" id="newRhythmBtn">New Rhythm</button>
+                <button class="btn secondary" id="playBtn" disabled>Play Again</button>
+                <button class="btn secondary" id="checkBtn" disabled>Check Answer</button>
+            </div>
+
+            <!-- Listen Mode: User hears rhythm and chooses notation -->
+            <div id="listenMode" class="game-mode">
+                <div class="choice-grid" id="notationChoices" style="display: none;">
+                    <!-- Will be populated with notation choices -->
+                </div>
+            </div>
+
+            <!-- Read Mode: User sees notation and chooses audio -->
+            <div id="readMode" class="game-mode" style="display: none;">
+                <div class="notation-display" id="notationDisplay"></div>
+                <div class="choice-grid" id="audioChoices" style="display: none;">
+                    <!-- Will be populated with audio choices -->
+                </div>
+            </div>
+
+            <div class="info-box" style="margin-top: 30px;">
+                <h3>How to Play:</h3>
+                <div id="listenModeInstructions">
+                    <p><strong>Listen → Choose Notation Mode:</strong></p>
+                    <p>1. Click "New Rhythm" to start</p>
+                    <p>2. Listen carefully to the rhythm pattern</p>
+                    <p>3. Choose the correct musical notation from the options</p>
+                    <p>4. Use "Play Again" to replay if needed</p>
+                </div>
+                <div id="readModeInstructions" style="display: none;">
+                    <p><strong>Read Notation → Choose Audio Mode:</strong></p>
+                    <p>1. Click "New Rhythm" to start</p>
+                    <p>2. Study the musical notation shown</p>
+                    <p>3. Listen to the audio options and choose the correct one</p>
+                    <p>4. Match the notation to the correct rhythm</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+
+    </div>
+<script src="/math-for-kids/dist/rhythm-game.js"></script>
+
+    <div class="footer">
+    <div class="footer-content">
+        <p class="footer-message">Have fun learning math! 🌟</p>
+        <div class="footer-links">
+            <div class="footer-item">
+                <span>Made with ❤️ by</span>
+                <span class="creators">Andrea & Defne</span>
+            </div>
+            <div class="footer-separator">•</div>
+            
+            <div class="footer-item">
+                <a href="/math-for-kids/changelog.html" class="changelog-link">
+                    <span>📝</span>
+                    Changelog
+                </a>
+            </div>
+            <div class="footer-separator">•</div>
+            
+            <div class="footer-item">
+                <a href="mailto:andrea@techinterview.coach" class="email-link">
+                    <span class="email-icon">📧</span>
+                    Contact
+                </a>
+            </div>
+            <div class="footer-separator">•</div>
+            <div class="footer-item">
+                <a href="https://github.com/andreadellacorte/math-for-kids" target="_blank" class="github-link">
+                    <i class="fab fa-github github-icon"></i>
+                    GitHub
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+    <div class="visit-counter">
+    <a href='http://www.freevisitorcounters.com'>freevisitorcounters.com</a>
+    <script type='text/javascript' src='https://www.freevisitorcounters.com/auth.php?id=b1a1886d259ff7d2d67be873ee14dcdda1cdba46'></script>
+    <script type="text/javascript" src="https://www.freevisitorcounters.com/en/home/counter/1397853/t/2"></script>
+</div>
+</body>
+</html>
