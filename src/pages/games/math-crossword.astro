@@ -109,8 +109,9 @@ import GameLayout from '../../layouts/GameLayout.astro';
                 <!-- Number of Equations -->
                 <div class="bg-white rounded-xl p-4 shadow-sm">
                     <label class="block text-gray-700 font-semibold mb-2">Number of equations:</label>
-                    <input id="eqSlider" type="range" min="3" max="50" step="1" class="w-full accent-indigo-500">
-                    <output id="eqOut" class="block text-center text-lg font-bold text-indigo-600 mt-2"></output>
+                    <input id="eqSlider" type="range" min="3" max="40" step="1" value="20" class="w-full accent-indigo-500">
+                    <output id="eqOut" class="block text-center text-lg font-bold text-indigo-600 mt-2">20</output>
+                    <p class="text-xs text-gray-500 mt-1">💡 Tip: Use fewer equations with smaller number ranges</p>
                 </div>
 
                 <!-- Difficulty Level -->
