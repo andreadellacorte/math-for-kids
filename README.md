@@ -1,43 +1,69 @@
-# Astro Starter Kit: Minimal
+# Math Fun for Kids! 🧮
 
-```sh
-npm create astro@latest -- --template minimal
-```
+Interactive educational games for children built with Astro and Tailwind CSS.
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+## 🎮 Games
 
-## 🚀 Project Structure
+- **Math Crossword** - Create crossword puzzles with math equations
+- **Brain Training** - Speed math challenge to test your brain age
+- **Times Table Training** - Master multiplication with speed drills
+- **Music Theory** - Test your music theory knowledge
+- **Music Trivia** - Learn about rhythm, notation, hearing, and instruments
+- **Dice 101** - Roll dice to reach 101 without going over
+- **Cashier Challenge** - Practice addition and subtraction with money
+- **Place Value Showdown** - Build the biggest number by placing digits strategically
 
-Inside of your Astro project, you'll see the following folders and files:
+## 🚀 Tech Stack
+
+- **Astro** - Static site generator
+- **Tailwind CSS** - Utility-first CSS framework
+- **TypeScript** - Type-safe JavaScript (game logic)
+- **GitHub Actions** - Automated deployment to GitHub Pages
+
+## 📁 Project Structure
 
 ```text
 /
 ├── public/
+│   ├── games/           # Game HTML files and bundled JavaScript
+│   ├── images/          # Static images
+│   └── styles.css       # Main stylesheet
 ├── src/
+│   ├── data/
+│   │   └── games.json   # Game metadata
+│   ├── layouts/
+│   │   └── Base.astro   # Base HTML layout
 │   └── pages/
-│       └── index.astro
-└── package.json
+│       └── index.astro  # Homepage
+└── .github/workflows/   # CI/CD deployment
 ```
-
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
-
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
-
-Any static assets, like images, can be placed in the `public/` directory.
 
 ## 🧞 Commands
 
-All commands are run from the root of the project, from a terminal:
-
 | Command                   | Action                                           |
 | :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
+| `npm install`             | Install dependencies                             |
+| `npm run dev`             | Start dev server at `localhost:4321/math-for-kids` |
+| `npm run build`           | Build production site to `./dist/`               |
+| `npm run preview`         | Preview build locally before deploying           |
 
-## 👀 Want to learn more?
+## 🌐 Deployment
 
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+The site is automatically deployed to GitHub Pages via GitHub Actions on push to `main`.
+
+**Live site:** https://andreadellacorte.github.io/math-for-kids
+
+## 📝 Development Notes
+
+- All game JavaScript is pre-bundled and located in `public/games/`
+- Games use vanilla JavaScript/TypeScript (no framework dependencies)
+- Homepage is dynamically generated from `src/data/games.json`
+- Deployment happens automatically via `.github/workflows/pages.yml`
+
+## 🤝 Contributing
+
+Made with ❤️ by Andrea & Defne
+
+## 📜 License
+
+MIT
