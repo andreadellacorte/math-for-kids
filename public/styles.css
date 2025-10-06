@@ -251,7 +251,7 @@ h1 {
     justify-content: center;
     gap: 15px;
     margin-bottom: 25px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
 }
 
 .number-btn, .compare-btn {
