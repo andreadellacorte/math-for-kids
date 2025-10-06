@@ -1,1 +1,13 @@
 @import "tailwindcss";
+
+@layer base {
+  @font-face {
+    font-family: 'Comic Sans MS';
+  }
+}
+
+@layer utilities {
+  .font-comic {
+    font-family: 'Comic Sans MS', cursive, sans-serif;
+  }
+}

@@ -1,4 +1,6 @@
 ---
+import '../styles/global.css';
+
 interface Props {
   title: string;
 }
@@ -16,7 +18,7 @@ const { title } = Astro.props;
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css">
     <link rel="icon" type="image/svg+xml" href="/math-for-kids/favicon.svg">
 </head>
-<body>
+<body class="font-comic bg-gradient-to-br from-indigo-500 to-purple-700 min-h-screen text-gray-800 p-5">
     <slot />
 </body>
 </html>
