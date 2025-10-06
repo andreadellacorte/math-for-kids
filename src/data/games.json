@@ -6,7 +6,7 @@
     "description": "Create crossword puzzles with math equations!",
     "buttonText": "Make Crosswords!",
     "tags": ["math", "puzzle"],
-    "url": "/math-for-kids/games/math-crossword.html"
+    "url": "/math-for-kids/games/math-crossword"
   },
   {
     "slug": "brain-training",

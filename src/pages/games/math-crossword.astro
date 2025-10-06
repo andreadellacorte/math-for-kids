@@ -1,0 +1,180 @@
+---
+import GameLayout from '../../layouts/GameLayout.astro';
+---
+
+<style is:global>
+    /* Print grid styles */
+    .print-grid {
+        position: relative;
+        margin: 0 auto;
+        font-family: Arial, sans-serif;
+    }
+
+    .print-cell {
+        position: absolute;
+        width: 40px;
+        height: 40px;
+        background: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 16px;
+        box-sizing: border-box;
+        border-top: 1px solid black;
+        border-left: 1px solid black;
+    }
+
+    .print-cell.border-right {
+        border-right: 1px solid black;
+    }
+
+    .print-cell.border-bottom {
+        border-bottom: 1px solid black;
+    }
+
+    .print-cell.screen-view {
+        border-top-color: #666;
+        border-left-color: #666;
+        transition: all 0.2s ease;
+    }
+
+    .print-cell.screen-view.border-right {
+        border-right-color: #666;
+    }
+
+    .print-cell.screen-view.border-bottom {
+        border-bottom-color: #666;
+    }
+
+    .print-cell.screen-view:hover {
+        transform: scale(1.05);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    /* Operator colors - soft pastels */
+    .print-cell.op-add {
+        background: #e8f5e8;
+        color: #4a7c59;
+    }
+    .print-cell.op-sub {
+        background: #fff3e0;
+        color: #8d4004;
+    }
+    .print-cell.op-mul {
+        background: #f3e5f5;
+        color: #6a1b9a;
+    }
+    .print-cell.op-div {
+        background: #e3f2fd;
+        color: #1565c0;
+    }
+    .print-cell.op-eq {
+        background: #fce4ec;
+        color: #ad1457;
+    }
+
+    /* Number cell alternating colors */
+    .print-cell.num-even {
+        background: #f8f9fa;
+        color: #495057;
+    }
+    .print-cell.num-odd {
+        background: #f1f8e9;
+        color: #2e7d32;
+    }
+
+    /* Given number highlight */
+    .print-cell.given {
+        background: #fff8e1;
+        color: #f57c00;
+        font-weight: 900;
+    }
+</style>
+
+<GameLayout title="🧩 Math Crossword Generator">
+    <div class="space-y-6">
+        <!-- Controls Panel -->
+        <div class="bg-gradient-to-br from-orange-50 to-pink-50 rounded-2xl p-6 shadow-lg border-2 border-orange-200">
+            <div class="flex flex-wrap gap-4 items-center justify-center mb-4">
+                <button id="gen" class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-6 py-3 rounded-xl font-bold hover:scale-105 transition-all shadow-lg hover:shadow-xl">
+                    Generate New Puzzle
+                </button>
+                <button id="printColor" class="bg-gradient-to-r from-orange-100 to-rose-200 text-gray-800 px-6 py-3 rounded-xl font-bold hover:scale-105 transition-all shadow-md hover:shadow-lg border-2 border-orange-300">
+                    Print
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Number of Equations -->
+                <div class="bg-white rounded-xl p-4 shadow-sm">
+                    <label class="block text-gray-700 font-semibold mb-2">Number of equations:</label>
+                    <input id="eqSlider" type="range" min="3" max="50" step="1" class="w-full accent-indigo-500">
+                    <output id="eqOut" class="block text-center text-lg font-bold text-indigo-600 mt-2"></output>
+                </div>
+
+                <!-- Difficulty Level -->
+                <div class="bg-white rounded-xl p-4 shadow-sm">
+                    <label class="block text-gray-700 font-semibold mb-2">Difficulty Level:</label>
+                    <select id="difficultySelect" class="w-full px-4 py-2 rounded-lg border-2 border-gray-300 focus:border-indigo-500 focus:outline-none font-medium">
+                        <option value="easy">Easy (More clues)</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="hard">Hard (Fewer clues)</option>
+                        <option value="expert">Expert (Minimal clues)</option>
+                    </select>
+                </div>
+
+                <!-- Number Range -->
+                <div class="bg-white rounded-xl p-4 shadow-sm">
+                    <label class="block text-gray-700 font-semibold mb-2">Number Range:</label>
+                    <select id="rangePreset" class="w-full px-4 py-2 rounded-lg border-2 border-gray-300 focus:border-indigo-500 focus:outline-none font-medium">
+                        <option value="0-10">0-10</option>
+                        <option value="0-20" selected>0-20</option>
+                        <option value="0-50">0-50</option>
+                        <option value="0-100">0-100</option>
+                    </select>
+                </div>
+
+                <!-- Operations -->
+                <div class="bg-white rounded-xl p-4 shadow-sm md:col-span-2">
+                    <label class="block text-gray-700 font-semibold mb-3">Operations:</label>
+                    <div class="flex flex-wrap gap-4">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input id="opAdd" type="checkbox" checked class="w-5 h-5 accent-indigo-500">
+                            <span class="font-medium text-gray-700">+ Addition</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input id="opSub" type="checkbox" checked class="w-5 h-5 accent-indigo-500">
+                            <span class="font-medium text-gray-700">- Subtraction</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input id="opMul" type="checkbox" checked class="w-5 h-5 accent-indigo-500">
+                            <span class="font-medium text-gray-700">× Multiplication</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input id="opDiv" type="checkbox" checked class="w-5 h-5 accent-indigo-500">
+                            <span class="font-medium text-gray-700">÷ Division</span>
+                        </label>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- SVG Grid (hidden, used for generation) -->
+        <svg id="grid" xmlns="http://www.w3.org/2000/svg" class="hidden"></svg>
+
+        <!-- Screen Grid (colorful version) -->
+        <div id="screenGrid" class="min-h-[400px]"></div>
+
+        <!-- Print Grid (hidden) -->
+        <div id="printGrid" class="hidden"></div>
+
+        <!-- Status Message -->
+        <div id="stat" class="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 text-center text-lg font-semibold text-blue-700">
+            Click "Generate New Puzzle" to create a math crossword!
+        </div>
+    </div>
+
+    <script is:inline src="/math-for-kids/games/math-crossword.js"></script>
+</GameLayout>
