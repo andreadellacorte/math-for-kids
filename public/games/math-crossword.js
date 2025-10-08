@@ -117,22 +117,23 @@
       band = 'expert';
     }
 
-    // NIGHTMARE: Harder than expert
-    // Multiple advanced techniques, deep chains, or high raw complexity
-    const totalTechniques = trace.counts[Technique.T1_SINGLE] +
-                           trace.counts[Technique.T2_ARITH] +
-                           trace.counts[Technique.T3_SUBST] +
-                           trace.counts[Technique.T4_ELIM_2X2] +
-                           trace.counts[Technique.T5_CHAIN_3PLUS] +
-                           trace.counts[Technique.T6_GUESS_DEPTH1];
+    // NIGHTMARE: Harder than expert (only upgrade from expert)
+    // Nightmare must already be expert-level plus additional complexity
+    if (band === 'expert') {
+      const totalTechniques = trace.counts[Technique.T1_SINGLE] +
+                             trace.counts[Technique.T2_ARITH] +
+                             trace.counts[Technique.T3_SUBST] +
+                             trace.counts[Technique.T4_ELIM_2X2] +
+                             trace.counts[Technique.T5_CHAIN_3PLUS] +
+                             trace.counts[Technique.T6_GUESS_DEPTH1];
 
-    if (trace.guesses > 1 ||  // Multiple guesses
-        (trace.counts[Technique.T5_CHAIN_3PLUS] > 0 && trace.counts[Technique.T4_ELIM_2X2] > 0) ||  // Both T4 and T5
-        trace.counts[Technique.T5_CHAIN_3PLUS] > 2 ||  // Extensive chains
-        trace.maxChainLen >= 5 ||  // Very long chains
-        raw > 100 ||  // Very high complexity
-        (band === 'expert' && totalTechniques > 30)) {  // Expert + excessive techniques
-      band = 'nightmare';
+      if (trace.guesses > 1 ||  // Multiple guesses
+          (trace.counts[Technique.T5_CHAIN_3PLUS] > 0 && trace.counts[Technique.T4_ELIM_2X2] > 0) ||  // Both T4 and T5
+          trace.counts[Technique.T5_CHAIN_3PLUS] > 2 ||  // Extensive chains (>2)
+          trace.maxChainLen >= 5 ||  // Very long chains (≥5)
+          totalTechniques > 30) {  // Excessive techniques (>30)
+        band = 'nightmare';
+      }
     }
 
     return { raw, band, details: trace };

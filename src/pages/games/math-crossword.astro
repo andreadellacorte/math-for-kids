@@ -175,6 +175,40 @@ import GameLayout from '../../layouts/GameLayout.astro';
         <div id="stat" class="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 text-center text-lg font-semibold text-blue-700">
             Click "Generate New Puzzle" to create a math crossword!
         </div>
+
+        <!-- Technique Legend -->
+        <div class="bg-gradient-to-br from-purple-50 to-blue-50 rounded-2xl p-6 shadow-lg border-2 border-purple-200 mt-6">
+            <h3 class="text-xl font-bold text-purple-800 mb-4 text-center">🧠 Solving Techniques</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                <div class="bg-white rounded-lg p-3 shadow-sm">
+                    <span class="font-bold text-green-700">T1 - Single Candidate:</span>
+                    <span class="text-gray-700"> Cell has only one valid value across all constraints</span>
+                </div>
+                <div class="bg-white rounded-lg p-3 shadow-sm">
+                    <span class="font-bold text-blue-700">T2 - Direct Arithmetic:</span>
+                    <span class="text-gray-700"> Solve equation with 2 knowns → 1 unknown (e.g., ? + 5 = 12)</span>
+                </div>
+                <div class="bg-white rounded-lg p-3 shadow-sm">
+                    <span class="font-bold text-orange-700">T3 - Cross-Equation:</span>
+                    <span class="text-gray-700"> Solve by analyzing multiple intersecting equations together</span>
+                </div>
+                <div class="bg-white rounded-lg p-3 shadow-sm">
+                    <span class="font-bold text-red-700">T4 - Linear Systems:</span>
+                    <span class="text-gray-700"> Solve 2x2 or 3x3 system of equations simultaneously</span>
+                </div>
+                <div class="bg-white rounded-lg p-3 shadow-sm">
+                    <span class="font-bold text-purple-700">T5 - Dependency Chains:</span>
+                    <span class="text-gray-700"> Back-substitute across chains of 3+ linked equations</span>
+                </div>
+                <div class="bg-white rounded-lg p-3 shadow-sm">
+                    <span class="font-bold text-pink-700">T6 - Logical Guessing:</span>
+                    <span class="text-gray-700"> Try value, propagate, backtrack if contradiction found</span>
+                </div>
+            </div>
+            <p class="text-xs text-gray-600 mt-4 text-center italic">
+                Difficulty is rated by which techniques are needed, not just how many cells are empty
+            </p>
+        </div>
     </div>
 
     <!-- Load game script after DOM is ready -->
