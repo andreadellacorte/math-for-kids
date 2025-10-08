@@ -429,7 +429,10 @@
       e = l === 'expert' || l === 'nightmare' ? 1e3 : 500;
 
     // Remove numbers iteratively while keeping puzzle at target difficulty
-    for (; n < e; ) {
+    let consecutiveFails = 0;
+    const maxConsecutiveFails = 20;  // Stop if we fail to remove 20 numbers in a row
+
+    for (; n < e && consecutiveFails < maxConsecutiveFails; ) {
       n++;
       let a = le(r, i, o, l);
       if (!a) break;  // No more candidates to remove
@@ -463,7 +466,9 @@
 
       if (!stillValid) {
         o.add(a);  // Put it back
-        break;
+        consecutiveFails++;  // Increment fail counter
+      } else {
+        consecutiveFails = 0;  // Reset fail counter on success
       }
     }
 
