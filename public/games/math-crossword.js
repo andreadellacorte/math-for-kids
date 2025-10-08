@@ -26,6 +26,84 @@
     G = (f, l) => Math.floor(Math.random() * (l - f + 1)) + f;
   var ne = (f, l, r) => Math.max(l, Math.min(r, f));
   var generationId = 0;
+
+  // Technique-based difficulty scoring system
+  const Technique = {
+    T1_SINGLE: 'T1_SINGLE',           // Cell becomes single-candidate due to crosses
+    T2_ARITH: 'T2_ARITH',             // Standalone equation solved directly (2 knowns → 1 unknown)
+    T3_SUBST: 'T3_SUBST',             // Variable eliminated by substitution across two equations
+    T4_ELIM_2X2: 'T4_ELIM_2X2',       // Solved 2x2 or 3x3 linear system via elimination
+    T5_CHAIN_3PLUS: 'T5_CHAIN_3PLUS', // Back-substitution across chains of length ≥3
+    T6_GUESS_DEPTH1: 'T6_GUESS_DEPTH1' // Single shallow guess made and resolved
+  };
+
+  const TechniqueWeights = {
+    [Technique.T1_SINGLE]: 1,
+    [Technique.T2_ARITH]: 2,
+    [Technique.T3_SUBST]: 4,
+    [Technique.T4_ELIM_2X2]: 7,
+    [Technique.T5_CHAIN_3PLUS]: 10,
+    [Technique.T6_GUESS_DEPTH1]: 12
+  };
+
+  function createSolveTrace() {
+    return {
+      techniques: [],
+      counts: {
+        [Technique.T1_SINGLE]: 0,
+        [Technique.T2_ARITH]: 0,
+        [Technique.T3_SUBST]: 0,
+        [Technique.T4_ELIM_2X2]: 0,
+        [Technique.T5_CHAIN_3PLUS]: 0,
+        [Technique.T6_GUESS_DEPTH1]: 0
+      },
+      maxChainLen: 0,
+      guesses: 0
+    };
+  }
+
+  function recordTechnique(trace, technique, chainLen = 0) {
+    trace.techniques.push(technique);
+    trace.counts[technique]++;
+    if (technique === Technique.T5_CHAIN_3PLUS && chainLen > trace.maxChainLen) {
+      trace.maxChainLen = chainLen;
+    }
+    if (technique === Technique.T6_GUESS_DEPTH1) {
+      trace.guesses++;
+    }
+  }
+
+  function scoreDifficulty(trace) {
+    let raw = 0;
+    for (let tech in trace.counts) {
+      raw += trace.counts[tech] * TechniqueWeights[tech];
+    }
+    raw += 3 * trace.maxChainLen;
+    raw += 5 * Math.min(trace.guesses, 1);
+
+    let band;
+    if (trace.guesses === 0 && trace.counts[Technique.T3_SUBST] === 0 &&
+        trace.counts[Technique.T4_ELIM_2X2] === 0 && trace.counts[Technique.T5_CHAIN_3PLUS] === 0) {
+      band = 'easy';
+    } else if (trace.guesses === 0 && trace.counts[Technique.T4_ELIM_2X2] === 0 &&
+               trace.counts[Technique.T5_CHAIN_3PLUS] === 0) {
+      band = 'medium';
+    } else if (trace.guesses <= 1 && (trace.counts[Technique.T4_ELIM_2X2] > 0 || trace.counts[Technique.T3_SUBST] > 1) &&
+               trace.maxChainLen >= 2) {
+      band = 'hard';
+    } else {
+      band = 'expert';
+    }
+
+    // Nightmare is expert-level with very high technique usage
+    if (trace.guesses > 0 || trace.counts[Technique.T5_CHAIN_3PLUS] > 2 ||
+        trace.counts[Technique.T4_ELIM_2X2] > 3 || raw > 80) {
+      band = 'nightmare';
+    }
+
+    return { raw, band, details: trace };
+  }
+
   function oe() {
     let f = H('mx_eq'),
       l = H('mx_diff'),
@@ -891,9 +969,10 @@
     }
     return h;
   }
-  function he(f, l, r) {
+  function he(f, l, r, trace = null) {
     // Advanced solvability check using constraint-based solving
     // Returns true if unsolvable, false if solvable
+    // If trace provided, records techniques used
 
     // Create working grid with only givens
     let i = Array.from({ length: 24 }, () => Array(24).fill(null));
@@ -962,6 +1041,7 @@
                 if (cell && cell.cell.ch === null) {
                   cell.cell.ch = String(value);
                   progress = true;
+                  if (trace) recordTechnique(trace, Technique.T2_ARITH);
                 }
               }
             }
@@ -993,6 +1073,7 @@
                 if (possibleVals && possibleVals.length === 1) {
                   cell.cell.ch = String(possibleVals[0]);
                   progress = true;
+                  if (trace) recordTechnique(trace, Technique.T1_SINGLE);
                   break;
                 }
               }
