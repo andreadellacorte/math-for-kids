@@ -1459,7 +1459,7 @@
               y = Math.round((p.actualGivens / p.numTotal) * 100);
 
             // NEW: Technique-based difficulty scoring
-            const techResult = solveWithTrace(c.grid, c.equations, p.optimizedGivens);
+            const techResult = solveWithTrace(c.grid, c.equations, c.optimizedGivens || new Set());
             const techScore = techResult.score;
 
             // Debug logging (can be removed later)
