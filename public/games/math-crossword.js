@@ -454,14 +454,21 @@
       n = 0,
       e = l === 'expert' || l === 'nightmare' ? 1e3 : 500;
 
-    // Remove numbers iteratively while keeping puzzle at target difficulty
+    // Target raw score range for this difficulty
+    const targetRange = TargetRawScores[l];
+    const targetRaw = (targetRange.min + targetRange.max) / 2; // Aim for middle of range
+
+    let bestScore = null;
+    let bestGivens = new Set(o);
+    let bestDelta = Infinity;
+
     let consecutiveFails = 0;
-    const maxConsecutiveFails = 50;  // Stop if we fail to remove 50 numbers in a row
+    const maxConsecutiveFails = 50;
 
     for (; n < e && consecutiveFails < maxConsecutiveFails; ) {
       n++;
       let a = le(r, i, o, l);
-      if (!a) break;  // No more candidates to remove
+      if (!a) break;
 
       if (n % 10 === 0) {
         let d = Math.round((o.size / h.length) * 100);
@@ -477,52 +484,45 @@
       let techResult = solveWithTrace(r, i, o);
 
       if (!techResult.solvable) {
-        // Puzzle became unsolvable - put number back
         o.add(a);
         consecutiveFails++;
         continue;
       }
 
-      // Calculate technique counts
-      const ts = techResult.score.details;
-      const totalTech = ts.counts.T1_ARITH + ts.counts.T2_SINGLE + ts.counts.T3_SUBST +
-                       ts.counts.T4_ELIM_2X2 + ts.counts.T5_CHAIN_3PLUS + ts.counts.T6_GUESS_DEPTH1;
+      const currentRaw = techResult.score.raw;
+      const currentBand = techResult.score.band;
 
-      // Count remaining numbers
-      let numCount = 0;
-      for (let row = 0; row < 24; row++) {
-        for (let col = 0; col < 24; col++) {
-          if (r[row] && r[row][col] && r[row][col].k === 'num') numCount++;
-        }
-      }
+      // Calculate delta from target
+      const delta = Math.abs(currentRaw - targetRaw);
+      const inRange = currentRaw >= targetRange.min && currentRaw <= targetRange.max;
 
-      const minTechniques = Math.floor(numCount * 0.3);
-      const maxTechniques = Math.floor(numCount * 0.5);
+      // Band penalty: large if band doesn't match
+      const bandMatches = currentBand === l;
+      const bandPenalty = bandMatches ? 0 : 1000;
 
-      // If we've reached target technique count, stop
-      if (totalTech >= minTechniques && totalTech <= maxTechniques) {
-        // Success! We have enough techniques in range
+      const totalScore = delta + bandPenalty;
+
+      // Accept if this moves us closer to target
+      if (totalScore < bestDelta) {
+        bestDelta = totalScore;
+        bestScore = techResult.score;
+        bestGivens = new Set(o);
         consecutiveFails = 0;
-        // Check if this matches the target difficulty band
-        const band = techResult.score.band;
-        const matchesDifficulty =
-          (l === 'easy' && band === 'easy') ||
-          (l === 'medium' && (band === 'easy' || band === 'medium')) ||
-          (l === 'hard' && (band === 'easy' || band === 'medium' || band === 'hard')) ||
-          (l === 'expert' || l === 'nightmare');
 
-        if (matchesDifficulty) {
-          // Perfect! Stop optimization
+        // If we're in range and band matches, stop
+        if (inRange && bandMatches) {
           break;
         }
-      } else if (totalTech > maxTechniques) {
-        // Too many techniques - puzzle too hard, put number back
+      } else {
+        // Didn't improve - put number back
         o.add(a);
         consecutiveFails++;
-      } else {
-        // Not enough techniques yet - keep this removal and continue
-        consecutiveFails = 0;
       }
+    }
+
+    // Use best result found
+    if (bestScore) {
+      o = bestGivens;
     }
 
     let b = o.size;
