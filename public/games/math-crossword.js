@@ -89,45 +89,46 @@
                            trace.counts[Technique.T5_CHAIN_3PLUS] +
                            trace.counts[Technique.T6_GUESS_DEPTH1];
 
-    // Minimum technique threshold: 60% of number count
-    const minTechniques = numCount ? Math.floor(numCount * 0.6) : 0;
-    const hasEnoughTechniques = !numCount || totalTechniques >= minTechniques;
+    // Technique threshold: 30-50% of number count
+    const minTechniques = numCount ? Math.floor(numCount * 0.3) : 0;
+    const maxTechniques = numCount ? Math.floor(numCount * 0.5) : Infinity;
+    const hasGoodTechniqueCount = !numCount || (totalTechniques >= minTechniques && totalTechniques <= maxTechniques);
 
     let band;
 
-    // EASY: Only T1–T2, zero guesses, enough technique usage
+    // EASY: Only T1 (mostly), zero guesses, good technique count
     if (trace.guesses === 0 &&
         trace.counts[Technique.T3_SUBST] === 0 &&
         trace.counts[Technique.T4_ELIM_2X2] === 0 &&
         trace.counts[Technique.T5_CHAIN_3PLUS] === 0 &&
         trace.counts[Technique.T6_GUESS_DEPTH1] === 0 &&
-        hasEnoughTechniques) {
+        hasGoodTechniqueCount) {
       band = 'easy';
     }
-    // MEDIUM: Some T3, zero guesses, no T4/T5, enough technique usage
+    // MEDIUM: Some T3, zero guesses, no T4/T5, good technique count
     else if (trace.guesses === 0 &&
              trace.counts[Technique.T3_SUBST] > 0 &&
              trace.counts[Technique.T4_ELIM_2X2] === 0 &&
              trace.counts[Technique.T5_CHAIN_3PLUS] === 0 &&
              trace.counts[Technique.T6_GUESS_DEPTH1] === 0 &&
              trace.maxChainLen < 3 &&
-             hasEnoughTechniques) {
+             hasGoodTechniqueCount) {
       band = 'medium';
     }
-    // HARD: T3 + longer chains (≥3) OR T4 present, zero guesses, no T5, enough technique usage
+    // HARD: T3 + longer chains (≥3) OR T4 present, zero guesses, no T5, good technique count
     else if (trace.guesses === 0 &&
              trace.counts[Technique.T3_SUBST] > 0 &&
              trace.counts[Technique.T5_CHAIN_3PLUS] === 0 &&
              trace.counts[Technique.T6_GUESS_DEPTH1] === 0 &&
              (trace.counts[Technique.T4_ELIM_2X2] > 0 || trace.maxChainLen >= 3) &&
-             hasEnoughTechniques) {
+             hasGoodTechniqueCount) {
       band = 'hard';
     }
-    // EXPERT: T5 required OR T4 with long chains, ≤1 guess, enough technique usage
+    // EXPERT: T5 required OR T4 with long chains, ≤1 guess, good technique count
     else if (trace.guesses <= 1 &&
              (trace.counts[Technique.T5_CHAIN_3PLUS] > 0 ||
               (trace.counts[Technique.T4_ELIM_2X2] > 0 && trace.maxChainLen >= 3)) &&
-             hasEnoughTechniques) {
+             hasGoodTechniqueCount) {
       band = 'expert';
     }
     // FALLBACK: If nothing matches but has techniques, classify by what's present
@@ -1521,8 +1522,9 @@
             if (typeof window !== 'undefined' && window.console && n % 10 === 0) {
               const ts = techScore.details;
               const totalTech = ts.counts.T1_ARITH + ts.counts.T2_SINGLE + ts.counts.T3_SUBST + ts.counts.T4_ELIM_2X2 + ts.counts.T5_CHAIN_3PLUS;
-              const minRequired = Math.floor(p.numTotal * 0.6);
-              console.log(`Attempt ${n}: %=${y}, band=${techScore.band}, raw=${techScore.raw}, T1=${ts.counts.T1_ARITH}, T2=${ts.counts.T2_SINGLE}, T3=${ts.counts.T3_SUBST}, T4=${ts.counts.T4_ELIM_2X2}, T5=${ts.counts.T5_CHAIN_3PLUS}, chain=${ts.maxChainLen}, total=${totalTech}/${minRequired}`);
+              const minRequired = Math.floor(p.numTotal * 0.3);
+              const maxAllowed = Math.floor(p.numTotal * 0.5);
+              console.log(`Attempt ${n}: %=${y}, band=${techScore.band}, raw=${techScore.raw}, T1=${ts.counts.T1_ARITH}, T2=${ts.counts.T2_SINGLE}, T3=${ts.counts.T3_SUBST}, T4=${ts.counts.T4_ELIM_2X2}, T5=${ts.counts.T5_CHAIN_3PLUS}, chain=${ts.maxChainLen}, total=${totalTech} (need ${minRequired}-${maxAllowed})`);
             }
 
             // Accept if technique band matches (technique-only scoring)
