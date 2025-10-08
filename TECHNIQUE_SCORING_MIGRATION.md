@@ -66,22 +66,24 @@ Bands:
 - Success message now shows: `Tech: band(raw=X, T1=Y, T2=Z, T3=W)`
 - Allows visual comparison of both scoring systems
 
-## Remaining Work (Phase 3 - Final Migration)
+## Completed (Phase 3 - Final Migration) ✅
 
-### Switch to Technique-Only Scoring
-1. **Remove percentage-based acceptance** (currently using dual criteria)
-   - Change from: `if (techniqueMatch || percentageMatch)`
+### Switched to Technique-Only Scoring
+1. **Removed percentage-based acceptance** ✅
+   - Changed from: `if (techniqueMatch || percentageMatch)`
    - To: `if (techniqueMatch)`
-   - Keep percentage calculation for telemetry/logging only
+   - Percentage calculation kept for telemetry/logging only
 
-2. **Remove old percentage-based difficulty bands**
-   - Delete `ue()` and `pe()` functions that use min/max percentages
-   - Remove percentage targets from difficulty configuration
+2. **Removed old percentage-based difficulty bands** ✅
+   - Deleted `ue()` and `pe()` functions that used min/max percentages
+   - Removed percentage targets from difficulty configuration
+   - Updated `ge()` render function to not depend on `pe()`
 
-3. **Fine-tune technique thresholds**
-   - Collect telemetry data from dual-criteria runs
-   - Adjust band rules based on real puzzle generation patterns
-   - Ensure each difficulty level has reasonable generation success rate
+3. **Made optimization technique-aware** ✅
+   - Modified `ie()` optimization to check technique requirements
+   - For easy/medium/hard: stops removing numbers if puzzle becomes too hard
+   - Expert/nightmare: uses aggressive optimization (any techniques allowed)
+   - Fixes issue where easy puzzles generated with T3/T5 techniques
 
 ### Additional Techniques (Optional Enhancement)
 1. **T4_ELIM_2X2**: Linear system solving (not yet implemented)

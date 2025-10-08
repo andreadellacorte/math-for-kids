@@ -1532,7 +1532,7 @@
           ((E.style.background = '#d4edda'),
             (E.style.color = '#155724'),
             (E.style.border = '2px solid #c3e6cb'),
-            (E.textContent = `\u2705 Generated ${b.difficulty.name} puzzle (${x.min}-${x.max}) with ${e.equations.length} equations, showing ${b.actualGivens}/${b.numTotal} numbers (${k}%)${techInfo} [attempt ${n}]`),
+            (E.textContent = `\u2705 Generated ${i.charAt(0).toUpperCase() + i.slice(1)} puzzle (${x.min}-${x.max}) with ${e.equations.length} equations, showing ${b.actualGivens}/${b.numTotal} numbers (${k}%)${techInfo} [attempt ${n}]`),
             f && setTimeout(() => window.print(), 100));
         } else {
           ((E.textContent =
