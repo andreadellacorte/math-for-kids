@@ -38,12 +38,21 @@
   };
 
   const TechniqueWeights = {
-    [Technique.T1_ARITH]: 1,          // T1 = Direct Arithmetic (easiest)
-    [Technique.T2_SINGLE]: 2,         // T2 = Single Candidate
+    [Technique.T1_ARITH]: 2,          // T1 = Direct Arithmetic
+    [Technique.T2_SINGLE]: 1,         // T2 = Single Candidate (simpler, lower priority)
     [Technique.T3_SUBST]: 4,
     [Technique.T4_ELIM_2X2]: 7,
     [Technique.T5_CHAIN_3PLUS]: 10,
     [Technique.T6_GUESS_DEPTH1]: 12
+  };
+
+  // Target raw score ranges for each difficulty band
+  const TargetRawScores = {
+    'easy': { min: 15, max: 40 },
+    'medium': { min: 40, max: 80 },
+    'hard': { min: 80, max: 130 },
+    'expert': { min: 130, max: 200 },
+    'nightmare': { min: 200, max: 999 }
   };
 
   function createSolveTrace() {
@@ -73,7 +82,8 @@
     }
   }
 
-  function scoreDifficulty(trace, numCount = null) {
+  function scoreDifficulty(trace) {
+    // Calculate weighted raw score
     let raw = 0;
     for (let tech in trace.counts) {
       raw += trace.counts[tech] * TechniqueWeights[tech];
@@ -81,65 +91,44 @@
     raw += 3 * trace.maxChainLen;
     raw += 5 * Math.min(trace.guesses, 1);
 
-    // Calculate total technique applications
-    const totalTechniques = trace.counts[Technique.T1_ARITH] +
-                           trace.counts[Technique.T2_SINGLE] +
-                           trace.counts[Technique.T3_SUBST] +
-                           trace.counts[Technique.T4_ELIM_2X2] +
-                           trace.counts[Technique.T5_CHAIN_3PLUS] +
-                           trace.counts[Technique.T6_GUESS_DEPTH1];
-
-    // Technique threshold: 30-50% of number count
-    const minTechniques = numCount ? Math.floor(numCount * 0.3) : 0;
-    const maxTechniques = numCount ? Math.floor(numCount * 0.5) : Infinity;
-    const hasGoodTechniqueCount = !numCount || (totalTechniques >= minTechniques && totalTechniques <= maxTechniques);
-
     let band;
 
-    // EASY: Only T1 (mostly), zero guesses, good technique count
+    // Band classification based on technique presence (not raw score)
+    // EASY: Only T1/T2, zero guesses
     if (trace.guesses === 0 &&
         trace.counts[Technique.T3_SUBST] === 0 &&
         trace.counts[Technique.T4_ELIM_2X2] === 0 &&
         trace.counts[Technique.T5_CHAIN_3PLUS] === 0 &&
-        trace.counts[Technique.T6_GUESS_DEPTH1] === 0 &&
-        hasGoodTechniqueCount) {
+        trace.counts[Technique.T6_GUESS_DEPTH1] === 0) {
       band = 'easy';
     }
-    // MEDIUM: Some T3, zero guesses, no T4/T5, good technique count
+    // MEDIUM: T3 present, no T4/T5/T6, zero guesses
     else if (trace.guesses === 0 &&
              trace.counts[Technique.T3_SUBST] > 0 &&
              trace.counts[Technique.T4_ELIM_2X2] === 0 &&
              trace.counts[Technique.T5_CHAIN_3PLUS] === 0 &&
-             trace.counts[Technique.T6_GUESS_DEPTH1] === 0 &&
-             trace.maxChainLen < 3 &&
-             hasGoodTechniqueCount) {
+             trace.counts[Technique.T6_GUESS_DEPTH1] === 0) {
       band = 'medium';
     }
-    // HARD: T3 + longer chains (≥3) OR T4 present, zero guesses, no T5, good technique count
+    // HARD: T4 present OR (T3≥2 with chain_len≥2), no T6, zero guesses
     else if (trace.guesses === 0 &&
-             trace.counts[Technique.T3_SUBST] > 0 &&
-             trace.counts[Technique.T5_CHAIN_3PLUS] === 0 &&
              trace.counts[Technique.T6_GUESS_DEPTH1] === 0 &&
-             (trace.counts[Technique.T4_ELIM_2X2] > 0 || trace.maxChainLen >= 3) &&
-             hasGoodTechniqueCount) {
+             trace.counts[Technique.T5_CHAIN_3PLUS] === 0 &&
+             (trace.counts[Technique.T4_ELIM_2X2] > 0 ||
+              (trace.counts[Technique.T3_SUBST] >= 2 && trace.maxChainLen >= 2))) {
       band = 'hard';
     }
-    // EXPERT: T5 required OR T4 with long chains, ≤1 guess, good technique count
-    else if (trace.guesses <= 1 &&
-             (trace.counts[Technique.T5_CHAIN_3PLUS] > 0 ||
-              (trace.counts[Technique.T4_ELIM_2X2] > 0 && trace.maxChainLen >= 3)) &&
-             hasGoodTechniqueCount) {
+    // EXPERT: T5 or T6 present
+    else if (trace.counts[Technique.T5_CHAIN_3PLUS] > 0 ||
+             trace.counts[Technique.T6_GUESS_DEPTH1] > 0) {
       band = 'expert';
     }
-    // FALLBACK: If nothing matches but has techniques, classify by what's present
-    else if (trace.counts[Technique.T5_CHAIN_3PLUS] > 0 || trace.counts[Technique.T4_ELIM_2X2] > 0) {
-      // Has T4 or T5 but doesn't fit strict criteria → expert
-      band = 'expert';
+    // FALLBACK: classify by highest technique present
+    else if (trace.counts[Technique.T4_ELIM_2X2] > 0) {
+      band = 'hard';
     } else if (trace.counts[Technique.T3_SUBST] > 0) {
-      // Has T3 but doesn't fit other criteria → medium (or hard if long chains)
-      band = trace.maxChainLen >= 3 ? 'hard' : 'medium';
+      band = 'medium';
     } else {
-      // Only T1/T2 → easy
       band = 'easy';
     }
 
