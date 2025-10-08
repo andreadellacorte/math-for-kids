@@ -196,7 +196,15 @@ h1 { color: #4a5568; font-size: 2.5em; text-align: center; margin-bottom: 20px; 
                 <li>🎯 <strong>Smart Difficulty</strong>: Puzzles now rated by solving techniques (T1-T6) instead of just % empty cells</li>
                 <li>🧠 <strong>6 Technique Levels</strong>: T1=Single candidate, T2=Direct arithmetic, T3=Cross-equation substitution, T4=Linear systems, T5=Dependency chains, T6=Logical guessing</li>
                 <li>📊 <strong>Complexity Scoring</strong>: Raw score = Σ(technique_counts × weights) + chain_length + guesses</li>
-                <li>🎚️ <strong>Better Bands</strong>: Easy (&lt;20 raw), Medium (&lt;40), Hard (&lt;70), Expert (70+), Nightmare (100+ or 30+ techniques)</li>
+                <li>🎚️ <strong>Strict Bands</strong>:
+                    <ul style="margin-left: 20px; margin-top: 5px;">
+                        <li>Easy: Only T1–T2, zero guesses</li>
+                        <li>Medium: Some T3, zero guesses</li>
+                        <li>Hard: T3–T4 required, zero guesses, chain≥2</li>
+                        <li>Expert: T4–T5 required, ≤1 guess</li>
+                        <li>Nightmare: Harder than expert (multiple guesses, T4+T5, chains≥5, raw>100)</li>
+                    </ul>
+                </li>
                 <li>🔍 <strong>Telemetry</strong>: Console logs show technique usage for each puzzle attempt</li>
                 <li>✨ <strong>Accurate Difficulty</strong>: Reflects actual solving complexity, not just missing numbers</li>
             </ul>

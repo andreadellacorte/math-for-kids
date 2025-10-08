@@ -1,6 +1,6 @@
 # Technique-Based Difficulty Scoring Migration
 
-## Status: IN PROGRESS - Phase 2 Complete
+## Status: ✅ COMPLETE - All Phases Done
 
 ## Overview
 Migrating from percentage-based difficulty (% empty cells) to technique-based difficulty scoring that measures actual solving complexity.
@@ -134,11 +134,38 @@ Bands:
 - ✅ Run both systems in parallel (dual criteria)
 - ✅ Add debug logging for comparison
 
-### Phase 3 (Next)
-- Switch to technique-based scoring
-- Remove percentage-based logic
-- Keep percentage as telemetry only
-- Update UI to show techniques used
+### Phase 3 (Completed ✅)
+- ✅ Switch to technique-based scoring
+- ✅ Remove percentage-based acceptance logic
+- ✅ Keep percentage as telemetry only
+- ✅ Refine difficulty band criteria to be strict and technique-focused
+- ✅ Update changelog with new system details
+
+## Final Band Criteria
+
+**Easy**: Only T1–T2, zero guesses
+- Single-candidate deduction and direct arithmetic only
+- No cross-equation analysis needed
+
+**Medium**: Some T3, zero guesses
+- Requires cross-equation substitution
+- Still logically solvable without advanced techniques
+
+**Hard**: T3–T4 required, zero guesses, chain≥2
+- Multiple equations must be solved together
+- Requires tracking dependencies across chains
+- T4 (linear systems) or long chains (≥2 steps)
+
+**Expert**: T4–T5 required, ≤1 guess
+- Linear system solving (T4) or dependency chains (T5)
+- May allow one shallow guess with propagation
+
+**Nightmare**: Harder than expert
+- Multiple guesses (>1), OR
+- Both T4 and T5 present, OR
+- Extensive chains (>2 T5 or chain length ≥5), OR
+- Very high complexity (raw > 100), OR
+- Expert-level + excessive techniques (>30 total)
 
 ## Technical Notes
 

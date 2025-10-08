@@ -82,51 +82,56 @@
     raw += 5 * Math.min(trace.guesses, 1);
 
     let band;
-    const totalTechniques = trace.counts[Technique.T1_SINGLE] +
-                           trace.counts[Technique.T2_ARITH] +
-                           trace.counts[Technique.T3_SUBST] +
-                           trace.counts[Technique.T4_ELIM_2X2] +
-                           trace.counts[Technique.T5_CHAIN_3PLUS];
 
-    // EASY: Only basic techniques (T1/T2), low usage
+    // EASY: Only T1–T2, zero guesses
     if (trace.guesses === 0 &&
         trace.counts[Technique.T3_SUBST] === 0 &&
         trace.counts[Technique.T4_ELIM_2X2] === 0 &&
         trace.counts[Technique.T5_CHAIN_3PLUS] === 0 &&
-        totalTechniques < 10 &&
-        raw < 20) {
+        trace.counts[Technique.T6_GUESS_DEPTH1] === 0) {
       band = 'easy';
     }
-    // MEDIUM: Some T3, moderate complexity
+    // MEDIUM: Some T3, zero guesses
     else if (trace.guesses === 0 &&
+             trace.counts[Technique.T3_SUBST] > 0 &&
              trace.counts[Technique.T4_ELIM_2X2] === 0 &&
              trace.counts[Technique.T5_CHAIN_3PLUS] === 0 &&
-             trace.counts[Technique.T3_SUBST] <= 3 &&
-             totalTechniques < 20 &&
-             raw < 40) {
+             trace.counts[Technique.T6_GUESS_DEPTH1] === 0) {
       band = 'medium';
     }
-    // HARD: Multiple T3 or some T4, higher complexity
+    // HARD: T3–T4 required, zero guesses, chain length ≥2
     else if (trace.guesses === 0 &&
-             (trace.counts[Technique.T3_SUBST] > 3 || trace.counts[Technique.T4_ELIM_2X2] > 0) &&
+             trace.counts[Technique.T3_SUBST] > 0 &&
+             (trace.counts[Technique.T4_ELIM_2X2] > 0 || trace.maxChainLen >= 2) &&
              trace.counts[Technique.T5_CHAIN_3PLUS] === 0 &&
-             totalTechniques < 25 &&
-             raw < 70) {
+             trace.counts[Technique.T6_GUESS_DEPTH1] === 0) {
       band = 'hard';
     }
-    // EXPERT: Advanced techniques or high complexity
+    // EXPERT: T4–T5 required, at most one shallow guess (T6 depth 1)
+    else if (trace.guesses <= 1 &&
+             (trace.counts[Technique.T4_ELIM_2X2] > 0 || trace.counts[Technique.T5_CHAIN_3PLUS] > 0)) {
+      band = 'expert';
+    }
+    // Default to expert if doesn't fit above
     else {
       band = 'expert';
     }
 
-    // Nightmare is expert-level with very high technique usage or complexity
-    // High raw score OR extensive technique usage indicates nightmare difficulty
-    if (trace.guesses > 0 ||
-        trace.counts[Technique.T5_CHAIN_3PLUS] > 2 ||
-        trace.counts[Technique.T4_ELIM_2X2] > 3 ||
-        raw > 100 ||
-        (raw > 60 && trace.counts[Technique.T3_SUBST] > 5) ||
-        totalTechniques > 30) {
+    // NIGHTMARE: Harder than expert
+    // Multiple advanced techniques, deep chains, or high raw complexity
+    const totalTechniques = trace.counts[Technique.T1_SINGLE] +
+                           trace.counts[Technique.T2_ARITH] +
+                           trace.counts[Technique.T3_SUBST] +
+                           trace.counts[Technique.T4_ELIM_2X2] +
+                           trace.counts[Technique.T5_CHAIN_3PLUS] +
+                           trace.counts[Technique.T6_GUESS_DEPTH1];
+
+    if (trace.guesses > 1 ||  // Multiple guesses
+        (trace.counts[Technique.T5_CHAIN_3PLUS] > 0 && trace.counts[Technique.T4_ELIM_2X2] > 0) ||  // Both T4 and T5
+        trace.counts[Technique.T5_CHAIN_3PLUS] > 2 ||  // Extensive chains
+        trace.maxChainLen >= 5 ||  // Very long chains
+        raw > 100 ||  // Very high complexity
+        (band === 'expert' && totalTechniques > 30)) {  // Expert + excessive techniques
       band = 'nightmare';
     }
 
