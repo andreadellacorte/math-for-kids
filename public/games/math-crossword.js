@@ -445,13 +445,13 @@
         batchSize = 1;
       } else if (progress < 0.1) {
         // Start with appropriate batch size per difficulty
-        // Easy: gradual (batch 1), Medium: moderate (batch 10), Hard: aggressive (batch 20)
+        // Easy: gradual (batch 1), Medium: moderate (batch 15), Hard: aggressive (batch 25)
         if (l === 'easy') {
           batchSize = 1;
         } else if (l === 'medium') {
-          batchSize = 10;
+          batchSize = 15;
         } else if (l === 'hard') {
-          batchSize = 20;
+          batchSize = 25;
         } else {
           batchSize = 5; // fallback
         }
