@@ -1561,7 +1561,8 @@
           let techInfo = '';
           if (b.techniqueScore) {
             const ts = b.techniqueScore;
-            techInfo = ` | Tech: ${ts.band}(raw=${ts.raw}, T1=${ts.details.counts.T1_SINGLE}, T2=${ts.details.counts.T2_ARITH}, T3=${ts.details.counts.T3_SUBST})`;
+            const rawCalc = ts.details.counts.T1_SINGLE * 1 + ts.details.counts.T2_ARITH * 2 + ts.details.counts.T3_SUBST * 4 + 3 * ts.details.maxChainLen;
+            techInfo = ` | Tech: ${ts.band}(raw=${ts.raw}, T1=${ts.details.counts.T1_SINGLE}, T2=${ts.details.counts.T2_ARITH}, T3=${ts.details.counts.T3_SUBST}, chain=${ts.details.maxChainLen})`;
           }
           ((E.style.background = '#d4edda'),
             (E.style.color = '#155724'),
