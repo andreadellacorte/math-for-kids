@@ -623,12 +623,13 @@
           t += 30;
         }
       } else {
-        // For easy/medium, allow removing down to 1 given per equation (creates T1 opportunities)
-        if (a === 0) return 0;  // But don't remove the last given
-        if (a === 1) t += 5;     // Encourage removing when 1 given left
+        // For easy/medium, encourage T1 opportunities (equations with 2 givens -> 1 given)
+        if (a === 1) return 0;  // Don't remove the last given (would leave 0 givens)
+        if (a === 2) t += 30;    // STRONGLY encourage T1 creation (2 -> 1 given)
+        if (a === 3) t += 20;    // Good candidate
       }
       if (a >= 3) t += 20;
-      else if (a === 2) {
+      else if (a === 2 && (o === 'expert' || o === 'nightmare')) {
         let u = Y(f, l, r, i, h);
         u >= 2 ? (t += 15) : u >= 1 ? (t += 10) : (t += 5);
       }
@@ -1618,10 +1619,19 @@
             const techniqueMatch = techScore.band === i;
 
             if (techniqueMatch) {
-              ((e = c), (b = p), (k = y), (foundValid = true));
-              // Store technique score for display
-              b.techniqueScore = techScore;
-              break;
+              foundValid = true;
+              // Keep track of best valid puzzle (closest to 50% givens)
+              const currentGivensPercent = y / 100;
+              const targetGivensPercent = 0.5;
+              const currentDelta = Math.abs(currentGivensPercent - targetGivensPercent);
+              const bestDelta = e ? Math.abs((k / 100) - targetGivensPercent) : Infinity;
+
+              if (currentDelta < bestDelta) {
+                e = c;
+                b = p;
+                k = y;
+                b.techniqueScore = techScore;
+              }
             } else
               (!e ||
                 Math.abs(y - (t.min + t.max) / 2) <
