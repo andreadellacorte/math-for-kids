@@ -109,7 +109,8 @@
       band = 'expert';
     }
     // MEDIUM: T4 present OR significant T3 usage (no T5/T6)
-    else if (hasT4 || trace.counts[Technique.T3_SUBST] >= 5) {
+    // T3 threshold raised to 10+ to allow some T3 in easy puzzles
+    else if (hasT4 || trace.counts[Technique.T3_SUBST] >= 10) {
       band = 'medium';
     }
     // EASY: Only T1/T2/T3 (basic techniques)
@@ -444,17 +445,9 @@
     let bestDelta = Infinity;
 
     let consecutiveFails = 0;
-    const maxConsecutiveFails = 100; // Allow exploration but not too many fails
-    let relaxBandConstraint = false;
+    const maxConsecutiveFails = 150; // Allow thorough exploration
 
     for (; n < e && consecutiveFails < maxConsecutiveFails; ) {
-      // After 50 consecutive fails, relax band constraint for easy/medium
-      if (consecutiveFails >= 50 && !relaxBandConstraint && (l === 'easy' || l === 'medium')) {
-        relaxBandConstraint = true;
-        if (typeof window !== 'undefined' && window.console) {
-          console.log(`[OPT] Relaxing band constraint after ${consecutiveFails} fails - now accepting easy/medium for ${l} request`);
-        }
-      }
       n++;
 
       // Determine batch size k - start with 1-2 early, increase to 3-5 mid-way, then back to 1 near target
@@ -473,22 +466,12 @@
       let tempGivens = new Set(o);
       for (let idx = 0; idx < batchSize; idx++) {
         let a = le(r, i, tempGivens, l);
-        if (!a) {
-          if (typeof window !== 'undefined' && window.console && n === 1) {
-            console.log(`[OPT] le() returned null on iteration ${n}, idx ${idx}, givens=${tempGivens.size}, difficulty=${l}`);
-          }
-          break;
-        }
+        if (!a) break;
         toRemove.push(a);
         tempGivens.delete(a);  // Remove from temp set to get different candidates
       }
 
-      if (toRemove.length === 0) {
-        if (typeof window !== 'undefined' && window.console) {
-          console.log(`[OPT] Breaking: no candidates found on iteration ${n}, givens=${o.size}/${h.length}`);
-        }
-        break;
-      }
+      if (toRemove.length === 0) break;
 
       // Remove all in batch
       let prevGivens = new Set(o);
@@ -512,16 +495,9 @@
       // Calculate how far we are from target givens count
       const givensDelta = Math.abs(currentGivensCount - targetGivensCount);
 
-      // Accept puzzles that match the requested difficulty
-      // With relaxed constraint, accept easy/medium when either is requested
-      let bandAllowed;
-      if (relaxBandConstraint) {
-        bandAllowed = (currentBand === 'easy' || currentBand === 'medium') ||
-                     (l === 'nightmare' && currentBand === 'expert');
-      } else {
-        bandAllowed = currentBand === l ||
-                     (l === 'nightmare' && currentBand === 'expert');
-      }
+      // Accept puzzles that match the requested difficulty exactly
+      const bandAllowed = currentBand === l ||
+                         (l === 'nightmare' && currentBand === 'expert');
 
       // Only accept if band is allowed
       if (bandAllowed && givensDelta < bestDelta) {
@@ -544,15 +520,11 @@
         o = prevGivens;
         consecutiveFails++;
 
-        if (typeof window !== 'undefined' && window.console && consecutiveFails <= 3) {
-          const counts = techResult.score?.counts || {};
-          const details = techResult.score?.details || {};
-          console.log(`[OPT] Rejection #${consecutiveFails}: bandAllowed=${bandAllowed}, band=${currentBand}, requested=${l}`);
-          console.log(`  Counts from score.counts:`, counts);
-          console.log(`  Details:`, details);
-          console.log(`  Trace counts:`, techResult.trace?.counts);
-          console.log(`  Trace maxChainLen:`, techResult.trace?.maxChainLen);
-        }
+        // Debug logging (disabled in production)
+        // if (typeof window !== 'undefined' && window.console && consecutiveFails <= 2) {
+        //   const details = techResult.score?.details || {};
+        //   console.log(`[OPT] Rejection: band=${currentBand}, requested=${l}, T3=${details.counts?.T3_SUBST || 0}`);
+        // }
       }
     }
 
