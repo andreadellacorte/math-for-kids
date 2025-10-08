@@ -130,10 +130,13 @@
              hasEnoughTechniques) {
       band = 'expert';
     }
-    // FALLBACK: If nothing matches but has techniques, classify by complexity
-    else if (trace.counts[Technique.T3_SUBST] > 0) {
-      // Has T3 but doesn't fit other criteria → medium
-      band = 'medium';
+    // FALLBACK: If nothing matches but has techniques, classify by what's present
+    else if (trace.counts[Technique.T5_CHAIN_3PLUS] > 0 || trace.counts[Technique.T4_ELIM_2X2] > 0) {
+      // Has T4 or T5 but doesn't fit strict criteria → expert
+      band = 'expert';
+    } else if (trace.counts[Technique.T3_SUBST] > 0) {
+      // Has T3 but doesn't fit other criteria → medium (or hard if long chains)
+      band = trace.maxChainLen >= 3 ? 'hard' : 'medium';
     } else {
       // Only T1/T2 → easy
       band = 'easy';
@@ -1557,7 +1560,7 @@
           if (b.techniqueScore) {
             const ts = b.techniqueScore;
             const rawCalc = ts.details.counts.T1_ARITH * 1 + ts.details.counts.T2_SINGLE * 2 + ts.details.counts.T3_SUBST * 4 + 3 * ts.details.maxChainLen;
-            techInfo = ` | Tech: ${ts.band}(raw=${ts.raw}, T1=${ts.details.counts.T1_ARITH}, T2=${ts.details.counts.T2_SINGLE}, T3=${ts.details.counts.T3_SUBST}, chain=${ts.details.maxChainLen})`;
+            techInfo = ` | Tech: ${ts.band}(raw=${ts.raw}, T1=${ts.details.counts.T1_ARITH}, T2=${ts.details.counts.T2_SINGLE}, T3=${ts.details.counts.T3_SUBST}, T4=${ts.details.counts.T4_ELIM_2X2}, T5=${ts.details.counts.T5_CHAIN_3PLUS}, chain=${ts.details.maxChainLen})`;
           }
           ((E.style.background = '#d4edda'),
             (E.style.color = '#155724'),
