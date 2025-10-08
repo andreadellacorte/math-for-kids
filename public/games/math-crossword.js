@@ -473,12 +473,22 @@
       let tempGivens = new Set(o);
       for (let idx = 0; idx < batchSize; idx++) {
         let a = le(r, i, tempGivens, l);
-        if (!a) break;
+        if (!a) {
+          if (typeof window !== 'undefined' && window.console && n === 1) {
+            console.log(`[OPT] le() returned null on iteration ${n}, idx ${idx}, givens=${tempGivens.size}, difficulty=${l}`);
+          }
+          break;
+        }
         toRemove.push(a);
         tempGivens.delete(a);  // Remove from temp set to get different candidates
       }
 
-      if (toRemove.length === 0) break;
+      if (toRemove.length === 0) {
+        if (typeof window !== 'undefined' && window.console) {
+          console.log(`[OPT] Breaking: no candidates found on iteration ${n}, givens=${o.size}/${h.length}`);
+        }
+        break;
+      }
 
       // Remove all in batch
       let prevGivens = new Set(o);
@@ -534,9 +544,14 @@
         o = prevGivens;
         consecutiveFails++;
 
-        if (typeof window !== 'undefined' && window.console && n === 1) {
+        if (typeof window !== 'undefined' && window.console && consecutiveFails <= 3) {
           const counts = techResult.score?.counts || {};
-          console.log(`[OPT] First rejection: bandAllowed=${bandAllowed}, band=${currentBand}, T1=${counts.T1_ARITH || 0}, T2=${counts.T2_SINGLE || 0}, T3=${counts.T3_SUBST || 0}, T4=${counts.T4_ELIM_2X2 || 0}, T5=${counts.T5_CHAIN_3PLUS || 0}, T6=${counts.T6_GUESS_DEPTH1 || 0}, givensDelta=${givensDelta}, bestDelta=${bestDelta}`);
+          const details = techResult.score?.details || {};
+          console.log(`[OPT] Rejection #${consecutiveFails}: bandAllowed=${bandAllowed}, band=${currentBand}, requested=${l}`);
+          console.log(`  Counts from score.counts:`, counts);
+          console.log(`  Details:`, details);
+          console.log(`  Trace counts:`, techResult.trace?.counts);
+          console.log(`  Trace maxChainLen:`, techResult.trace?.maxChainLen);
         }
       }
     }
@@ -1275,12 +1290,11 @@
         }
       }
 
-      // After each iteration, check for long dependency chains (T5_CHAIN_3PLUS)
-      // Only record T5 for VERY long chains (5+ cells) to avoid false positives
-      if (trace && iterationSolves >= 5) {
-        // If we solved 5+ cells in one iteration, this is a genuine dependency chain
-        let chainLen = iterationSolves;
-        recordTechnique(trace, Technique.T5_CHAIN_3PLUS, chainLen);
+      // After each iteration, update max chain length for scoring
+      // But DON'T auto-record T5 - it causes false positives
+      // T5 should only be recorded for genuine cross-equation dependency chains, not simple T1/T2 solves
+      if (trace && iterationSolves > trace.maxChainLen) {
+        trace.maxChainLen = iterationSolves;
       }
     }
 
