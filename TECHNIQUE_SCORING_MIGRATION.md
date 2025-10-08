@@ -1,6 +1,6 @@
 # Technique-Based Difficulty Scoring Migration
 
-## Status: IN PROGRESS - Phase 1 Complete
+## Status: IN PROGRESS - Phase 2 Complete
 
 ## Overview
 Migrating from percentage-based difficulty (% empty cells) to technique-based difficulty scoring that measures actual solving complexity.
@@ -31,48 +31,68 @@ Bands:
 - NIGHTMARE: Guesses OR extensive T5/T4 usage OR raw>80
 ```
 
-## Remaining Work (Phase 2)
+## Completed (Phase 2)
 
-### Additional Instrumentation Needed
+### Additional Instrumentation ✅
 1. **T3_SUBST**: Variable elimination by substitution
-   - Detect when solving requires tracking relationships between 2+ equations
-   - Example: If A+B=10 and B+C=15, substituting to find C
+   - Detects when solving requires cross-equation constraint analysis
+   - Checks if cell crosses multiple equations (crossCount > 1)
+   - Example: Cell that appears in 2+ equations and can only have 1 value
 
-2. **T4_ELIM_2X2**: Linear system solving
-   - Detect when 2x2 or 3x3 system of equations needs simultaneous solving
-   - Example: Three equations sharing variables requiring matrix-style elimination
-
-3. **T5_CHAIN_3PLUS**: Back-substitution chains
-   - Track chain length when solving requires 3+ steps of back-substitution
+2. **T5_CHAIN_3PLUS**: Back-substitution chains
+   - Tracks when 3+ cells are solved in single iteration (dependency chain)
+   - Records chain length for scoring
    - Example: Solve A→B→C→D in sequence
 
-4. **T6_GUESS_DEPTH1**: Shallow guessing
+### Generator Integration ✅
+1. Added `solveWithTrace()` wrapper function that:
+   - Creates trace object
+   - Calls instrumented solver
+   - Computes difficulty score
+   - Returns solvability + score
+
+2. Modified generation loop to:
+   - Call `solveWithTrace()` for each candidate
+   - Accept if EITHER percentage OR technique matches (dual criteria during migration)
+   - Store technique score in puzzle object
+   - Display technique info in success message
+
+3. Added debug logging:
+   - Every 10 attempts logs: percentage, band, raw score, technique counts
+   - Helps compare old vs new systems
+   - Console.log format for easy analysis
+
+### UI Updates ✅
+- Success message now shows: `Tech: band(raw=X, T1=Y, T2=Z, T3=W)`
+- Allows visual comparison of both scoring systems
+
+## Remaining Work (Phase 3 - Final Migration)
+
+### Switch to Technique-Only Scoring
+1. **Remove percentage-based acceptance** (currently using dual criteria)
+   - Change from: `if (techniqueMatch || percentageMatch)`
+   - To: `if (techniqueMatch)`
+   - Keep percentage calculation for telemetry/logging only
+
+2. **Remove old percentage-based difficulty bands**
+   - Delete `ue()` and `pe()` functions that use min/max percentages
+   - Remove percentage targets from difficulty configuration
+
+3. **Fine-tune technique thresholds**
+   - Collect telemetry data from dual-criteria runs
+   - Adjust band rules based on real puzzle generation patterns
+   - Ensure each difficulty level has reasonable generation success rate
+
+### Additional Techniques (Optional Enhancement)
+1. **T4_ELIM_2X2**: Linear system solving (not yet implemented)
+   - Detect when 2x2 or 3x3 system of equations needs simultaneous solving
+   - Example: Three equations sharing variables requiring matrix-style elimination
+   - Currently not essential as T3 covers most cross-equation scenarios
+
+2. **T6_GUESS_DEPTH1**: Shallow guessing (not yet implemented)
    - Implement controlled guessing with propagation
    - Try value, propagate constraints, backtrack if contradiction
-
-### Generator Integration
-1. Find main generation loop (currently uses `ge()` function)
-2. Add `solveWithTrace()` wrapper function:
-   ```javascript
-   function solveWithTrace(grid, equations, givens) {
-     const trace = createSolveTrace();
-     const solvable = !he(grid, equations, givens, trace);
-     return { solvable, trace, score: scoreDifficulty(trace) };
-   }
-   ```
-
-3. Replace acceptance criteria:
-   ```javascript
-   // OLD (remove):
-   let y = Math.round((p.actualGivens / p.numTotal) * 100);
-   if (y >= t.min && y <= t.max) { accept(); }
-
-   // NEW (add):
-   const { trace, score } = solveWithTrace(grid, equations, givens);
-   if (score.band === requestedDifficulty) { accept(); }
-   ```
-
-4. Keep percentage calculation for telemetry only (with debug flag)
+   - Reserved for future "impossible" difficulty level
 
 ### Testing
 1. **Unit tests for scorer**:
@@ -108,13 +128,13 @@ Bands:
 - ✅ Scoring function
 - ✅ Keep old system running
 
-### Phase 2 (Next)
-- Add remaining technique detection
-- Wire into generation loop
-- Run both systems in parallel
-- Compare results
+### Phase 2 (Completed ✅)
+- ✅ Add T3_SUBST and T5_CHAIN_3PLUS detection
+- ✅ Wire into generation loop
+- ✅ Run both systems in parallel (dual criteria)
+- ✅ Add debug logging for comparison
 
-### Phase 3 (Final)
+### Phase 3 (Next)
 - Switch to technique-based scoring
 - Remove percentage-based logic
 - Keep percentage as telemetry only

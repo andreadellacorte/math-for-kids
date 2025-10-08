@@ -104,6 +104,13 @@
     return { raw, band, details: trace };
   }
 
+  function solveWithTrace(grid, equations, givens) {
+    const trace = createSolveTrace();
+    const unsolvable = he(grid, equations, givens, trace);
+    const score = scoreDifficulty(trace);
+    return { solvable: !unsolvable, trace, score };
+  }
+
   function oe() {
     let f = H('mx_eq'),
       l = H('mx_diff'),
@@ -990,10 +997,12 @@
     // Iteratively solve using advanced techniques
     let progress = true, iterations = 0;
     const maxIterations = 50;
+    let solveChain = []; // Track chain of deductions for T5_CHAIN_3PLUS
 
     while (progress && iterations < maxIterations) {
       progress = false;
       iterations++;
+      let iterationSolves = 0;
 
       // Technique 1: Direct solving (2 knowns → solve for 3rd)
       for (let eq of l) {
@@ -1041,6 +1050,8 @@
                 if (cell && cell.cell.ch === null) {
                   cell.cell.ch = String(value);
                   progress = true;
+                  iterationSolves++;
+                  solveChain.push({ r: cell.r, c: cell.c, tech: 'T2' });
                   if (trace) recordTechnique(trace, Technique.T2_ARITH);
                 }
               }
@@ -1073,12 +1084,42 @@
                 if (possibleVals && possibleVals.length === 1) {
                   cell.cell.ch = String(possibleVals[0]);
                   progress = true;
-                  if (trace) recordTechnique(trace, Technique.T1_SINGLE);
+                  iterationSolves++;
+
+                  // Check if this required cross-equation analysis (T3_SUBST)
+                  // by seeing if the cell crosses multiple equations
+                  let crossCount = 0;
+                  for (let checkEq of l) {
+                    for (let d = 0; d < 5; d += 2) {
+                      let cr = checkEq.across ? checkEq.row : checkEq.row + d,
+                          cc = checkEq.across ? checkEq.col + d : checkEq.col;
+                      if (cr === cell.r && cc === cell.c) crossCount++;
+                    }
+                  }
+
+                  solveChain.push({ r: cell.r, c: cell.c, tech: crossCount > 1 ? 'T3' : 'T1' });
+                  if (trace) {
+                    if (crossCount > 1) {
+                      recordTechnique(trace, Technique.T3_SUBST);
+                    } else {
+                      recordTechnique(trace, Technique.T1_SINGLE);
+                    }
+                  }
                   break;
                 }
               }
             }
           }
+        }
+      }
+
+      // After each iteration, check for long dependency chains (T5_CHAIN_3PLUS)
+      if (trace && iterationSolves >= 3) {
+        // If we solved 3+ cells in one iteration, likely a chain
+        // Check if any form a dependency chain
+        let chainLen = iterationSolves;
+        if (chainLen >= 3) {
+          recordTechnique(trace, Technique.T5_CHAIN_3PLUS, chainLen);
         }
       }
     }
@@ -1416,15 +1457,34 @@
             if (!c) continue;
             let p = ge(c, i),
               y = Math.round((p.actualGivens / p.numTotal) * 100);
-            if (y >= t.min && y <= t.max) {
+
+            // NEW: Technique-based difficulty scoring
+            const techResult = solveWithTrace(c.grid, c.equations, p.optimizedGivens);
+            const techScore = techResult.score;
+
+            // Debug logging (can be removed later)
+            if (typeof window !== 'undefined' && window.console && n % 10 === 0) {
+              console.log(`Attempt ${n}: %=${y}, band=${techScore.band}, raw=${techScore.raw}, T1=${techScore.details.counts.T1_SINGLE}, T2=${techScore.details.counts.T2_ARITH}, T3=${techScore.details.counts.T3_SUBST}`);
+            }
+
+            // Accept if EITHER percentage OR technique matches (dual criteria during migration)
+            const percentageMatch = y >= t.min && y <= t.max;
+            const techniqueMatch = techScore.band === i;
+
+            if (techniqueMatch || percentageMatch) {
               ((e = c), (b = p), (k = y), (foundValid = true));
+              // Store technique score for display
+              b.techniqueScore = techScore;
               break;
             } else
               (!e ||
                 Math.abs(y - (t.min + t.max) / 2) <
                   Math.abs(k - (t.min + t.max) / 2)) &&
                 ((e = c), (b = p), (k = y));
-          } catch {
+          } catch (err) {
+            if (typeof window !== 'undefined' && window.console) {
+              console.error('Generation error:', err);
+            }
             continue;
           }
         }
@@ -1439,10 +1499,15 @@
           foundValid && e && b)
         ) {
           let x = J();
+          let techInfo = '';
+          if (b.techniqueScore) {
+            const ts = b.techniqueScore;
+            techInfo = ` | Tech: ${ts.band}(raw=${ts.raw}, T1=${ts.details.counts.T1_SINGLE}, T2=${ts.details.counts.T2_ARITH}, T3=${ts.details.counts.T3_SUBST})`;
+          }
           ((E.style.background = '#d4edda'),
             (E.style.color = '#155724'),
             (E.style.border = '2px solid #c3e6cb'),
-            (E.textContent = `\u2705 Generated ${b.difficulty.name} puzzle (${x.min}-${x.max}) with ${e.equations.length} equations, showing ${b.actualGivens}/${b.numTotal} numbers (${k}%) [attempt ${n}]`),
+            (E.textContent = `\u2705 Generated ${b.difficulty.name} puzzle (${x.min}-${x.max}) with ${e.equations.length} equations, showing ${b.actualGivens}/${b.numTotal} numbers (${k}%)${techInfo} [attempt ${n}]`),
             f && setTimeout(() => window.print(), 100));
         } else {
           ((E.textContent =
