@@ -8,6 +8,10 @@ export default defineConfig({
   site: 'https://andreadellacorte.github.io',
   base: '/math-for-kids',
   vite: {
-    plugins: [tailwindcss()]
+    plugins: [tailwindcss()],
+    build: {
+      minify: false, // Disable minification for easier debugging
+      sourcemap: true
+    }
   }
 });
