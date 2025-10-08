@@ -191,11 +191,21 @@ h1 { color: #4a5568; font-size: 2.5em; text-align: center; margin-bottom: 20px; 
         <h2>🚀 Latest & Greatest (October 2025)</h2>
 
         <div class="changelog-content">
+            <h4>🎉 <em>2025-10-08</em> - MAJOR FIX: Puzzles Now Actually Challenging! 🎉</h4>
+            <ul>
+                <li>🐛 <strong>Fixed T5 False Positives</strong>: T5 was incorrectly firing for simple T1 solves, blocking all optimization</li>
+                <li>🎯 <strong>500 Puzzle Attempts</strong>: Now tries 500 different layouts and picks best one (was breaking after first match)</li>
+                <li>✨ <strong>Candidate Selection Fixed</strong>: Was blocking T1 opportunities with backwards logic - now correctly encourages them</li>
+                <li>📊 <strong>Easy Puzzles: 50-60% Givens</strong>: Down from 94-97%! Much more challenging and fun!</li>
+                <li>🎚️ <strong>Adaptive Batch Sizing</strong>: Removes 1-5 numbers at once, shrinks to 1 when close to target</li>
+                <li>✅ <strong>T3 Threshold Raised</strong>: Easy allows T1/T2/T3<10, Medium needs T3≥10 or T4+</li>
+            </ul>
+
             <h4>⚡ <em>2025-10-08</em> - Advanced Optimization with Batch Removal! ⚡</h4>
             <ul>
                 <li>🎯 <strong>Batch Removal</strong>: Smart algorithm removes 2-5 numbers at once early, decreases to 1 near target</li>
                 <li>🔧 <strong>Add-Back Repair</strong>: Automatically adds numbers back if we overshoot the target</li>
-                <li>📊 <strong>3-Level Band System</strong>: Simplified to Easy (T1/T2/T3), Medium (T4 or T3≥5), Expert (T5/T6)</li>
+                <li>📊 <strong>3-Level Band System</strong>: Simplified to Easy (T1/T2/T3), Medium (T4 or T3≥10), Expert (T5/T6)</li>
                 <li>🎚️ <strong>Givens Targeting</strong>: Now targets ~50% of numbers as givens (40-60% hidden)</li>
                 <li>✅ <strong>Exact Band Matching</strong>: Request "easy" → get "easy" (no more band mismatches)</li>
             </ul>
