@@ -509,8 +509,12 @@
         bestGivens = new Set(o);
         consecutiveFails = 0;
 
-        // If we're in range and band matches, stop
-        if (inRange && bandMatches) {
+        // Only stop if we're very close to target (within 20% of range)
+        const rangeSize = targetRange.max - targetRange.min;
+        const tolerance = rangeSize * 0.2; // 20% of range
+        const closeToTarget = delta <= tolerance;
+
+        if (closeToTarget && bandMatches) {
           break;
         }
       } else {
