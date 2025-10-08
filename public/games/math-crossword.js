@@ -444,14 +444,22 @@
     let bestDelta = Infinity;
 
     let consecutiveFails = 0;
-    const maxConsecutiveFails = 200; // Very high to allow thorough exploration
+    const maxConsecutiveFails = 100; // Allow exploration but not too many fails
+    let relaxBandConstraint = false;
 
     for (; n < e && consecutiveFails < maxConsecutiveFails; ) {
+      // After 50 consecutive fails, relax band constraint for easy/medium
+      if (consecutiveFails >= 50 && !relaxBandConstraint && (l === 'easy' || l === 'medium')) {
+        relaxBandConstraint = true;
+        if (typeof window !== 'undefined' && window.console) {
+          console.log(`[OPT] Relaxing band constraint after ${consecutiveFails} fails - now accepting easy/medium for ${l} request`);
+        }
+      }
       n++;
 
-      // Determine batch size k - start with 2-5, decrease to 1 as we get closer to target
+      // Determine batch size k - start with 1-2 early, increase to 3-5 mid-way, then back to 1 near target
       const progress = o.size <= h.length ? (h.length - o.size) / (h.length - targetGivensCount) : 0;
-      let batchSize = progress < 0.3 ? 5 : progress < 0.6 ? 3 : progress < 0.85 ? 2 : 1;
+      let batchSize = progress < 0.1 ? 1 : progress < 0.4 ? 3 : progress < 0.7 ? 5 : progress < 0.9 ? 3 : 1;
 
       if (n % 10 === 0) {
         let d = Math.round((o.size / h.length) * 100);
@@ -494,9 +502,16 @@
       // Calculate how far we are from target givens count
       const givensDelta = Math.abs(currentGivensCount - targetGivensCount);
 
-      // Only accept puzzles that match the requested difficulty exactly
-      const bandAllowed = currentBand === l ||
-                         (l === 'nightmare' && currentBand === 'expert'); // Nightmare can accept expert
+      // Accept puzzles that match the requested difficulty
+      // With relaxed constraint, accept easy/medium when either is requested
+      let bandAllowed;
+      if (relaxBandConstraint) {
+        bandAllowed = (currentBand === 'easy' || currentBand === 'medium') ||
+                     (l === 'nightmare' && currentBand === 'expert');
+      } else {
+        bandAllowed = currentBand === l ||
+                     (l === 'nightmare' && currentBand === 'expert');
+      }
 
       // Only accept if band is allowed
       if (bandAllowed && givensDelta < bestDelta) {
@@ -505,8 +520,9 @@
         bestGivens = new Set(o);
         consecutiveFails = 0;
 
-        if (typeof window !== 'undefined' && window.console && n % 20 === 0) {
-          console.log(`[OPT] Accepted: givens=${currentGivensCount}/${targetGivensCount}, band=${currentBand}, delta=${givensDelta}, batch=${toRemove.length}`);
+        if (typeof window !== 'undefined' && window.console && n % 10 === 0) {
+          const counts = techResult.score?.counts || {};
+          console.log(`[OPT] Accepted: givens=${currentGivensCount}/${targetGivensCount}, band=${currentBand}, delta=${givensDelta}, batch=${toRemove.length}, T1=${counts.T1_ARITH || 0}, T2=${counts.T2_SINGLE || 0}, T3=${counts.T3_SUBST || 0}`);
         }
 
         // Stop if we've reached target givens count
@@ -518,8 +534,9 @@
         o = prevGivens;
         consecutiveFails++;
 
-        if (typeof window !== 'undefined' && window.console && n % 20 === 0) {
-          console.log(`[OPT] Rejected: bandAllowed=${bandAllowed}, band=${currentBand}, givensDelta=${givensDelta}, bestDelta=${bestDelta}`);
+        if (typeof window !== 'undefined' && window.console && n === 1) {
+          const counts = techResult.score?.counts || {};
+          console.log(`[OPT] First rejection: bandAllowed=${bandAllowed}, band=${currentBand}, T1=${counts.T1_ARITH || 0}, T2=${counts.T2_SINGLE || 0}, T3=${counts.T3_SUBST || 0}, T4=${counts.T4_ELIM_2X2 || 0}, T5=${counts.T5_CHAIN_3PLUS || 0}, T6=${counts.T6_GUESS_DEPTH1 || 0}, givensDelta=${givensDelta}, bestDelta=${bestDelta}`);
         }
       }
     }
