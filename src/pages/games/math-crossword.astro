@@ -103,6 +103,11 @@ import GameLayout from '../../layouts/GameLayout.astro';
                 <button id="printColor" class="bg-gradient-to-r from-orange-100 to-rose-200 text-gray-800 px-6 py-3 rounded-xl font-bold hover:scale-105 transition-all shadow-md hover:shadow-lg border-2 border-orange-300">
                     Print
                 </button>
+
+                <label class="flex items-center gap-2 cursor-pointer bg-white px-4 py-2 rounded-xl border-2 border-gray-300 hover:border-indigo-400 transition-colors">
+                    <input id="ans" type="checkbox" class="w-5 h-5 accent-indigo-500">
+                    <span class="font-medium text-gray-700">Show All Answers</span>
+                </label>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -178,8 +183,9 @@ import GameLayout from '../../layouts/GameLayout.astro';
     </div>
 
     <script is:inline>
-        // Update slider display value
+        // Wait for DOM to be ready before loading the game script
         document.addEventListener('DOMContentLoaded', () => {
+            // Update slider display value
             const slider = document.getElementById('eqSlider');
             const output = document.getElementById('eqOut');
 
@@ -188,7 +194,11 @@ import GameLayout from '../../layouts/GameLayout.astro';
                     output.textContent = slider.value;
                 });
             }
+
+            // Load the math crossword script after DOM is ready
+            const script = document.createElement('script');
+            script.src = '/math-for-kids/games/math-crossword.js';
+            document.body.appendChild(script);
         });
     </script>
-    <script is:inline src="/math-for-kids/games/math-crossword.js" defer></script>
 </GameLayout>
