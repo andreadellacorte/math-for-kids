@@ -102,13 +102,13 @@
                            trace.counts[Technique.T5_CHAIN_3PLUS] +
                            trace.counts[Technique.T6_GUESS_DEPTH1];
 
-    // Simple 3-level classification
-    // Easy: <20 techniques (60% givens, 40% to solve)
-    // Medium: 20-29 techniques (55% givens, 45% to solve)
-    // Hard: 30+ techniques (50% givens, 50% to solve)
-    if (totalTechniques >= 30) {
+    // Simple 3-level classification based on observed technique counts
+    // Easy: <15 techniques (60% givens → creates ~10-20 techniques)
+    // Medium: 15-24 techniques (55% givens → creates ~15-20 techniques)
+    // Hard: 25+ techniques (50% givens → creates ~20-30 techniques)
+    if (totalTechniques >= 25) {
       band = 'hard';
-    } else if (totalTechniques >= 20) {
+    } else if (totalTechniques >= 15) {
       band = 'medium';
     } else {
       band = 'easy';
