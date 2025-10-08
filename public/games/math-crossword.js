@@ -94,52 +94,24 @@
 
     let band;
 
-    // Simplified band classification
-    // EXPERT: T5 or T6 present (chains and guessing)
-    // MEDIUM: High raw score or many techniques (but no T5/T6)
-    // EASY: Low complexity
-
-    const hasT5 = trace.counts[Technique.T5_CHAIN_3PLUS] > 0;
-    const hasT6 = trace.counts[Technique.T6_GUESS_DEPTH1] > 0;
-    const hasT4 = trace.counts[Technique.T4_ELIM_2X2] > 0;
-
+    // 3-level classification based on total techniques needed
     const totalTechniques = trace.counts[Technique.T1_ARITH] +
                            trace.counts[Technique.T2_SINGLE] +
                            trace.counts[Technique.T3_SUBST] +
-                           trace.counts[Technique.T4_ELIM_2X2];
+                           trace.counts[Technique.T4_ELIM_2X2] +
+                           trace.counts[Technique.T5_CHAIN_3PLUS] +
+                           trace.counts[Technique.T6_GUESS_DEPTH1];
 
-    // EXPERT: T5 or T6 present (hardest techniques)
-    if (hasT5 || hasT6) {
-      band = 'expert';
-    }
-    // MEDIUM: T4 present OR high total technique count (indicates complexity)
-    else if (hasT4 || totalTechniques >= 15) {
+    // Simple 3-level classification
+    // Easy: <20 techniques (60% givens, 40% to solve)
+    // Medium: 20-29 techniques (55% givens, 45% to solve)
+    // Hard: 30+ techniques (50% givens, 50% to solve)
+    if (totalTechniques >= 30) {
+      band = 'hard';
+    } else if (totalTechniques >= 20) {
       band = 'medium';
-    }
-    // EASY: Simple puzzles with fewer techniques
-    else {
+    } else {
       band = 'easy';
-    }
-
-    // NIGHTMARE: Only for truly extreme puzzles
-    // Requires expert-level techniques PLUS excessive complexity
-    if (band === 'expert') {
-      const totalTechniques = trace.counts[Technique.T1_ARITH] +
-                             trace.counts[Technique.T2_SINGLE] +
-                             trace.counts[Technique.T3_SUBST] +
-                             trace.counts[Technique.T4_ELIM_2X2] +
-                             trace.counts[Technique.T5_CHAIN_3PLUS] +
-                             trace.counts[Technique.T6_GUESS_DEPTH1];
-
-      // Only upgrade to nightmare if multiple extreme conditions are met
-      const hasMultipleGuesses = trace.guesses > 1;
-      const hasBothT4andT5 = trace.counts[Technique.T5_CHAIN_3PLUS] > 0 && trace.counts[Technique.T4_ELIM_2X2] > 0;
-      const hasExcessiveTechniques = totalTechniques > 50; // Much higher threshold
-      const hasExtensiveT5 = trace.counts[Technique.T5_CHAIN_3PLUS] > 3;
-
-      if (hasMultipleGuesses || hasBothT4andT5 || hasExcessiveTechniques || hasExtensiveT5) {
-        band = 'nightmare';
-      }
     }
 
     return { raw, band, details: trace };
@@ -439,15 +411,12 @@
       n = 0,
       e = l === 'expert' || l === 'nightmare' ? 1e3 : 500;
 
-    // Target givens by difficulty:
-    // Easy: 60% givens (40% to solve) - T1/T2/T3<8
-    // Medium: 55% givens (45% to solve) - T3≥8 or T4
-    // Hard: 50% givens (50% to solve) - more T3/T4
-    // Expert/Nightmare: 45% givens (55% to solve) - T5/T6 techniques
+    // Target givens by difficulty (3 levels):
+    // Easy: 60% givens (40% to solve) → ~15-19 techniques
+    // Medium: 55% givens (45% to solve) → ~20-29 techniques
+    // Hard: 50% givens (50% to solve) → ~30+ techniques
     let targetGivensPercent;
-    if (l === 'expert' || l === 'nightmare') {
-      targetGivensPercent = 0.45;
-    } else if (l === 'hard') {
+    if (l === 'hard') {
       targetGivensPercent = 0.5;
     } else if (l === 'medium') {
       targetGivensPercent = 0.55;
@@ -475,14 +444,16 @@
       if (distanceFromTarget <= 10) {
         batchSize = 1;
       } else if (progress < 0.1) {
-        // For medium+, start with very large batches to hit technique thresholds
-        // Medium needs totalTechniques≥20, so remove ~20 numbers initially
+        // Start with appropriate batch size per difficulty
+        // Easy: gradual (batch 1), Medium: moderate (batch 10), Hard: aggressive (batch 20)
         if (l === 'easy') {
           batchSize = 1;
-        } else if (l === 'medium' || l === 'hard') {
-          batchSize = 15;
-        } else {
+        } else if (l === 'medium') {
+          batchSize = 10;
+        } else if (l === 'hard') {
           batchSize = 20;
+        } else {
+          batchSize = 5; // fallback
         }
       } else if (progress < 0.4) {
         batchSize = 5;
@@ -558,10 +529,11 @@
         o = prevGivens;
         consecutiveFails++;
 
-        // Debug logging for medium
-        if (typeof window !== 'undefined' && window.console && consecutiveFails <= 5 && l === 'medium') {
+        // Debug logging for any difficulty
+        if (typeof window !== 'undefined' && window.console && consecutiveFails <= 3) {
           const details = techResult.score?.details || {};
-          console.log(`[OPT] Rejection #${consecutiveFails}: band=${currentBand}, requested=${l}, T1=${details.counts?.T1_ARITH || 0}, T3=${details.counts?.T3_SUBST || 0}, T4=${details.counts?.T4_ELIM_2X2 || 0}, givens=${o.size}`);
+          const total = (details.counts?.T1_ARITH || 0) + (details.counts?.T2_SINGLE || 0) + (details.counts?.T3_SUBST || 0) + (details.counts?.T4_ELIM_2X2 || 0);
+          console.log(`[OPT] Rejection #${consecutiveFails}: band=${currentBand}, requested=${l}, total=${total}, givens=${o.size}`);
         }
       }
     }
@@ -1647,9 +1619,7 @@
               // Keep track of best valid puzzle (closest to target givens %)
               const currentGivensPercent = y / 100;
               let targetGivensPercent;
-              if (i === 'expert' || i === 'nightmare') {
-                targetGivensPercent = 0.45;
-              } else if (i === 'hard') {
+              if (i === 'hard') {
                 targetGivensPercent = 0.5;
               } else if (i === 'medium') {
                 targetGivensPercent = 0.55;
