@@ -83,7 +83,7 @@
     }
   }
 
-  function scoreDifficulty(trace) {
+  function scoreDifficulty(trace, numCount = 0) {
     // Calculate weighted raw score
     let raw = 0;
     for (let tech in trace.counts) {
@@ -94,26 +94,29 @@
 
     let band;
 
-    // Simplified 3-level band classification with technique overlap
-    // EASY: T1/T2/T3 allowed (basic arithmetic and cross-equation)
-    // MEDIUM: T3/T4 required (cross-equation and linear systems)
-    // EXPERT: T5/T6 present (chains and guessing)
+    // Simplified band classification
+    // EXPERT: T5 or T6 present (chains and guessing)
+    // MEDIUM: High raw score or many techniques (but no T5/T6)
+    // EASY: Low complexity
 
-    const hasT3 = trace.counts[Technique.T3_SUBST] > 0;
-    const hasT4 = trace.counts[Technique.T4_ELIM_2X2] > 0;
     const hasT5 = trace.counts[Technique.T5_CHAIN_3PLUS] > 0;
     const hasT6 = trace.counts[Technique.T6_GUESS_DEPTH1] > 0;
+    const hasT4 = trace.counts[Technique.T4_ELIM_2X2] > 0;
+
+    const totalTechniques = trace.counts[Technique.T1_ARITH] +
+                           trace.counts[Technique.T2_SINGLE] +
+                           trace.counts[Technique.T3_SUBST] +
+                           trace.counts[Technique.T4_ELIM_2X2];
 
     // EXPERT: T5 or T6 present (hardest techniques)
     if (hasT5 || hasT6) {
       band = 'expert';
     }
-    // MEDIUM: T4 present OR moderate T3 usage (no T5/T6)
-    // T3 threshold: medium needs 5+ (easy allows up to 4)
-    else if (hasT4 || trace.counts[Technique.T3_SUBST] >= 5) {
+    // MEDIUM: T4 present OR high total technique count (indicates complexity)
+    else if (hasT4 || totalTechniques >= 20) {
       band = 'medium';
     }
-    // EASY: Only T1/T2/T3 (basic techniques, low T3 count)
+    // EASY: Simple puzzles with fewer techniques
     else {
       band = 'easy';
     }
