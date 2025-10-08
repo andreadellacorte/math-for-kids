@@ -496,11 +496,12 @@
       // Calculate how far we are from target givens count
       const givensDelta = Math.abs(currentGivensCount - targetGivensCount);
 
-      // For easy, allow T1/T2/T3 (not just T1/T2)
+      // Allow a range of bands for each target difficulty
       let allowedBands = [];
-      if (l === 'easy') allowedBands = ['easy', 'medium'];
+      if (l === 'easy') allowedBands = ['easy', 'medium', 'hard'];
       else if (l === 'medium') allowedBands = ['easy', 'medium', 'hard'];
       else if (l === 'hard') allowedBands = ['medium', 'hard', 'expert'];
+      else if (l === 'expert') allowedBands = ['hard', 'expert', 'nightmare'];
       else allowedBands = [l];
 
       const bandAllowed = allowedBands.includes(currentBand);
