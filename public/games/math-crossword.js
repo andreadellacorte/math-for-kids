@@ -436,8 +436,9 @@
       n = 0,
       e = l === 'expert' || l === 'nightmare' ? 1e3 : 500;
 
-    // Target: show 40-60% of numbers as givens (hide 40-60%)
-    const targetGivensPercent = 0.5; // 50% givens shown
+    // Target: show 55-65% of numbers as givens for easy/medium (hide 35-45%)
+    // Expert/nightmare can go lower (40-50% givens)
+    const targetGivensPercent = (l === 'expert' || l === 'nightmare') ? 0.45 : 0.6;
     const targetGivensCount = Math.floor(h.length * targetGivensPercent);
 
     let bestScore = null;
@@ -534,11 +535,11 @@
         o = prevGivens;
         consecutiveFails++;
 
-        // Debug logging
-        if (typeof window !== 'undefined' && window.console && consecutiveFails <= 5) {
-          const details = techResult.score?.details || {};
-          console.log(`[OPT] Rejection #${consecutiveFails}: band=${currentBand}, requested=${l}, T1=${details.counts?.T1_ARITH || 0}, T3=${details.counts?.T3_SUBST || 0}, givens=${o.size}, removed=${toRemove.length}`);
-        }
+        // Debug logging (disabled)
+        // if (typeof window !== 'undefined' && window.console && consecutiveFails <= 5) {
+        //   const details = techResult.score?.details || {};
+        //   console.log(`[OPT] Rejection #${consecutiveFails}: band=${currentBand}, requested=${l}, T1=${details.counts?.T1_ARITH || 0}, T3=${details.counts?.T3_SUBST || 0}, givens=${o.size}, removed=${toRemove.length}`);
+        // }
       }
     }
 
