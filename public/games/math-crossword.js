@@ -1621,9 +1621,9 @@
 
             if (techniqueMatch) {
               foundValid = true;
-              // Keep track of best valid puzzle (closest to 50% givens)
+              // Keep track of best valid puzzle (closest to target givens %)
               const currentGivensPercent = y / 100;
-              const targetGivensPercent = 0.5;
+              const targetGivensPercent = (i === 'expert' || i === 'nightmare') ? 0.45 : 0.6;
               const currentDelta = Math.abs(currentGivensPercent - targetGivensPercent);
               const bestDelta = e ? Math.abs((k / 100) - targetGivensPercent) : Infinity;
 
@@ -1632,6 +1632,11 @@
                 b = p;
                 k = y;
                 b.techniqueScore = techScore;
+              }
+
+              // Early exit if we hit the target exactly (within 1%)
+              if (currentDelta <= 0.01) {
+                break;
               }
             } else
               (!e ||
