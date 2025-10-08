@@ -25,6 +25,7 @@
     E = document.getElementById('stat'),
     G = (f, l) => Math.floor(Math.random() * (l - f + 1)) + f;
   var ne = (f, l, r) => Math.max(l, Math.min(r, f));
+  var generationId = 0;
   function oe() {
     let f = H('mx_eq'),
       l = H('mx_diff'),
@@ -300,7 +301,7 @@
       t = ue(l, h.length);
     if (!t || !t.percentage) return f;
     let n = 0,
-      e = l === 'expert' ? 1e3 : 500;
+      e = l === 'expert' || l === 'nightmare' ? 1e3 : 500;
     for (; o.size > t.maxGivens && n < e; ) {
       n++;
       let a = le(r, i, o, l);
@@ -311,7 +312,7 @@
           window.stat &&
           (window.stat.textContent = `\u{1F504} Optimizing ${l} difficulty... ${d}% \u2192 ${t.percentage.max}% (attempt ${n})`);
       }
-      if ((o.delete(a), l === 'expert')) {
+      if ((o.delete(a), l === 'expert' || l === 'nightmare')) {
         if (he(r, i, o)) {
           o.add(a);
           break;
@@ -686,7 +687,8 @@
   }
   function ue(f, l) {
     let r = {
-        expert: { min: 0.05, max: 0.4, name: 'Expert' },
+        nightmare: { min: 0.01, max: 0.3, name: 'Nightmare' },
+        expert: { min: 0.05, max: 0.35, name: 'Expert' },
         hard: { min: 0.35, max: 0.5, name: 'Hard' },
         medium: { min: 0.55, max: 0.65, name: 'Medium' },
         easy: { min: 0.65, max: 0.75, name: 'Easy' },
@@ -890,38 +892,128 @@
     return h;
   }
   function he(f, l, r) {
-    for (let i of l) {
-      let h = [];
-      for (let t = 0; t < 5; t += 2) {
-        let n = i.across ? i.row : i.row + t,
-          e = i.across ? i.col + t : i.col;
-        n < 24 && e < 24 && h.push({ r: n, c: e, pos: t });
-      }
-      let o = h.filter((t) => r.has(`${t.r},${t.c}`)).length;
-      if (o === 0) return !0;
-      if (h.length >= 3 && o === 1) {
-        let t = 0;
-        for (let n of h)
-          if (!r.has(`${n.r},${n.c}`)) {
-            for (let e of l)
-              if (e !== i)
-                for (let b = 0; b < 5; b += 2) {
-                  let k = e.across ? e.row : e.row + b,
-                    a = e.across ? e.col + b : e.col;
-                  if (k === n.r && a === n.c) {
-                    t++;
-                    break;
-                  }
+    // Advanced solvability check using constraint-based solving
+    // Returns true if unsolvable, false if solvable
+
+    // Create working grid with only givens
+    let i = Array.from({ length: 24 }, () => Array(24).fill(null));
+    for (let n = 0; n < 24; n++)
+      for (let e = 0; e < 24; e++)
+        f[n][e] && r.has(`${n},${e}`)
+          ? (i[n][e] = f[n][e])
+          : f[n][e] &&
+            (i[n][e] = {
+              k: f[n][e].k,
+              ch: f[n][e].k === 'num' ? null : f[n][e].ch,
+              id: f[n][e].id,
+            });
+
+    // Iteratively solve using advanced techniques
+    let progress = true, iterations = 0;
+    const maxIterations = 50;
+
+    while (progress && iterations < maxIterations) {
+      progress = false;
+      iterations++;
+
+      // Technique 1: Direct solving (2 knowns → solve for 3rd)
+      for (let eq of l) {
+        let cells = [];
+        for (let d = 0; d < 5; d++) {
+          let u = eq.across ? eq.row : eq.row + d,
+            s = eq.across ? eq.col + d : eq.col;
+          u < 24 && s < 24 && i[u][s] && cells.push({ r: u, c: s, cell: i[u][s], pos: d });
+        }
+
+        if (cells.length === 5) {
+          let nums = cells.filter((c) => c.cell.k === 'num'),
+            op = cells.find((c) => c.cell.k === 'op');
+
+          if (op && nums.length >= 2) {
+            let knowns = {}, unknowns = [];
+            for (let num of nums)
+              num.cell.ch !== null ? (knowns[num.pos] = parseInt(num.cell.ch)) : unknowns.push(num.pos);
+
+            if (Object.keys(knowns).length === 2 && unknowns.length === 1) {
+              let opCh = op.cell.ch, unknownPos = unknowns[0], value = null;
+
+              if (unknownPos === 0) {
+                let mid = knowns[2], res = knowns[4];
+                if (opCh === '+') value = res - mid;
+                else if (opCh === '-') value = res + mid;
+                else if (opCh === '×') value = mid !== 0 ? res / mid : null;
+                else if (opCh === '÷') value = res * mid;
+              } else if (unknownPos === 2) {
+                let left = knowns[0], res = knowns[4];
+                if (opCh === '+') value = res - left;
+                else if (opCh === '-') value = left - res;
+                else if (opCh === '×') value = left !== 0 ? res / left : null;
+                else if (opCh === '÷') value = left !== 0 ? left / res : null;
+              } else if (unknownPos === 4) {
+                let left = knowns[0], mid = knowns[2];
+                if (opCh === '+') value = left + mid;
+                else if (opCh === '-') value = left - mid;
+                else if (opCh === '×') value = left * mid;
+                else if (opCh === '÷') value = mid !== 0 ? left / mid : null;
+              }
+
+              if (value !== null && value > 0 && value <= 99 && Number.isInteger(value)) {
+                let cell = cells.find((c) => c.pos === unknownPos);
+                if (cell && cell.cell.ch === null) {
+                  cell.cell.ch = String(value);
+                  progress = true;
                 }
+              }
+            }
           }
-        if (t === 0) return !0;
+        }
+      }
+
+      // Technique 2: Constraint propagation (only 1 valid value)
+      for (let eq of l) {
+        let cells = [];
+        for (let d = 0; d < 5; d++) {
+          let u = eq.across ? eq.row : eq.row + d,
+            s = eq.across ? eq.col + d : eq.col;
+          u < 24 && s < 24 && i[u][s] && cells.push({ r: u, c: s, cell: i[u][s], pos: d });
+        }
+
+        if (cells.length === 5) {
+          let nums = cells.filter((c) => c.cell.k === 'num');
+          if (cells.find((c) => c.cell.k === 'op') && nums.length >= 1) {
+            let knowns = {}, unknowns = [];
+            for (let num of nums)
+              num.cell.ch !== null ? (knowns[num.pos] = parseInt(num.cell.ch)) : unknowns.push(num.pos);
+
+            if (Object.keys(knowns).length === 1 && unknowns.length === 2) {
+              for (let unknownPos of unknowns) {
+                let cell = cells.find((c) => c.pos === unknownPos);
+                let possibleVals = me(i, l, cell.r, cell.c);
+
+                if (possibleVals && possibleVals.length === 1) {
+                  cell.cell.ch = String(possibleVals[0]);
+                  progress = true;
+                  break;
+                }
+              }
+            }
+          }
+        }
       }
     }
-    return !1;
+
+    // Check if all numbers are solved
+    for (let n = 0; n < 24; n++)
+      for (let e = 0; e < 24; e++)
+        if (f[n][e] && f[n][e].k === 'num' && (!i[n][e] || i[n][e].ch === null))
+          return true; // Unsolvable
+
+    return false; // Solvable
   }
   function pe(f, l) {
     let r = {
-        expert: { min: 0.05, max: 0.4, name: 'Expert' },
+        nightmare: { min: 0.01, max: 0.3, name: 'Nightmare' },
+        expert: { min: 0.05, max: 0.35, name: 'Expert' },
         hard: { min: 0.35, max: 0.5, name: 'Hard' },
         medium: { min: 0.55, max: 0.65, name: 'Medium' },
         easy: { min: 0.65, max: 0.75, name: 'Easy' },
@@ -1129,7 +1221,8 @@
   }
   var genBtn = document.getElementById('gen');
   function I(f = !1) {
-    genBtn.disabled = !0;
+    generationId++;
+    const currentGenerationId = generationId;
     let l = j.value || 'medium';
     ((E.textContent = `\u{1F504} Generating ${l} puzzle... (this may take longer for precise difficulty targeting)`),
       (E.style.background = '#fff3cd'),
@@ -1144,12 +1237,12 @@
             (E.style.background = '#f8d7da'),
             (E.style.color = '#721c24'),
             (E.style.border = '2px solid #f5c6cb'));
-          genBtn.disabled = !1;
           return;
         }
         N();
         let o = {
-            expert: { min: 5, max: 40 },
+            nightmare: { min: 1, max: 30 },
+            expert: { min: 5, max: 35 },
             hard: { min: 35, max: 50 },
             medium: { min: 55, max: 65 },
             easy: { min: 65, max: 75 },
@@ -1159,6 +1252,7 @@
           e = null,
           b = null,
           k = 0,
+          foundValid = false,
           a = () => {
             if (!document.getElementById('spinnerStyles')) {
               let v = document.createElement('style');
@@ -1223,22 +1317,26 @@
             m && (m.style.display = 'none'),
             g && (g.style.display = 'none'),
             a();
-          n < 100;
+          n < 500;
 
         ) {
           n++;
           let x = document.getElementById('spinnerText');
           (x &&
-            (x.textContent = `Generating ${i} puzzle... (attempt ${n}/100)`),
-            (E.textContent = `\u{1F504} Targeting ${t.min}-${t.max}% difficulty (attempt ${n}/100)`),
+            (x.textContent = `Generating ${i} puzzle... (attempt ${n}/500)`),
+            (E.textContent = `\u{1F504} Targeting ${t.min}-${t.max}% difficulty (attempt ${n}/500)`),
             await new Promise((c) => setTimeout(c, 10)));
+          if (currentGenerationId !== generationId) {
+            d();
+            return;
+          }
           try {
             let c = re(r, i);
             if (!c) continue;
             let p = ge(c, i),
               y = Math.round((p.actualGivens / p.numTotal) * 100);
             if (y >= t.min && y <= t.max) {
-              ((e = c), (b = p), (k = y));
+              ((e = c), (b = p), (k = y), (foundValid = true));
               break;
             } else
               (!e ||
@@ -1251,12 +1349,13 @@
         }
         if (
           (d(),
-          e &&
+          foundValid &&
+            e &&
             b &&
             (s && (s.style.display = ''),
             g && (g.style.display = ''),
             m && (m.style.display = 'none')),
-          e && b)
+          foundValid && e && b)
         ) {
           let x = J();
           ((E.style.background = '#d4edda'),
@@ -1264,14 +1363,12 @@
             (E.style.border = '2px solid #c3e6cb'),
             (E.textContent = `\u2705 Generated ${b.difficulty.name} puzzle (${x.min}-${x.max}) with ${e.equations.length} equations, showing ${b.actualGivens}/${b.numTotal} numbers (${k}%) [attempt ${n}]`),
             f && setTimeout(() => window.print(), 100));
-          genBtn.disabled = !1;
         } else {
           ((E.textContent =
-            '\u26A0\uFE0F Could not generate puzzle at target difficulty after 100 attempts. Try different settings.'),
+            '\u26A0\uFE0F Could not generate puzzle at target difficulty after 500 attempts. Try different settings.'),
             (E.style.background = '#f8d7da'),
             (E.style.color = '#721c24'),
             (E.style.border = '2px solid #f5c6cb'));
-          genBtn.disabled = !1;
           return;
         }
       }, 10));
@@ -1429,22 +1526,22 @@
     ((Z.textContent = A.value), N());
   });
   j.addEventListener('change', () => {
-    (N(), I(!1));
+    N();
   });
   F.addEventListener('change', () => {
-    (N(), I(!1));
+    N();
   });
   W.addEventListener('change', () => {
-    (N(), I(!1));
+    N();
   });
   V.addEventListener('change', () => {
-    (N(), I(!1));
+    N();
   });
   _.addEventListener('change', () => {
-    (N(), I(!1));
+    N();
   });
   D.addEventListener('change', () => {
-    (N(), I(!1));
+    N();
   });
   oe();
   I(!1);

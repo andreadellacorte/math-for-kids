@@ -111,7 +111,6 @@ import GameLayout from '../../layouts/GameLayout.astro';
                     <label class="block text-gray-700 font-semibold mb-2">Number of equations:</label>
                     <input id="eqSlider" type="range" min="3" max="40" step="1" value="20" class="w-full accent-indigo-500">
                     <output id="eqOut" class="block text-center text-lg font-bold text-indigo-600 mt-2">20</output>
-                    <p class="text-xs text-gray-500 mt-1">💡 Tip: Use fewer equations with smaller number ranges</p>
                 </div>
 
                 <!-- Difficulty Level -->
@@ -122,6 +121,7 @@ import GameLayout from '../../layouts/GameLayout.astro';
                         <option value="medium" selected>Medium</option>
                         <option value="hard">Hard (Fewer clues)</option>
                         <option value="expert">Expert (Minimal clues)</option>
+                        <option value="nightmare">Nightmare 💀 (Extreme challenge)</option>
                     </select>
                 </div>
 
