@@ -132,8 +132,8 @@
       band = 'easy';
     }
 
-    // NIGHTMARE: Harder than expert (only upgrade from expert)
-    // Nightmare must already be expert-level plus additional complexity
+    // NIGHTMARE: Only for truly extreme puzzles
+    // Requires expert-level techniques PLUS excessive complexity
     if (band === 'expert') {
       const totalTechniques = trace.counts[Technique.T1_ARITH] +
                              trace.counts[Technique.T2_SINGLE] +
@@ -142,11 +142,13 @@
                              trace.counts[Technique.T5_CHAIN_3PLUS] +
                              trace.counts[Technique.T6_GUESS_DEPTH1];
 
-      if (trace.guesses > 1 ||  // Multiple guesses
-          (trace.counts[Technique.T5_CHAIN_3PLUS] > 0 && trace.counts[Technique.T4_ELIM_2X2] > 0) ||  // Both T4 and T5
-          trace.counts[Technique.T5_CHAIN_3PLUS] > 2 ||  // Extensive chains (>2)
-          trace.maxChainLen >= 5 ||  // Very long chains (≥5)
-          totalTechniques > 30) {  // Excessive techniques (>30)
+      // Only upgrade to nightmare if multiple extreme conditions are met
+      const hasMultipleGuesses = trace.guesses > 1;
+      const hasBothT4andT5 = trace.counts[Technique.T5_CHAIN_3PLUS] > 0 && trace.counts[Technique.T4_ELIM_2X2] > 0;
+      const hasExcessiveTechniques = totalTechniques > 50; // Much higher threshold
+      const hasExtensiveT5 = trace.counts[Technique.T5_CHAIN_3PLUS] > 3;
+
+      if (hasMultipleGuesses || hasBothT4andT5 || hasExcessiveTechniques || hasExtensiveT5) {
         band = 'nightmare';
       }
     }
