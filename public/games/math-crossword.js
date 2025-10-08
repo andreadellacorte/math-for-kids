@@ -464,7 +464,7 @@
     let bestDelta = Infinity;
 
     let consecutiveFails = 0;
-    const maxConsecutiveFails = 100; // Increased to allow more exploration
+    const maxConsecutiveFails = 200; // Very high to allow thorough exploration
 
     for (; n < e && consecutiveFails < maxConsecutiveFails; ) {
       n++;
@@ -535,6 +535,11 @@
     // Use best result found
     if (bestScore) {
       o = bestGivens;
+    }
+
+    // Debug: log why optimization stopped
+    if (typeof window !== 'undefined' && window.console) {
+      console.log(`[OPT] Stopped after ${n} iterations: consecutiveFails=${consecutiveFails}, finalGivens=${o.size}/${h.length} (${Math.round(o.size/h.length*100)}%), target=${targetGivensCount}`);
     }
 
     let b = o.size;
