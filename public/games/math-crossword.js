@@ -418,36 +418,55 @@
     return r ? ie(r, l) : null;
   }
   function ie(f, l) {
+    // Technique-based optimization: Remove numbers while maintaining target difficulty
     let { grid: r, equations: i } = f,
       h = [];
     for (let a = 0; a < 24; a++)
       for (let d = 0; d < 24; d++)
         r[a] && r[a][d] && r[a][d].k === 'num' && h.push(`${a},${d}`);
     let o = new Set(h),
-      t = ue(l, h.length);
-    if (!t || !t.percentage) return f;
-    let n = 0,
+      n = 0,
       e = l === 'expert' || l === 'nightmare' ? 1e3 : 500;
-    for (; o.size > t.maxGivens && n < e; ) {
+
+    // Remove numbers iteratively while keeping puzzle at target difficulty
+    for (; n < e; ) {
       n++;
       let a = le(r, i, o, l);
-      if (!a) break;
+      if (!a) break;  // No more candidates to remove
+
       if (n % 10 === 0) {
         let d = Math.round((o.size / h.length) * 100);
         typeof window < 'u' &&
           window.stat &&
-          (window.stat.textContent = `\u{1F504} Optimizing ${l} difficulty... ${d}% \u2192 ${t.percentage.max}% (attempt ${n})`);
+          (window.stat.textContent = `\u{1F504} Optimizing ${l} difficulty... ${d}% given (attempt ${n})`);
       }
-      if ((o.delete(a), l === 'expert' || l === 'nightmare')) {
-        if (he(r, i, o)) {
-          o.add(a);
-          break;
+
+      // Try removing this number
+      o.delete(a);
+
+      // Check if still solvable and within difficulty bounds
+      let techResult = solveWithTrace(r, i, o);
+      let stillValid = techResult.solvable;
+
+      // For easy/medium/hard, reject if puzzle becomes too hard
+      if (stillValid) {
+        const band = techResult.score.band;
+        if (l === 'easy' && band !== 'easy') {
+          stillValid = false;
+        } else if (l === 'medium' && (band !== 'easy' && band !== 'medium')) {
+          stillValid = false;
+        } else if (l === 'hard' && (band !== 'easy' && band !== 'medium' && band !== 'hard')) {
+          stillValid = false;
         }
-      } else if (!de(r, i, o)) {
-        o.add(a);
+        // expert and nightmare can use any techniques
+      }
+
+      if (!stillValid) {
+        o.add(a);  // Put it back
         break;
       }
     }
+
     let b = o.size;
     return ((o = ae(r, i, o)), o.size > b, { ...f, optimizedGivens: o });
   }
@@ -811,25 +830,6 @@
     }
     return (k > 0, { grid: r, equations: i });
   }
-  function ue(f, l) {
-    let r = {
-        nightmare: { min: 0.01, max: 0.3, name: 'Nightmare' },
-        expert: { min: 0.05, max: 0.35, name: 'Expert' },
-        hard: { min: 0.35, max: 0.5, name: 'Hard' },
-        medium: { min: 0.55, max: 0.65, name: 'Medium' },
-        easy: { min: 0.65, max: 0.75, name: 'Easy' },
-      },
-      i = r[f] || r.medium;
-    return {
-      minGivens: Math.ceil(l * i.min),
-      maxGivens: Math.ceil(l * i.max),
-      name: i.name,
-      percentage: {
-        min: Math.round(i.min * 100),
-        max: Math.round(i.max * 100),
-      },
-    };
-  }
   function de(f, l, r) {
     let i = Array.from({ length: 24 }, () => Array(24).fill(null));
     for (let n = 0; n < 24; n++)
@@ -1173,21 +1173,6 @@
 
     return false; // Solvable
   }
-  function pe(f, l) {
-    let r = {
-        nightmare: { min: 0.01, max: 0.3, name: 'Nightmare' },
-        expert: { min: 0.05, max: 0.35, name: 'Expert' },
-        hard: { min: 0.35, max: 0.5, name: 'Hard' },
-        medium: { min: 0.55, max: 0.65, name: 'Medium' },
-        easy: { min: 0.65, max: 0.75, name: 'Easy' },
-      },
-      i = r[f] || r.medium;
-    return {
-      minGivens: Math.ceil(l * i.min),
-      maxGivens: Math.ceil(l * i.max),
-      name: i.name,
-    };
-  }
   function ge(f, l) {
     let { grid: r, equations: i, optimizedGivens: h } = f,
       o = h || new Set(),
@@ -1257,8 +1242,7 @@
     for (let c = 0; c < 24; c++)
       for (let p = 0; p < 24; p++)
         r[c][p] && r[c][p].k === 'num' && g.push({ r: c, c: p });
-    let x = pe(l, g.length);
-    return { numTotal: g.length, actualGivens: o.size, difficulty: x };
+    return { numTotal: g.length, actualGivens: o.size };
   }
   function be(f, l, r, i, h, o) {
     let t = document.getElementById('screenGrid'),
