@@ -1207,13 +1207,11 @@
       }
 
       // After each iteration, check for long dependency chains (T5_CHAIN_3PLUS)
-      if (trace && iterationSolves >= 3) {
-        // If we solved 3+ cells in one iteration, likely a chain
-        // Check if any form a dependency chain
+      // Only record T5 for VERY long chains (5+ cells) to avoid false positives
+      if (trace && iterationSolves >= 5) {
+        // If we solved 5+ cells in one iteration, this is a genuine dependency chain
         let chainLen = iterationSolves;
-        if (chainLen >= 3) {
-          recordTechnique(trace, Technique.T5_CHAIN_3PLUS, chainLen);
-        }
+        recordTechnique(trace, Technique.T5_CHAIN_3PLUS, chainLen);
       }
     }
 
