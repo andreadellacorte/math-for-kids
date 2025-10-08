@@ -73,7 +73,7 @@
     }
   }
 
-  function scoreDifficulty(trace) {
+  function scoreDifficulty(trace, numCount = null) {
     let raw = 0;
     for (let tech in trace.counts) {
       raw += trace.counts[tech] * TechniqueWeights[tech];
@@ -81,37 +81,53 @@
     raw += 3 * trace.maxChainLen;
     raw += 5 * Math.min(trace.guesses, 1);
 
+    // Calculate total technique applications
+    const totalTechniques = trace.counts[Technique.T1_SINGLE] +
+                           trace.counts[Technique.T2_ARITH] +
+                           trace.counts[Technique.T3_SUBST] +
+                           trace.counts[Technique.T4_ELIM_2X2] +
+                           trace.counts[Technique.T5_CHAIN_3PLUS] +
+                           trace.counts[Technique.T6_GUESS_DEPTH1];
+
+    // Minimum technique threshold: 60% of number count
+    const minTechniques = numCount ? Math.floor(numCount * 0.6) : 0;
+    const hasEnoughTechniques = !numCount || totalTechniques >= minTechniques;
+
     let band;
 
-    // EASY: Only T1–T2, zero guesses
+    // EASY: Only T1–T2, zero guesses, enough technique usage
     if (trace.guesses === 0 &&
         trace.counts[Technique.T3_SUBST] === 0 &&
         trace.counts[Technique.T4_ELIM_2X2] === 0 &&
         trace.counts[Technique.T5_CHAIN_3PLUS] === 0 &&
-        trace.counts[Technique.T6_GUESS_DEPTH1] === 0) {
+        trace.counts[Technique.T6_GUESS_DEPTH1] === 0 &&
+        hasEnoughTechniques) {
       band = 'easy';
     }
-    // MEDIUM: Some T3, zero guesses, no T4/T5
+    // MEDIUM: Some T3, zero guesses, no T4/T5, enough technique usage
     else if (trace.guesses === 0 &&
              trace.counts[Technique.T3_SUBST] > 0 &&
              trace.counts[Technique.T4_ELIM_2X2] === 0 &&
              trace.counts[Technique.T5_CHAIN_3PLUS] === 0 &&
              trace.counts[Technique.T6_GUESS_DEPTH1] === 0 &&
-             trace.maxChainLen < 3) {  // Short chains OK for medium
+             trace.maxChainLen < 3 &&
+             hasEnoughTechniques) {
       band = 'medium';
     }
-    // HARD: T3 + longer chains (≥3) OR T4 present, zero guesses, no T5
+    // HARD: T3 + longer chains (≥3) OR T4 present, zero guesses, no T5, enough technique usage
     else if (trace.guesses === 0 &&
              trace.counts[Technique.T3_SUBST] > 0 &&
              trace.counts[Technique.T5_CHAIN_3PLUS] === 0 &&
              trace.counts[Technique.T6_GUESS_DEPTH1] === 0 &&
-             (trace.counts[Technique.T4_ELIM_2X2] > 0 || trace.maxChainLen >= 3)) {
+             (trace.counts[Technique.T4_ELIM_2X2] > 0 || trace.maxChainLen >= 3) &&
+             hasEnoughTechniques) {
       band = 'hard';
     }
-    // EXPERT: T5 required OR T4 with long chains, ≤1 guess
+    // EXPERT: T5 required OR T4 with long chains, ≤1 guess, enough technique usage
     else if (trace.guesses <= 1 &&
              (trace.counts[Technique.T5_CHAIN_3PLUS] > 0 ||
-              (trace.counts[Technique.T4_ELIM_2X2] > 0 && trace.maxChainLen >= 3))) {
+              (trace.counts[Technique.T4_ELIM_2X2] > 0 && trace.maxChainLen >= 3)) &&
+             hasEnoughTechniques) {
       band = 'expert';
     }
     // FALLBACK: If nothing matches but has techniques, classify by complexity
@@ -148,7 +164,18 @@
   function solveWithTrace(grid, equations, givens) {
     const trace = createSolveTrace();
     const unsolvable = he(grid, equations, givens, trace);
-    const score = scoreDifficulty(trace);
+
+    // Count total numbers in grid
+    let numCount = 0;
+    for (let r = 0; r < 24; r++) {
+      for (let c = 0; c < 24; c++) {
+        if (grid[r] && grid[r][c] && grid[r][c].k === 'num') {
+          numCount++;
+        }
+      }
+    }
+
+    const score = scoreDifficulty(trace, numCount);
     return { solvable: !unsolvable, trace, score };
   }
 
@@ -1495,7 +1522,9 @@
             // Debug logging
             if (typeof window !== 'undefined' && window.console && n % 10 === 0) {
               const ts = techScore.details;
-              console.log(`Attempt ${n}: %=${y}, band=${techScore.band}, raw=${techScore.raw}, T1=${ts.counts.T1_SINGLE}, T2=${ts.counts.T2_ARITH}, T3=${ts.counts.T3_SUBST}, T4=${ts.counts.T4_ELIM_2X2}, T5=${ts.counts.T5_CHAIN_3PLUS}, chain=${ts.maxChainLen}, total=${ts.counts.T1_SINGLE + ts.counts.T2_ARITH + ts.counts.T3_SUBST + ts.counts.T4_ELIM_2X2 + ts.counts.T5_CHAIN_3PLUS}`);
+              const totalTech = ts.counts.T1_SINGLE + ts.counts.T2_ARITH + ts.counts.T3_SUBST + ts.counts.T4_ELIM_2X2 + ts.counts.T5_CHAIN_3PLUS;
+              const minRequired = Math.floor(p.numTotal * 0.6);
+              console.log(`Attempt ${n}: %=${y}, band=${techScore.band}, raw=${techScore.raw}, T1=${ts.counts.T1_SINGLE}, T2=${ts.counts.T2_ARITH}, T3=${ts.counts.T3_SUBST}, T4=${ts.counts.T4_ELIM_2X2}, T5=${ts.counts.T5_CHAIN_3PLUS}, chain=${ts.maxChainLen}, total=${totalTech}/${minRequired}`);
             }
 
             // Accept if technique band matches (technique-only scoring)
