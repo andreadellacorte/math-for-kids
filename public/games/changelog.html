@@ -191,6 +191,18 @@ h1 { color: #4a5568; font-size: 2.5em; text-align: center; margin-bottom: 20px; 
         <h2>🚀 Latest & Greatest (October 2025)</h2>
 
         <div class="changelog-content">
+            <h4>🎯 <em>2025-10-08</em> - Final Difficulty Fix: Best Puzzle Selection! 🎯</h4>
+            <ul>
+                <li>🎮 <strong>3-Level System</strong>: Removed Expert/Nightmare, now just Easy/Medium/Hard</li>
+                <li>🧠 <strong>Technique Count Classification</strong>: Easy &lt;23 techniques, Medium 23-30 techniques, Hard ≥31 techniques</li>
+                <li>🎚️ <strong>Givens Targeting</strong>: Easy=60%, Medium=55%, Hard=50% givens shown</li>
+                <li>⚡ <strong>Aggressive Batch Sizing</strong>: Easy batch=1, Medium batch=15, Hard batch=25</li>
+                <li>✅ <strong>Relaxed Matching</strong>: Easy accepts easy/medium, Medium accepts easy/medium, Hard accepts medium/hard</li>
+                <li>⏱️ <strong>Faster Generation</strong>: Max 50 attempts per puzzle (down from 500)</li>
+                <li>🎯 <strong>Best Puzzle Tracking</strong>: Always returns puzzle closest to target givens percentage, not just last attempt</li>
+                <li>🔧 <strong>Fixed Optimization Logic</strong>: Separated "continue removing numbers" from "track best puzzle" to ensure proper convergence</li>
+            </ul>
+
             <h4>🎉 <em>2025-10-08</em> - MAJOR FIX: Puzzles Now Actually Challenging! 🎉</h4>
             <ul>
                 <li>🐛 <strong>Fixed T5 False Positives</strong>: T5 was incorrectly firing for simple T1 solves, blocking all optimization</li>
@@ -198,7 +210,6 @@ h1 { color: #4a5568; font-size: 2.5em; text-align: center; margin-bottom: 20px; 
                 <li>✨ <strong>Candidate Selection Fixed</strong>: Was blocking T1 opportunities with backwards logic - now correctly encourages them</li>
                 <li>📊 <strong>Easy Puzzles: 50-60% Givens</strong>: Down from 94-97%! Much more challenging and fun!</li>
                 <li>🎚️ <strong>Adaptive Batch Sizing</strong>: Removes 1-5 numbers at once, shrinks to 1 when close to target</li>
-                <li>✅ <strong>T3 Threshold Raised</strong>: Easy allows T1/T2/T3<10, Medium needs T3≥10 or T4+</li>
             </ul>
 
             <h4>⚡ <em>2025-10-08</em> - Advanced Optimization with Batch Removal! ⚡</h4>

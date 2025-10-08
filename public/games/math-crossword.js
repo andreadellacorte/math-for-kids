@@ -102,13 +102,19 @@
                            trace.counts[Technique.T5_CHAIN_3PLUS] +
                            trace.counts[Technique.T6_GUESS_DEPTH1];
 
-    // Simple 3-level classification based on observed technique counts
-    // Easy: <15 techniques (60% givens → creates ~10-20 techniques)
-    // Medium: 15-24 techniques (55% givens → creates ~15-20 techniques)
-    // Hard: 25+ techniques (50% givens → creates ~20-30 techniques)
-    if (totalTechniques >= 25) {
+    // Classification based on total techniques count (quality + quantity):
+    // Easy: Low technique count (lots of givens help)
+    // Medium: Medium technique count (some challenge)
+    // Hard: High technique count (very challenging)
+
+    // Thresholds based on observed data:
+    // Easy targets 60% givens → ~15-22 total techniques
+    // Medium targets 55% givens → ~23-30 total techniques
+    // Hard targets 50% givens → ~31+ total techniques
+
+    if (totalTechniques >= 31) {
       band = 'hard';
-    } else if (totalTechniques >= 15) {
+    } else if (totalTechniques >= 23) {
       band = 'medium';
     } else {
       band = 'easy';
@@ -409,12 +415,12 @@
         r[a] && r[a][d] && r[a][d].k === 'num' && h.push(`${a},${d}`);
     let o = new Set(h),
       n = 0,
-      e = l === 'expert' || l === 'nightmare' ? 1e3 : 500;
+      e = 50;  // Max 50 attempts per puzzle
 
     // Target givens by difficulty (3 levels):
-    // Easy: 60% givens (40% to solve) → ~15-19 techniques
-    // Medium: 55% givens (45% to solve) → ~20-29 techniques
-    // Hard: 50% givens (50% to solve) → ~30+ techniques
+    // Easy: 60% givens (40% to solve) → uses only T1/T2/T3
+    // Medium: 55% givens (45% to solve) → may use T4 or T5
+    // Hard: 50% givens (50% to solve) → may use T6 or multiple advanced
     let targetGivensPercent;
     if (l === 'hard') {
       targetGivensPercent = 0.5;
@@ -504,15 +510,36 @@
       // Calculate how far we are from target givens count
       const givensDelta = Math.abs(currentGivensCount - targetGivensCount);
 
-      // Accept puzzles that match the requested difficulty exactly
-      const bandAllowed = currentBand === l ||
-                         (l === 'nightmare' && currentBand === 'expert');
+      // Accept puzzles that match the requested difficulty (with some tolerance)
+      // Easy can accept easy/medium (medium is close enough for easy)
+      // Medium can accept easy/medium
+      // Hard can accept medium/hard
+      let bandAllowed;
+      if (l === 'easy') {
+        bandAllowed = (currentBand === 'easy' || currentBand === 'medium');
+      } else if (l === 'medium') {
+        bandAllowed = (currentBand === 'easy' || currentBand === 'medium');
+      } else if (l === 'hard') {
+        bandAllowed = (currentBand === 'medium' || currentBand === 'hard');
+      } else {
+        bandAllowed = currentBand === l;
+      }
 
-      // Only accept if band is allowed
-      if (bandAllowed && givensDelta < bestDelta) {
+      // Check minimum technique requirements (at least 1 technique total)
+      const counts = techResult.score?.details?.counts || {};
+      const totalTechs = (counts.T1_ARITH || 0) + (counts.T2_SINGLE || 0) + (counts.T3_SUBST || 0);
+      const hasMinTechniques = totalTechs >= 1;
+
+      // Always track the best puzzle (closest to target givens), regardless of band match
+      if (hasMinTechniques && givensDelta < bestDelta) {
         bestDelta = givensDelta;
         bestScore = techResult.score;
         bestGivens = new Set(o);
+      }
+
+      // Accept and continue if band is allowed AND minimum techniques are present
+      // (We continue the optimization even if this isn't the best yet)
+      if (bandAllowed && hasMinTechniques) {
         consecutiveFails = 0;
 
         if (typeof window !== 'undefined' && window.console && n % 50 === 0) {
@@ -533,7 +560,11 @@
         if (typeof window !== 'undefined' && window.console && consecutiveFails <= 3) {
           const details = techResult.score?.details || {};
           const total = (details.counts?.T1_ARITH || 0) + (details.counts?.T2_SINGLE || 0) + (details.counts?.T3_SUBST || 0) + (details.counts?.T4_ELIM_2X2 || 0);
-          console.log(`[OPT] Rejection #${consecutiveFails}: band=${currentBand}, requested=${l}, total=${total}, givens=${o.size}`);
+          const t1 = details.counts?.T1_ARITH || 0;
+          const t2 = details.counts?.T2_SINGLE || 0;
+          const t3 = details.counts?.T3_SUBST || 0;
+          const reason = !bandAllowed ? 'band' : !hasMinTechniques ? `missing(T1=${t1},T2=${t2},T3=${t3})` : 'delta';
+          console.log(`[OPT] Rejection #${consecutiveFails}: ${reason}, band=${currentBand}, requested=${l}, total=${total}, givens=${o.size}`);
         }
       }
     }
@@ -1579,14 +1610,14 @@
             m && (m.style.display = 'none'),
             g && (g.style.display = 'none'),
             a();
-          n < 500;
+          n < 50;
 
         ) {
           n++;
           let x = document.getElementById('spinnerText');
           (x &&
-            (x.textContent = `Generating ${i} puzzle... (attempt ${n}/500)`),
-            (E.textContent = `\u{1F504} Targeting ${t.min}-${t.max}% difficulty (attempt ${n}/500)`),
+            (x.textContent = `Generating ${i} puzzle... (attempt ${n}/50)`),
+            (E.textContent = `\u{1F504} Targeting ${t.min}-${t.max}% difficulty (attempt ${n}/50)`),
             await new Promise((c) => setTimeout(c, 10)));
           if (currentGenerationId !== generationId) {
             d();
@@ -1676,7 +1707,7 @@
             f && setTimeout(() => window.print(), 100));
         } else {
           ((E.textContent =
-            '\u26A0\uFE0F Could not generate puzzle at target difficulty after 500 attempts. Try different settings.'),
+            '\u26A0\uFE0F Could not generate puzzle at target difficulty after 50 attempts. Try different settings.'),
             (E.style.background = '#f8d7da'),
             (E.style.color = '#721c24'),
             (E.style.border = '2px solid #f5c6cb'));
@@ -1856,4 +1887,12 @@
   });
   oe();
   I(!1);
+
+  // Expose functions for testing
+  window.crosswordTest = {
+    generatePuzzle: re,
+    optimizeGivens: ge,
+    solveWithTrace: solveWithTrace
+  };
+  console.log('[Crossword] Test API exposed:', window.crosswordTest);
 })();
