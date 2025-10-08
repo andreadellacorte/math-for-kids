@@ -455,16 +455,16 @@
       n = 0,
       e = l === 'expert' || l === 'nightmare' ? 1e3 : 500;
 
-    // Target raw score range for this difficulty
-    const targetRange = TargetRawScores[l];
-    const targetRaw = (targetRange.min + targetRange.max) / 2; // Aim for middle of range
+    // Target: show 40-60% of numbers as givens (hide 40-60%)
+    const targetGivensPercent = 0.5; // 50% givens shown
+    const targetGivensCount = Math.floor(h.length * targetGivensPercent);
 
     let bestScore = null;
     let bestGivens = new Set(o);
     let bestDelta = Infinity;
 
     let consecutiveFails = 0;
-    const maxConsecutiveFails = 50;
+    const maxConsecutiveFails = 100; // Increased to allow more exploration
 
     for (; n < e && consecutiveFails < maxConsecutiveFails; ) {
       n++;
@@ -490,47 +490,34 @@
         continue;
       }
 
-      const currentRaw = techResult.score.raw;
       const currentBand = techResult.score.band;
+      const currentGivensCount = o.size;
 
-      // Calculate delta from target
-      const delta = Math.abs(currentRaw - targetRaw);
-      const inRange = currentRaw >= targetRange.min && currentRaw <= targetRange.max;
+      // Calculate how far we are from target givens count
+      const givensDelta = Math.abs(currentGivensCount - targetGivensCount);
 
-      // Band penalty: prefer exact match, but allow nearby bands with smaller penalty
-      let bandPenalty = 0;
-      if (currentBand === l) {
-        bandPenalty = 0; // Perfect match
-      } else if (
-        (l === 'easy' && currentBand === 'medium') ||
-        (l === 'medium' && (currentBand === 'easy' || currentBand === 'hard')) ||
-        (l === 'hard' && (currentBand === 'medium' || currentBand === 'expert'))
-      ) {
-        bandPenalty = 50; // Adjacent band - small penalty
-      } else {
-        bandPenalty = 200; // Far band - large penalty
-      }
+      // For easy, allow T1/T2/T3 (not just T1/T2)
+      let allowedBands = [];
+      if (l === 'easy') allowedBands = ['easy', 'medium'];
+      else if (l === 'medium') allowedBands = ['easy', 'medium', 'hard'];
+      else if (l === 'hard') allowedBands = ['medium', 'hard', 'expert'];
+      else allowedBands = [l];
 
-      const totalScore = delta + bandPenalty;
+      const bandAllowed = allowedBands.includes(currentBand);
 
-      // Accept if this moves us closer to target
-      if (totalScore < bestDelta) {
-        bestDelta = totalScore;
+      // Only accept if band is allowed
+      if (bandAllowed && givensDelta < bestDelta) {
+        bestDelta = givensDelta;
         bestScore = techResult.score;
         bestGivens = new Set(o);
         consecutiveFails = 0;
 
-        // Only stop if we're very close to target (within 20% of range) and band matches
-        const rangeSize = targetRange.max - targetRange.min;
-        const tolerance = rangeSize * 0.2; // 20% of range
-        const closeToTarget = delta <= tolerance;
-        const bandMatches = currentBand === l;
-
-        if (closeToTarget && bandMatches) {
+        // Stop if we've reached target givens count
+        if (currentGivensCount <= targetGivensCount) {
           break;
         }
       } else {
-        // Didn't improve - put number back
+        // Didn't improve or band not allowed - put number back
         o.add(a);
         consecutiveFails++;
       }
