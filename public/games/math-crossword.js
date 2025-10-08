@@ -113,7 +113,7 @@
       band = 'expert';
     }
     // MEDIUM: T4 present OR high total technique count (indicates complexity)
-    else if (hasT4 || totalTechniques >= 20) {
+    else if (hasT4 || totalTechniques >= 15) {
       band = 'medium';
     }
     // EASY: Simple puzzles with fewer techniques
