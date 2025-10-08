@@ -91,30 +91,36 @@
         trace.counts[Technique.T6_GUESS_DEPTH1] === 0) {
       band = 'easy';
     }
-    // MEDIUM: Some T3, zero guesses
+    // MEDIUM: Some T3, zero guesses, no T4/T5
     else if (trace.guesses === 0 &&
              trace.counts[Technique.T3_SUBST] > 0 &&
              trace.counts[Technique.T4_ELIM_2X2] === 0 &&
              trace.counts[Technique.T5_CHAIN_3PLUS] === 0 &&
-             trace.counts[Technique.T6_GUESS_DEPTH1] === 0) {
+             trace.counts[Technique.T6_GUESS_DEPTH1] === 0 &&
+             trace.maxChainLen < 3) {  // Short chains OK for medium
       band = 'medium';
     }
-    // HARD: T3–T4 required, zero guesses, chain length ≥2
+    // HARD: T3 + longer chains (≥3) OR T4 present, zero guesses, no T5
     else if (trace.guesses === 0 &&
              trace.counts[Technique.T3_SUBST] > 0 &&
-             (trace.counts[Technique.T4_ELIM_2X2] > 0 || trace.maxChainLen >= 2) &&
              trace.counts[Technique.T5_CHAIN_3PLUS] === 0 &&
-             trace.counts[Technique.T6_GUESS_DEPTH1] === 0) {
+             trace.counts[Technique.T6_GUESS_DEPTH1] === 0 &&
+             (trace.counts[Technique.T4_ELIM_2X2] > 0 || trace.maxChainLen >= 3)) {
       band = 'hard';
     }
-    // EXPERT: T4–T5 required, at most one shallow guess (T6 depth 1)
+    // EXPERT: T5 required OR T4 with long chains, ≤1 guess
     else if (trace.guesses <= 1 &&
-             (trace.counts[Technique.T4_ELIM_2X2] > 0 || trace.counts[Technique.T5_CHAIN_3PLUS] > 0)) {
+             (trace.counts[Technique.T5_CHAIN_3PLUS] > 0 ||
+              (trace.counts[Technique.T4_ELIM_2X2] > 0 && trace.maxChainLen >= 3))) {
       band = 'expert';
     }
-    // Default to expert if doesn't fit above
-    else {
-      band = 'expert';
+    // FALLBACK: If nothing matches but has techniques, classify by complexity
+    else if (trace.counts[Technique.T3_SUBST] > 0) {
+      // Has T3 but doesn't fit other criteria → medium
+      band = 'medium';
+    } else {
+      // Only T1/T2 → easy
+      band = 'easy';
     }
 
     // NIGHTMARE: Harder than expert (only upgrade from expert)
@@ -1499,7 +1505,8 @@
 
             // Debug logging
             if (typeof window !== 'undefined' && window.console && n % 10 === 0) {
-              console.log(`Attempt ${n}: %=${y}, band=${techScore.band}, raw=${techScore.raw}, T1=${techScore.details.counts.T1_SINGLE}, T2=${techScore.details.counts.T2_ARITH}, T3=${techScore.details.counts.T3_SUBST}, total=${techScore.details.counts.T1_SINGLE + techScore.details.counts.T2_ARITH + techScore.details.counts.T3_SUBST}`);
+              const ts = techScore.details;
+              console.log(`Attempt ${n}: %=${y}, band=${techScore.band}, raw=${techScore.raw}, T1=${ts.counts.T1_SINGLE}, T2=${ts.counts.T2_ARITH}, T3=${ts.counts.T3_SUBST}, T4=${ts.counts.T4_ELIM_2X2}, T5=${ts.counts.T5_CHAIN_3PLUS}, chain=${ts.maxChainLen}, total=${ts.counts.T1_SINGLE + ts.counts.T2_ARITH + ts.counts.T3_SUBST + ts.counts.T4_ELIM_2X2 + ts.counts.T5_CHAIN_3PLUS}`);
             }
 
             // Accept if technique band matches (technique-only scoring)
