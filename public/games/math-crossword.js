@@ -47,12 +47,13 @@
   };
 
   // Target raw score ranges for each difficulty band
+  // Adjusted based on actual achievable scores per technique composition
   const TargetRawScores = {
-    'easy': { min: 15, max: 40 },
-    'medium': { min: 40, max: 80 },
-    'hard': { min: 80, max: 130 },
-    'expert': { min: 130, max: 200 },
-    'nightmare': { min: 200, max: 999 }
+    'easy': { min: 5, max: 25 },      // Only T1/T2, naturally low scores
+    'medium': { min: 25, max: 60 },   // T3 present adds weight
+    'hard': { min: 60, max: 100 },
+    'expert': { min: 100, max: 150 },
+    'nightmare': { min: 150, max: 999 }
   };
 
   function createSolveTrace() {
