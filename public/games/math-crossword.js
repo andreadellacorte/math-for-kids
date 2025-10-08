@@ -29,8 +29,8 @@
 
   // Technique-based difficulty scoring system
   const Technique = {
-    T1_SINGLE: 'T1_SINGLE',           // Cell becomes single-candidate due to crosses
-    T2_ARITH: 'T2_ARITH',             // Standalone equation solved directly (2 knowns → 1 unknown)
+    T1_ARITH: 'T1_ARITH',             // Standalone equation solved directly (2 knowns → 1 unknown) - EASIEST
+    T2_SINGLE: 'T2_SINGLE',           // Cell becomes single-candidate due to crosses
     T3_SUBST: 'T3_SUBST',             // Variable eliminated by substitution across two equations
     T4_ELIM_2X2: 'T4_ELIM_2X2',       // Solved 2x2 or 3x3 linear system via elimination
     T5_CHAIN_3PLUS: 'T5_CHAIN_3PLUS', // Back-substitution across chains of length ≥3
@@ -38,8 +38,8 @@
   };
 
   const TechniqueWeights = {
-    [Technique.T1_SINGLE]: 1,
-    [Technique.T2_ARITH]: 2,
+    [Technique.T1_ARITH]: 1,          // T1 = Direct Arithmetic (easiest)
+    [Technique.T2_SINGLE]: 2,         // T2 = Single Candidate
     [Technique.T3_SUBST]: 4,
     [Technique.T4_ELIM_2X2]: 7,
     [Technique.T5_CHAIN_3PLUS]: 10,
@@ -50,8 +50,8 @@
     return {
       techniques: [],
       counts: {
-        [Technique.T1_SINGLE]: 0,
-        [Technique.T2_ARITH]: 0,
+        [Technique.T1_ARITH]: 0,
+        [Technique.T2_SINGLE]: 0,
         [Technique.T3_SUBST]: 0,
         [Technique.T4_ELIM_2X2]: 0,
         [Technique.T5_CHAIN_3PLUS]: 0,
@@ -82,8 +82,8 @@
     raw += 5 * Math.min(trace.guesses, 1);
 
     // Calculate total technique applications
-    const totalTechniques = trace.counts[Technique.T1_SINGLE] +
-                           trace.counts[Technique.T2_ARITH] +
+    const totalTechniques = trace.counts[Technique.T1_ARITH] +
+                           trace.counts[Technique.T2_SINGLE] +
                            trace.counts[Technique.T3_SUBST] +
                            trace.counts[Technique.T4_ELIM_2X2] +
                            trace.counts[Technique.T5_CHAIN_3PLUS] +
@@ -142,12 +142,7 @@
     // NIGHTMARE: Harder than expert (only upgrade from expert)
     // Nightmare must already be expert-level plus additional complexity
     if (band === 'expert') {
-      const totalTechniques = trace.counts[Technique.T1_SINGLE] +
-                             trace.counts[Technique.T2_ARITH] +
-                             trace.counts[Technique.T3_SUBST] +
-                             trace.counts[Technique.T4_ELIM_2X2] +
-                             trace.counts[Technique.T5_CHAIN_3PLUS] +
-                             trace.counts[Technique.T6_GUESS_DEPTH1];
+      // Reuse totalTechniques calculated above
 
       if (trace.guesses > 1 ||  // Multiple guesses
           (trace.counts[Technique.T5_CHAIN_3PLUS] > 0 && trace.counts[Technique.T4_ELIM_2X2] > 0) ||  // Both T4 and T5
@@ -1125,7 +1120,7 @@
                   progress = true;
                   iterationSolves++;
                   solveChain.push({ r: cell.r, c: cell.c, tech: 'T2' });
-                  if (trace) recordTechnique(trace, Technique.T2_ARITH);
+                  if (trace) recordTechnique(trace, Technique.T1_ARITH);  // Swapped: Direct arithmetic is now T1
                 }
               }
             }
@@ -1175,7 +1170,7 @@
                     if (crossCount > 1) {
                       recordTechnique(trace, Technique.T3_SUBST);
                     } else {
-                      recordTechnique(trace, Technique.T1_SINGLE);
+                      recordTechnique(trace, Technique.T2_SINGLE);  // Swapped: Single candidate is now T2
                     }
                   }
                   break;
@@ -1522,9 +1517,9 @@
             // Debug logging
             if (typeof window !== 'undefined' && window.console && n % 10 === 0) {
               const ts = techScore.details;
-              const totalTech = ts.counts.T1_SINGLE + ts.counts.T2_ARITH + ts.counts.T3_SUBST + ts.counts.T4_ELIM_2X2 + ts.counts.T5_CHAIN_3PLUS;
+              const totalTech = ts.counts.T1_ARITH + ts.counts.T2_SINGLE + ts.counts.T3_SUBST + ts.counts.T4_ELIM_2X2 + ts.counts.T5_CHAIN_3PLUS;
               const minRequired = Math.floor(p.numTotal * 0.6);
-              console.log(`Attempt ${n}: %=${y}, band=${techScore.band}, raw=${techScore.raw}, T1=${ts.counts.T1_SINGLE}, T2=${ts.counts.T2_ARITH}, T3=${ts.counts.T3_SUBST}, T4=${ts.counts.T4_ELIM_2X2}, T5=${ts.counts.T5_CHAIN_3PLUS}, chain=${ts.maxChainLen}, total=${totalTech}/${minRequired}`);
+              console.log(`Attempt ${n}: %=${y}, band=${techScore.band}, raw=${techScore.raw}, T1=${ts.counts.T1_ARITH}, T2=${ts.counts.T2_SINGLE}, T3=${ts.counts.T3_SUBST}, T4=${ts.counts.T4_ELIM_2X2}, T5=${ts.counts.T5_CHAIN_3PLUS}, chain=${ts.maxChainLen}, total=${totalTech}/${minRequired}`);
             }
 
             // Accept if technique band matches (technique-only scoring)
@@ -1561,8 +1556,8 @@
           let techInfo = '';
           if (b.techniqueScore) {
             const ts = b.techniqueScore;
-            const rawCalc = ts.details.counts.T1_SINGLE * 1 + ts.details.counts.T2_ARITH * 2 + ts.details.counts.T3_SUBST * 4 + 3 * ts.details.maxChainLen;
-            techInfo = ` | Tech: ${ts.band}(raw=${ts.raw}, T1=${ts.details.counts.T1_SINGLE}, T2=${ts.details.counts.T2_ARITH}, T3=${ts.details.counts.T3_SUBST}, chain=${ts.details.maxChainLen})`;
+            const rawCalc = ts.details.counts.T1_ARITH * 1 + ts.details.counts.T2_SINGLE * 2 + ts.details.counts.T3_SUBST * 4 + 3 * ts.details.maxChainLen;
+            techInfo = ` | Tech: ${ts.band}(raw=${ts.raw}, T1=${ts.details.counts.T1_ARITH}, T2=${ts.details.counts.T2_SINGLE}, T3=${ts.details.counts.T3_SUBST}, chain=${ts.details.maxChainLen})`;
           }
           ((E.style.background = '#d4edda'),
             (E.style.color = '#155724'),
