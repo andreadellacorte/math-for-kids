@@ -109,11 +109,11 @@
       band = 'expert';
     }
     // MEDIUM: T4 present OR moderate T3 usage (no T5/T6)
-    // T3 threshold: medium needs 8+ (easy allows up to 7)
-    else if (hasT4 || trace.counts[Technique.T3_SUBST] >= 8) {
+    // T3 threshold: medium needs 5+ (easy allows up to 4)
+    else if (hasT4 || trace.counts[Technique.T3_SUBST] >= 5) {
       band = 'medium';
     }
-    // EASY: Only T1/T2/T3 (basic techniques)
+    // EASY: Only T1/T2/T3 (basic techniques, low T3 count)
     else {
       band = 'easy';
     }
