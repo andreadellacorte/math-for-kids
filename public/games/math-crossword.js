@@ -445,14 +445,28 @@
     let bestDelta = Infinity;
 
     let consecutiveFails = 0;
-    const maxConsecutiveFails = 150; // Allow thorough exploration
+    const maxConsecutiveFails = 300; // Allow thorough exploration
 
     for (; n < e && consecutiveFails < maxConsecutiveFails; ) {
       n++;
 
-      // Determine batch size k - start with 1-2 early, increase to 3-5 mid-way, then back to 1 near target
+      // Determine batch size k - start small, grow in middle, shrink near target
       const progress = o.size <= h.length ? (h.length - o.size) / (h.length - targetGivensCount) : 0;
-      let batchSize = progress < 0.1 ? 1 : progress < 0.4 ? 3 : progress < 0.7 ? 5 : progress < 0.9 ? 3 : 1;
+      const distanceFromTarget = Math.abs(o.size - targetGivensCount);
+
+      // Use batch size 1 when very close to target (within 10)
+      let batchSize;
+      if (distanceFromTarget <= 10) {
+        batchSize = 1;
+      } else if (progress < 0.1) {
+        batchSize = 1;
+      } else if (progress < 0.4) {
+        batchSize = 3;
+      } else if (progress < 0.7) {
+        batchSize = 5;
+      } else {
+        batchSize = 2;
+      }
 
       if (n % 10 === 0) {
         let d = Math.round((o.size / h.length) * 100);
@@ -506,9 +520,9 @@
         bestGivens = new Set(o);
         consecutiveFails = 0;
 
-        if (typeof window !== 'undefined' && window.console && n % 10 === 0) {
-          const counts = techResult.score?.counts || {};
-          console.log(`[OPT] Accepted: givens=${currentGivensCount}/${targetGivensCount}, band=${currentBand}, delta=${givensDelta}, batch=${toRemove.length}, T1=${counts.T1_ARITH || 0}, T2=${counts.T2_SINGLE || 0}, T3=${counts.T3_SUBST || 0}`);
+        if (typeof window !== 'undefined' && window.console && n % 50 === 0) {
+          const counts = techResult.score?.details?.counts || {};
+          console.log(`[OPT] Accepted: givens=${currentGivensCount}/${targetGivensCount}, band=${currentBand}, delta=${givensDelta}, T1=${counts.T1_ARITH || 0}, T2=${counts.T2_SINGLE || 0}, T3=${counts.T3_SUBST || 0}`);
         }
 
         // Stop if we've reached target givens count
