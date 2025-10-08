@@ -506,12 +506,12 @@
         s < 24 && m < 24 && k.push(`${s},${m}`);
       }
       let a = k.filter((u) => r.has(u)).length;
-      if (o === 'expert') {
+      if (o === 'expert' || o === 'nightmare') {
         if (a === 1) {
           if (Y(f, l, r, i, h) < 2) return 0;
           t += 30;
         }
-      } else if (a <= 1) return 0;
+      } else if (a === 0) return 0;  // Allow removing when equation has 1 given left
       if (a >= 3) t += 20;
       else if (a === 2) {
         let u = Y(f, l, r, i, h);
