@@ -475,14 +475,21 @@
       if (distanceFromTarget <= 10) {
         batchSize = 1;
       } else if (progress < 0.1) {
-        // For medium+, start with bigger batches to quickly get T3 techniques
-        batchSize = (l === 'easy') ? 1 : 5;
+        // For medium+, start with very large batches to hit technique thresholds
+        // Medium needs totalTechniques≥20, so remove ~20 numbers initially
+        if (l === 'easy') {
+          batchSize = 1;
+        } else if (l === 'medium' || l === 'hard') {
+          batchSize = 15;
+        } else {
+          batchSize = 20;
+        }
       } else if (progress < 0.4) {
-        batchSize = 3;
-      } else if (progress < 0.7) {
         batchSize = 5;
+      } else if (progress < 0.7) {
+        batchSize = 8;
       } else {
-        batchSize = 2;
+        batchSize = 3;
       }
 
       if (n % 10 === 0) {
