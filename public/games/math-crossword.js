@@ -94,46 +94,26 @@
 
     let band;
 
-    // Band classification based on technique presence with minimum thresholds
-    // A technique must be used significantly to define the band
+    // Simplified 3-level band classification with technique overlap
+    // EASY: T1/T2/T3 allowed (basic arithmetic and cross-equation)
+    // MEDIUM: T3/T4 required (cross-equation and linear systems)
+    // EXPERT: T5/T6 present (chains and guessing)
 
-    const hasSignificantT3 = trace.counts[Technique.T3_SUBST] >= 3;
-    const hasSignificantT4 = trace.counts[Technique.T4_ELIM_2X2] >= 2;
-    const hasSignificantT5 = trace.counts[Technique.T5_CHAIN_3PLUS] >= 2;
+    const hasT3 = trace.counts[Technique.T3_SUBST] > 0;
+    const hasT4 = trace.counts[Technique.T4_ELIM_2X2] > 0;
+    const hasT5 = trace.counts[Technique.T5_CHAIN_3PLUS] > 0;
+    const hasT6 = trace.counts[Technique.T6_GUESS_DEPTH1] > 0;
 
-    // EASY: Only T1/T2, zero guesses
-    if (trace.guesses === 0 &&
-        trace.counts[Technique.T3_SUBST] === 0 &&
-        trace.counts[Technique.T4_ELIM_2X2] === 0 &&
-        trace.counts[Technique.T5_CHAIN_3PLUS] === 0 &&
-        trace.counts[Technique.T6_GUESS_DEPTH1] === 0) {
-      band = 'easy';
-    }
-    // MEDIUM: Significant T3 usage, no T4/T5/T6, zero guesses
-    else if (trace.guesses === 0 &&
-             hasSignificantT3 &&
-             !hasSignificantT4 &&
-             !hasSignificantT5 &&
-             trace.counts[Technique.T6_GUESS_DEPTH1] === 0) {
-      band = 'medium';
-    }
-    // HARD: Significant T4 or significant T3 with chains, no T6/significant T5
-    else if (trace.guesses === 0 &&
-             trace.counts[Technique.T6_GUESS_DEPTH1] === 0 &&
-             !hasSignificantT5 &&
-             (hasSignificantT4 || (hasSignificantT3 && trace.maxChainLen >= 3))) {
-      band = 'hard';
-    }
-    // EXPERT: Significant T5 or any T6 present
-    else if (hasSignificantT5 || trace.counts[Technique.T6_GUESS_DEPTH1] > 0) {
+    // EXPERT: T5 or T6 present (hardest techniques)
+    if (hasT5 || hasT6) {
       band = 'expert';
     }
-    // FALLBACK: classify by what's present (even if not significant)
-    else if (trace.counts[Technique.T5_CHAIN_3PLUS] > 0 || trace.counts[Technique.T4_ELIM_2X2] > 0) {
-      band = 'hard';
-    } else if (trace.counts[Technique.T3_SUBST] > 0) {
+    // MEDIUM: T4 present OR significant T3 usage (no T5/T6)
+    else if (hasT4 || trace.counts[Technique.T3_SUBST] >= 5) {
       band = 'medium';
-    } else {
+    }
+    // EASY: Only T1/T2/T3 (basic techniques)
+    else {
       band = 'easy';
     }
 
@@ -468,24 +448,42 @@
 
     for (; n < e && consecutiveFails < maxConsecutiveFails; ) {
       n++;
-      let a = le(r, i, o, l);
-      if (!a) break;
+
+      // Determine batch size k - start with 2-5, decrease to 1 as we get closer to target
+      const progress = o.size <= h.length ? (h.length - o.size) / (h.length - targetGivensCount) : 0;
+      let batchSize = progress < 0.3 ? 5 : progress < 0.6 ? 3 : progress < 0.85 ? 2 : 1;
 
       if (n % 10 === 0) {
         let d = Math.round((o.size / h.length) * 100);
         typeof window < 'u' &&
           window.stat &&
-          (window.stat.textContent = `\u{1F504} Optimizing ${l} difficulty... ${o.size}/${h.length} givens (${d}%), target=${targetGivensCount}, fails=${consecutiveFails}`);
+          (window.stat.textContent = `\u{1F504} Optimizing ${l} difficulty... ${o.size}/${h.length} givens (${d}%), target=${targetGivensCount}, batch=${batchSize}, fails=${consecutiveFails}`);
       }
 
-      // Try removing this number
-      o.delete(a);
+      // Try removing batch of numbers
+      let toRemove = [];
+      let tempGivens = new Set(o);
+      for (let idx = 0; idx < batchSize; idx++) {
+        let a = le(r, i, tempGivens, l);
+        if (!a) break;
+        toRemove.push(a);
+        tempGivens.delete(a);  // Remove from temp set to get different candidates
+      }
+
+      if (toRemove.length === 0) break;
+
+      // Remove all in batch
+      let prevGivens = new Set(o);
+      for (let pos of toRemove) {
+        o.delete(pos);
+      }
 
       // Check if still solvable
       let techResult = solveWithTrace(r, i, o);
 
       if (!techResult.solvable) {
-        o.add(a);
+        // Restore and try smaller batch
+        o = prevGivens;
         consecutiveFails++;
         continue;
       }
@@ -496,15 +494,9 @@
       // Calculate how far we are from target givens count
       const givensDelta = Math.abs(currentGivensCount - targetGivensCount);
 
-      // Allow a range of bands for each target difficulty
-      let allowedBands = [];
-      if (l === 'easy') allowedBands = ['easy', 'medium', 'hard'];
-      else if (l === 'medium') allowedBands = ['easy', 'medium', 'hard'];
-      else if (l === 'hard') allowedBands = ['medium', 'hard', 'expert'];
-      else if (l === 'expert') allowedBands = ['hard', 'expert', 'nightmare'];
-      else allowedBands = [l];
-
-      const bandAllowed = allowedBands.includes(currentBand);
+      // Only accept puzzles that match the requested difficulty exactly
+      const bandAllowed = currentBand === l ||
+                         (l === 'nightmare' && currentBand === 'expert'); // Nightmare can accept expert
 
       // Only accept if band is allowed
       if (bandAllowed && givensDelta < bestDelta) {
@@ -514,7 +506,7 @@
         consecutiveFails = 0;
 
         if (typeof window !== 'undefined' && window.console && n % 20 === 0) {
-          console.log(`[OPT] Accepted: givens=${currentGivensCount}/${targetGivensCount}, band=${currentBand}, delta=${givensDelta}`);
+          console.log(`[OPT] Accepted: givens=${currentGivensCount}/${targetGivensCount}, band=${currentBand}, delta=${givensDelta}, batch=${toRemove.length}`);
         }
 
         // Stop if we've reached target givens count
@@ -522,8 +514,8 @@
           break;
         }
       } else {
-        // Didn't improve or band not allowed - put number back
-        o.add(a);
+        // Didn't improve or band not allowed - put numbers back
+        o = prevGivens;
         consecutiveFails++;
 
         if (typeof window !== 'undefined' && window.console && n % 20 === 0) {
@@ -535,6 +527,38 @@
     // Use best result found
     if (bestScore) {
       o = bestGivens;
+    }
+
+    // Add-back repair: if we overshot (too few givens), try adding numbers back
+    if (o.size < targetGivensCount && bestScore) {
+      const allPositions = Array.from(h);
+      const missingPositions = allPositions.filter(pos => !o.has(pos));
+
+      // Try adding numbers back one at a time
+      while (o.size < targetGivensCount && missingPositions.length > 0) {
+        // Pick a random missing position
+        const idx = Math.floor(Math.random() * missingPositions.length);
+        const posToAdd = missingPositions.splice(idx, 1)[0];
+
+        o.add(posToAdd);
+
+        // Check if still has correct difficulty
+        const techResult = solveWithTrace(r, i, o);
+        if (!techResult.solvable) {
+          // Restore
+          o.delete(posToAdd);
+          continue;
+        }
+
+        const currentBand = techResult.score.band;
+        const bandAllowed = currentBand === l || (l === 'nightmare' && currentBand === 'expert');
+
+        if (!bandAllowed) {
+          // Adding this number changed the band, revert
+          o.delete(posToAdd);
+          break;
+        }
+      }
     }
 
     // Debug: log why optimization stopped
@@ -581,7 +605,11 @@
           if (Y(f, l, r, i, h) < 2) return 0;
           t += 30;
         }
-      } else if (a === 0) return 0;  // Allow removing when equation has 1 given left
+      } else {
+        // For easy/medium, allow removing down to 1 given per equation (creates T1 opportunities)
+        if (a === 0) return 0;  // But don't remove the last given
+        if (a === 1) t += 5;     // Encourage removing when 1 given left
+      }
       if (a >= 3) t += 20;
       else if (a === 2) {
         let u = Y(f, l, r, i, h);
