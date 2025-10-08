@@ -436,9 +436,18 @@
       n = 0,
       e = l === 'expert' || l === 'nightmare' ? 1e3 : 500;
 
-    // Target: show 55-65% of numbers as givens for easy/medium (hide 35-45%)
-    // Expert/nightmare can go lower (40-50% givens)
-    const targetGivensPercent = (l === 'expert' || l === 'nightmare') ? 0.45 : 0.6;
+    // Target givens by difficulty:
+    // Easy: 60% givens (40% to solve) - T1/T2/T3 techniques
+    // Medium: 50% givens (50% to solve) - forces T3>15 or T4
+    // Expert/Nightmare: 45% givens (55% to solve) - T5/T6 techniques
+    let targetGivensPercent;
+    if (l === 'expert' || l === 'nightmare') {
+      targetGivensPercent = 0.45;
+    } else if (l === 'medium' || l === 'hard') {
+      targetGivensPercent = 0.5;
+    } else {
+      targetGivensPercent = 0.6;
+    }
     const targetGivensCount = Math.floor(h.length * targetGivensPercent);
 
     let bestScore = null;
@@ -1623,7 +1632,14 @@
               foundValid = true;
               // Keep track of best valid puzzle (closest to target givens %)
               const currentGivensPercent = y / 100;
-              const targetGivensPercent = (i === 'expert' || i === 'nightmare') ? 0.45 : 0.6;
+              let targetGivensPercent;
+              if (i === 'expert' || i === 'nightmare') {
+                targetGivensPercent = 0.45;
+              } else if (i === 'medium' || i === 'hard') {
+                targetGivensPercent = 0.5;
+              } else {
+                targetGivensPercent = 0.6;
+              }
               const currentDelta = Math.abs(currentGivensPercent - targetGivensPercent);
               const bestDelta = e ? Math.abs((k / 100) - targetGivensPercent) : Infinity;
 
