@@ -497,9 +497,19 @@
       const delta = Math.abs(currentRaw - targetRaw);
       const inRange = currentRaw >= targetRange.min && currentRaw <= targetRange.max;
 
-      // Band penalty: large if band doesn't match
-      const bandMatches = currentBand === l;
-      const bandPenalty = bandMatches ? 0 : 1000;
+      // Band penalty: prefer exact match, but allow nearby bands with smaller penalty
+      let bandPenalty = 0;
+      if (currentBand === l) {
+        bandPenalty = 0; // Perfect match
+      } else if (
+        (l === 'easy' && currentBand === 'medium') ||
+        (l === 'medium' && (currentBand === 'easy' || currentBand === 'hard')) ||
+        (l === 'hard' && (currentBand === 'medium' || currentBand === 'expert'))
+      ) {
+        bandPenalty = 50; // Adjacent band - small penalty
+      } else {
+        bandPenalty = 200; // Far band - large penalty
+      }
 
       const totalScore = delta + bandPenalty;
 
@@ -510,10 +520,11 @@
         bestGivens = new Set(o);
         consecutiveFails = 0;
 
-        // Only stop if we're very close to target (within 20% of range)
+        // Only stop if we're very close to target (within 20% of range) and band matches
         const rangeSize = targetRange.max - targetRange.min;
         const tolerance = rangeSize * 0.2; // 20% of range
         const closeToTarget = delta <= tolerance;
+        const bandMatches = currentBand === l;
 
         if (closeToTarget && bandMatches) {
           break;
