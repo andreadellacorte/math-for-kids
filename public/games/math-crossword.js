@@ -456,7 +456,7 @@
 
     // Remove numbers iteratively while keeping puzzle at target difficulty
     let consecutiveFails = 0;
-    const maxConsecutiveFails = 20;  // Stop if we fail to remove 20 numbers in a row
+    const maxConsecutiveFails = 50;  // Stop if we fail to remove 50 numbers in a row
 
     for (; n < e && consecutiveFails < maxConsecutiveFails; ) {
       n++;
