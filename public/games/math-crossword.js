@@ -135,7 +135,12 @@
     // NIGHTMARE: Harder than expert (only upgrade from expert)
     // Nightmare must already be expert-level plus additional complexity
     if (band === 'expert') {
-      // Reuse totalTechniques calculated above
+      const totalTechniques = trace.counts[Technique.T1_ARITH] +
+                             trace.counts[Technique.T2_SINGLE] +
+                             trace.counts[Technique.T3_SUBST] +
+                             trace.counts[Technique.T4_ELIM_2X2] +
+                             trace.counts[Technique.T5_CHAIN_3PLUS] +
+                             trace.counts[Technique.T6_GUESS_DEPTH1];
 
       if (trace.guesses > 1 ||  // Multiple guesses
           (trace.counts[Technique.T5_CHAIN_3PLUS] > 0 && trace.counts[Technique.T4_ELIM_2X2] > 0) ||  // Both T4 and T5
