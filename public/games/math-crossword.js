@@ -109,8 +109,8 @@
       band = 'expert';
     }
     // MEDIUM: T4 present OR significant T3 usage (no T5/T6)
-    // T3 threshold raised to 15+ to allow easy puzzles to reach 50% givens
-    else if (hasT4 || trace.counts[Technique.T3_SUBST] >= 15) {
+    // T3 threshold: medium needs 16+ (easy allows up to 15)
+    else if (hasT4 || trace.counts[Technique.T3_SUBST] > 15) {
       band = 'medium';
     }
     // EASY: Only T1/T2/T3 (basic techniques)
