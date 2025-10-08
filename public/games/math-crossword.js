@@ -108,9 +108,9 @@
     if (hasT5 || hasT6) {
       band = 'expert';
     }
-    // MEDIUM: T4 present OR significant T3 usage (no T5/T6)
-    // T3 threshold: medium needs 16+ (easy allows up to 15)
-    else if (hasT4 || trace.counts[Technique.T3_SUBST] > 15) {
+    // MEDIUM: T4 present OR moderate T3 usage (no T5/T6)
+    // T3 threshold: medium needs 8+ (easy allows up to 7)
+    else if (hasT4 || trace.counts[Technique.T3_SUBST] >= 8) {
       band = 'medium';
     }
     // EASY: Only T1/T2/T3 (basic techniques)
@@ -437,14 +437,17 @@
       e = l === 'expert' || l === 'nightmare' ? 1e3 : 500;
 
     // Target givens by difficulty:
-    // Easy: 60% givens (40% to solve) - T1/T2/T3 techniques
-    // Medium: 50% givens (50% to solve) - forces T3>15 or T4
+    // Easy: 60% givens (40% to solve) - T1/T2/T3<8
+    // Medium: 55% givens (45% to solve) - T3≥8 or T4
+    // Hard: 50% givens (50% to solve) - more T3/T4
     // Expert/Nightmare: 45% givens (55% to solve) - T5/T6 techniques
     let targetGivensPercent;
     if (l === 'expert' || l === 'nightmare') {
       targetGivensPercent = 0.45;
-    } else if (l === 'medium' || l === 'hard') {
+    } else if (l === 'hard') {
       targetGivensPercent = 0.5;
+    } else if (l === 'medium') {
+      targetGivensPercent = 0.55;
     } else {
       targetGivensPercent = 0.6;
     }
@@ -544,11 +547,11 @@
         o = prevGivens;
         consecutiveFails++;
 
-        // Debug logging (disabled)
-        // if (typeof window !== 'undefined' && window.console && consecutiveFails <= 5) {
-        //   const details = techResult.score?.details || {};
-        //   console.log(`[OPT] Rejection #${consecutiveFails}: band=${currentBand}, requested=${l}, T1=${details.counts?.T1_ARITH || 0}, T3=${details.counts?.T3_SUBST || 0}, givens=${o.size}, removed=${toRemove.length}`);
-        // }
+        // Debug logging for medium
+        if (typeof window !== 'undefined' && window.console && consecutiveFails <= 5 && l === 'medium') {
+          const details = techResult.score?.details || {};
+          console.log(`[OPT] Rejection #${consecutiveFails}: band=${currentBand}, requested=${l}, T1=${details.counts?.T1_ARITH || 0}, T3=${details.counts?.T3_SUBST || 0}, T4=${details.counts?.T4_ELIM_2X2 || 0}, givens=${o.size}`);
+        }
       }
     }
 
@@ -1635,8 +1638,10 @@
               let targetGivensPercent;
               if (i === 'expert' || i === 'nightmare') {
                 targetGivensPercent = 0.45;
-              } else if (i === 'medium' || i === 'hard') {
+              } else if (i === 'hard') {
                 targetGivensPercent = 0.5;
+              } else if (i === 'medium') {
+                targetGivensPercent = 0.55;
               } else {
                 targetGivensPercent = 0.6;
               }
