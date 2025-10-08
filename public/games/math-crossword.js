@@ -93,7 +93,13 @@
 
     let band;
 
-    // Band classification based on technique presence (not raw score)
+    // Band classification based on technique presence with minimum thresholds
+    // A technique must be used significantly to define the band
+
+    const hasSignificantT3 = trace.counts[Technique.T3_SUBST] >= 3;
+    const hasSignificantT4 = trace.counts[Technique.T4_ELIM_2X2] >= 2;
+    const hasSignificantT5 = trace.counts[Technique.T5_CHAIN_3PLUS] >= 2;
+
     // EASY: Only T1/T2, zero guesses
     if (trace.guesses === 0 &&
         trace.counts[Technique.T3_SUBST] === 0 &&
@@ -102,29 +108,27 @@
         trace.counts[Technique.T6_GUESS_DEPTH1] === 0) {
       band = 'easy';
     }
-    // MEDIUM: T3 present, no T4/T5/T6, zero guesses
+    // MEDIUM: Significant T3 usage, no T4/T5/T6, zero guesses
     else if (trace.guesses === 0 &&
-             trace.counts[Technique.T3_SUBST] > 0 &&
-             trace.counts[Technique.T4_ELIM_2X2] === 0 &&
-             trace.counts[Technique.T5_CHAIN_3PLUS] === 0 &&
+             hasSignificantT3 &&
+             !hasSignificantT4 &&
+             !hasSignificantT5 &&
              trace.counts[Technique.T6_GUESS_DEPTH1] === 0) {
       band = 'medium';
     }
-    // HARD: T4 present OR (T3≥2 with chain_len≥2), no T6, zero guesses
+    // HARD: Significant T4 or significant T3 with chains, no T6/significant T5
     else if (trace.guesses === 0 &&
              trace.counts[Technique.T6_GUESS_DEPTH1] === 0 &&
-             trace.counts[Technique.T5_CHAIN_3PLUS] === 0 &&
-             (trace.counts[Technique.T4_ELIM_2X2] > 0 ||
-              (trace.counts[Technique.T3_SUBST] >= 2 && trace.maxChainLen >= 2))) {
+             !hasSignificantT5 &&
+             (hasSignificantT4 || (hasSignificantT3 && trace.maxChainLen >= 3))) {
       band = 'hard';
     }
-    // EXPERT: T5 or T6 present
-    else if (trace.counts[Technique.T5_CHAIN_3PLUS] > 0 ||
-             trace.counts[Technique.T6_GUESS_DEPTH1] > 0) {
+    // EXPERT: Significant T5 or any T6 present
+    else if (hasSignificantT5 || trace.counts[Technique.T6_GUESS_DEPTH1] > 0) {
       band = 'expert';
     }
-    // FALLBACK: classify by highest technique present
-    else if (trace.counts[Technique.T4_ELIM_2X2] > 0) {
+    // FALLBACK: classify by what's present (even if not significant)
+    else if (trace.counts[Technique.T5_CHAIN_3PLUS] > 0 || trace.counts[Technique.T4_ELIM_2X2] > 0) {
       band = 'hard';
     } else if (trace.counts[Technique.T3_SUBST] > 0) {
       band = 'medium';
