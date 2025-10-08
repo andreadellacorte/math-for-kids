@@ -82,22 +82,51 @@
     raw += 5 * Math.min(trace.guesses, 1);
 
     let band;
-    if (trace.guesses === 0 && trace.counts[Technique.T3_SUBST] === 0 &&
-        trace.counts[Technique.T4_ELIM_2X2] === 0 && trace.counts[Technique.T5_CHAIN_3PLUS] === 0) {
+    const totalTechniques = trace.counts[Technique.T1_SINGLE] +
+                           trace.counts[Technique.T2_ARITH] +
+                           trace.counts[Technique.T3_SUBST] +
+                           trace.counts[Technique.T4_ELIM_2X2] +
+                           trace.counts[Technique.T5_CHAIN_3PLUS];
+
+    // EASY: Only basic techniques (T1/T2), low usage
+    if (trace.guesses === 0 &&
+        trace.counts[Technique.T3_SUBST] === 0 &&
+        trace.counts[Technique.T4_ELIM_2X2] === 0 &&
+        trace.counts[Technique.T5_CHAIN_3PLUS] === 0 &&
+        totalTechniques < 10 &&
+        raw < 20) {
       band = 'easy';
-    } else if (trace.guesses === 0 && trace.counts[Technique.T4_ELIM_2X2] === 0 &&
-               trace.counts[Technique.T5_CHAIN_3PLUS] === 0) {
+    }
+    // MEDIUM: Some T3, moderate complexity
+    else if (trace.guesses === 0 &&
+             trace.counts[Technique.T4_ELIM_2X2] === 0 &&
+             trace.counts[Technique.T5_CHAIN_3PLUS] === 0 &&
+             trace.counts[Technique.T3_SUBST] <= 3 &&
+             totalTechniques < 20 &&
+             raw < 40) {
       band = 'medium';
-    } else if (trace.guesses <= 1 && (trace.counts[Technique.T4_ELIM_2X2] > 0 || trace.counts[Technique.T3_SUBST] > 1) &&
-               trace.maxChainLen >= 2) {
+    }
+    // HARD: Multiple T3 or some T4, higher complexity
+    else if (trace.guesses === 0 &&
+             (trace.counts[Technique.T3_SUBST] > 3 || trace.counts[Technique.T4_ELIM_2X2] > 0) &&
+             trace.counts[Technique.T5_CHAIN_3PLUS] === 0 &&
+             totalTechniques < 25 &&
+             raw < 70) {
       band = 'hard';
-    } else {
+    }
+    // EXPERT: Advanced techniques or high complexity
+    else {
       band = 'expert';
     }
 
-    // Nightmare is expert-level with very high technique usage
-    if (trace.guesses > 0 || trace.counts[Technique.T5_CHAIN_3PLUS] > 2 ||
-        trace.counts[Technique.T4_ELIM_2X2] > 3 || raw > 80) {
+    // Nightmare is expert-level with very high technique usage or complexity
+    // High raw score OR extensive technique usage indicates nightmare difficulty
+    if (trace.guesses > 0 ||
+        trace.counts[Technique.T5_CHAIN_3PLUS] > 2 ||
+        trace.counts[Technique.T4_ELIM_2X2] > 3 ||
+        raw > 100 ||
+        (raw > 60 && trace.counts[Technique.T3_SUBST] > 5) ||
+        totalTechniques > 30) {
       band = 'nightmare';
     }
 
@@ -1462,16 +1491,15 @@
             const techResult = solveWithTrace(c.grid, c.equations, c.optimizedGivens || new Set());
             const techScore = techResult.score;
 
-            // Debug logging (can be removed later)
+            // Debug logging
             if (typeof window !== 'undefined' && window.console && n % 10 === 0) {
-              console.log(`Attempt ${n}: %=${y}, band=${techScore.band}, raw=${techScore.raw}, T1=${techScore.details.counts.T1_SINGLE}, T2=${techScore.details.counts.T2_ARITH}, T3=${techScore.details.counts.T3_SUBST}`);
+              console.log(`Attempt ${n}: %=${y}, band=${techScore.band}, raw=${techScore.raw}, T1=${techScore.details.counts.T1_SINGLE}, T2=${techScore.details.counts.T2_ARITH}, T3=${techScore.details.counts.T3_SUBST}, total=${techScore.details.counts.T1_SINGLE + techScore.details.counts.T2_ARITH + techScore.details.counts.T3_SUBST}`);
             }
 
-            // Accept if EITHER percentage OR technique matches (dual criteria during migration)
-            const percentageMatch = y >= t.min && y <= t.max;
+            // Accept if technique band matches (technique-only scoring)
             const techniqueMatch = techScore.band === i;
 
-            if (techniqueMatch || percentageMatch) {
+            if (techniqueMatch) {
               ((e = c), (b = p), (k = y), (foundValid = true));
               // Store technique score for display
               b.techniqueScore = techScore;

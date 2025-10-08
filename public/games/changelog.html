@@ -191,6 +191,16 @@ h1 { color: #4a5568; font-size: 2.5em; text-align: center; margin-bottom: 20px; 
         <h2>🚀 Latest & Greatest (October 2025)</h2>
 
         <div class="changelog-content">
+            <h4>🎯 <em>2025-10-08</em> - Technique-Based Difficulty Scoring! 🧠</h4>
+            <ul>
+                <li>🎯 <strong>Smart Difficulty</strong>: Puzzles now rated by solving techniques (T1-T6) instead of just % empty cells</li>
+                <li>🧠 <strong>6 Technique Levels</strong>: T1=Single candidate, T2=Direct arithmetic, T3=Cross-equation substitution, T4=Linear systems, T5=Dependency chains, T6=Logical guessing</li>
+                <li>📊 <strong>Complexity Scoring</strong>: Raw score = Σ(technique_counts × weights) + chain_length + guesses</li>
+                <li>🎚️ <strong>Better Bands</strong>: Easy (&lt;20 raw), Medium (&lt;40), Hard (&lt;70), Expert (70+), Nightmare (100+ or 30+ techniques)</li>
+                <li>🔍 <strong>Telemetry</strong>: Console logs show technique usage for each puzzle attempt</li>
+                <li>✨ <strong>Accurate Difficulty</strong>: Reflects actual solving complexity, not just missing numbers</li>
+            </ul>
+
             <h4>💀 <em>2025-10-08</em> - Math Crossword: Nightmare Mode & More Attempts! 🔥</h4>
             <ul>
                 <li>💀 <strong>Nightmare Difficulty</strong>: New ultra-hard difficulty level with only 1-30% of numbers filled - ultimate challenge!</li>
