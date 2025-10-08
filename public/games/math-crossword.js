@@ -109,8 +109,8 @@
       band = 'expert';
     }
     // MEDIUM: T4 present OR significant T3 usage (no T5/T6)
-    // T3 threshold raised to 10+ to allow some T3 in easy puzzles
-    else if (hasT4 || trace.counts[Technique.T3_SUBST] >= 10) {
+    // T3 threshold raised to 15+ to allow easy puzzles to reach 50% givens
+    else if (hasT4 || trace.counts[Technique.T3_SUBST] >= 15) {
       band = 'medium';
     }
     // EASY: Only T1/T2/T3 (basic techniques)
@@ -534,11 +534,11 @@
         o = prevGivens;
         consecutiveFails++;
 
-        // Debug logging (disabled in production)
-        // if (typeof window !== 'undefined' && window.console && consecutiveFails <= 2) {
-        //   const details = techResult.score?.details || {};
-        //   console.log(`[OPT] Rejection: band=${currentBand}, requested=${l}, T3=${details.counts?.T3_SUBST || 0}`);
-        // }
+        // Debug logging
+        if (typeof window !== 'undefined' && window.console && consecutiveFails <= 5) {
+          const details = techResult.score?.details || {};
+          console.log(`[OPT] Rejection #${consecutiveFails}: band=${currentBand}, requested=${l}, T1=${details.counts?.T1_ARITH || 0}, T3=${details.counts?.T3_SUBST || 0}, givens=${o.size}, removed=${toRemove.length}`);
+        }
       }
     }
 
