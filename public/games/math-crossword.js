@@ -475,7 +475,7 @@
         let d = Math.round((o.size / h.length) * 100);
         typeof window < 'u' &&
           window.stat &&
-          (window.stat.textContent = `\u{1F504} Optimizing ${l} difficulty... ${d}% given (attempt ${n})`);
+          (window.stat.textContent = `\u{1F504} Optimizing ${l} difficulty... ${o.size}/${h.length} givens (${d}%), target=${targetGivensCount}, fails=${consecutiveFails}`);
       }
 
       // Try removing this number
@@ -512,6 +512,10 @@
         bestGivens = new Set(o);
         consecutiveFails = 0;
 
+        if (typeof window !== 'undefined' && window.console && n % 20 === 0) {
+          console.log(`[OPT] Accepted: givens=${currentGivensCount}/${targetGivensCount}, band=${currentBand}, delta=${givensDelta}`);
+        }
+
         // Stop if we've reached target givens count
         if (currentGivensCount <= targetGivensCount) {
           break;
@@ -520,6 +524,10 @@
         // Didn't improve or band not allowed - put number back
         o.add(a);
         consecutiveFails++;
+
+        if (typeof window !== 'undefined' && window.console && n % 20 === 0) {
+          console.log(`[OPT] Rejected: bandAllowed=${bandAllowed}, band=${currentBand}, givensDelta=${givensDelta}, bestDelta=${bestDelta}`);
+        }
       }
     }
 
