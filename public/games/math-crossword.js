@@ -473,28 +473,55 @@
       // Try removing this number
       o.delete(a);
 
-      // Check if still solvable and within difficulty bounds
+      // Check if still solvable
       let techResult = solveWithTrace(r, i, o);
-      let stillValid = techResult.solvable;
 
-      // For easy/medium/hard, reject if puzzle becomes too hard
-      if (stillValid) {
-        const band = techResult.score.band;
-        if (l === 'easy' && band !== 'easy') {
-          stillValid = false;
-        } else if (l === 'medium' && (band !== 'easy' && band !== 'medium')) {
-          stillValid = false;
-        } else if (l === 'hard' && (band !== 'easy' && band !== 'medium' && band !== 'hard')) {
-          stillValid = false;
-        }
-        // expert and nightmare can use any techniques
+      if (!techResult.solvable) {
+        // Puzzle became unsolvable - put number back
+        o.add(a);
+        consecutiveFails++;
+        continue;
       }
 
-      if (!stillValid) {
-        o.add(a);  // Put it back
-        consecutiveFails++;  // Increment fail counter
+      // Calculate technique counts
+      const ts = techResult.score.details;
+      const totalTech = ts.counts.T1_ARITH + ts.counts.T2_SINGLE + ts.counts.T3_SUBST +
+                       ts.counts.T4_ELIM_2X2 + ts.counts.T5_CHAIN_3PLUS + ts.counts.T6_GUESS_DEPTH1;
+
+      // Count remaining numbers
+      let numCount = 0;
+      for (let row = 0; row < 24; row++) {
+        for (let col = 0; col < 24; col++) {
+          if (r[row] && r[row][col] && r[row][col].k === 'num') numCount++;
+        }
+      }
+
+      const minTechniques = Math.floor(numCount * 0.3);
+      const maxTechniques = Math.floor(numCount * 0.5);
+
+      // If we've reached target technique count, stop
+      if (totalTech >= minTechniques && totalTech <= maxTechniques) {
+        // Success! We have enough techniques in range
+        consecutiveFails = 0;
+        // Check if this matches the target difficulty band
+        const band = techResult.score.band;
+        const matchesDifficulty =
+          (l === 'easy' && band === 'easy') ||
+          (l === 'medium' && (band === 'easy' || band === 'medium')) ||
+          (l === 'hard' && (band === 'easy' || band === 'medium' || band === 'hard')) ||
+          (l === 'expert' || l === 'nightmare');
+
+        if (matchesDifficulty) {
+          // Perfect! Stop optimization
+          break;
+        }
+      } else if (totalTech > maxTechniques) {
+        // Too many techniques - puzzle too hard, put number back
+        o.add(a);
+        consecutiveFails++;
       } else {
-        consecutiveFails = 0;  // Reset fail counter on success
+        // Not enough techniques yet - keep this removal and continue
+        consecutiveFails = 0;
       }
     }
 
