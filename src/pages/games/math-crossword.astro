@@ -177,23 +177,6 @@ import GameLayout from '../../layouts/GameLayout.astro';
         </div>
     </div>
 
-    <script is:inline>
-        // Wait for DOM to be ready before loading the game script
-        document.addEventListener('DOMContentLoaded', () => {
-            // Update slider display value
-            const slider = document.getElementById('eqSlider');
-            const output = document.getElementById('eqOut');
-
-            if (slider && output) {
-                slider.addEventListener('input', () => {
-                    output.textContent = slider.value;
-                });
-            }
-
-            // Load the math crossword script after DOM is ready
-            const script = document.createElement('script');
-            script.src = '/math-for-kids/games/math-crossword.js';
-            document.body.appendChild(script);
-        });
-    </script>
+    <!-- Load game script after DOM is ready -->
+    <script is:inline src="/math-for-kids/games/math-crossword.js" defer></script>
 </GameLayout>
