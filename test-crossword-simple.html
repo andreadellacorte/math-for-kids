@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crossword Test Suite</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+        }
+        .test-header {
+            background: #0e639c;
+            color: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .test-result {
+            background: #252526;
+            padding: 15px;
+            margin: 10px 0;
+            border-left: 4px solid #4ec9b0;
+            border-radius: 3px;
+        }
+        .test-result.failed {
+            border-left-color: #f48771;
+        }
+        .success { color: #4ec9b0; }
+        .fail { color: #f48771; }
+        .warning { color: #dcdcaa; }
+        .info { color: #9cdcfe; }
+        pre {
+            margin: 5px 0;
+            padding: 10px;
+            background: #1e1e1e;
+            border-radius: 3px;
+        }
+        .summary {
+            background: #0e639c;
+            color: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        button {
+            background: #0e639c;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+        button:hover {
+            background: #1177bb;
+        }
+        button:disabled {
+            background: #555;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Math Crossword Test Suite</h1>
+    <p>Tests that all difficulty levels generate within 20 attempts with proper technique variety.</p>
+
+    <button id="runTests" onclick="runAllTests()">▶️ Run Tests</button>
+
+    <div id="output"></div>
+
+    <!-- Hidden DOM elements required by math-crossword.js -->
+    <div style="display: none;">
+        <svg id="grid"></svg>
+        <input id="eqSlider" type="range" value="20">
+        <output id="eqOut">20</output>
+        <select id="difficultySelect"><option value="medium" selected>Medium</option></select>
+        <select id="rangePreset"><option value="0-20" selected>0-20</option></select>
+        <input id="opAdd" type="checkbox" checked>
+        <input id="opSub" type="checkbox" checked>
+        <input id="opMul" type="checkbox" checked>
+        <input id="opDiv" type="checkbox" checked>
+        <div id="stat"></div>
+        <div id="screenGrid"></div>
+        <div id="printGrid"></div>
+        <button id="gen"></button>
+        <button id="printColor"></button>
+    </div>
+
+    <script>
+        // Capture errors before loading the main script
+        window.addEventListener('error', function(e) {
+            console.error('Script error:', e.message, e.filename, e.lineno);
+            if (!window.scriptErrors) window.scriptErrors = [];
+            window.scriptErrors.push({
+                message: e.message,
+                file: e.filename,
+                line: e.lineno
+            });
+        });
+    </script>
+    <script src="math-crossword.js" onload="console.log('Script loaded successfully')" onerror="console.error('Script failed to load')"></script>
+    <script>
+        const MAX_ATTEMPTS = 20;
+
+        // Wait for the API to be ready
+        function waitForAPI() {
+            return new Promise((resolve, reject) => {
+                if (window.crosswordTest) {
+                    resolve();
+                } else {
+                    let attempts = 0;
+                    const maxAttempts = 50; // 5 seconds
+                    const interval = setInterval(() => {
+                        attempts++;
+                        if (window.crosswordTest) {
+                            clearInterval(interval);
+                            resolve();
+                        } else if (attempts >= maxAttempts) {
+                            clearInterval(interval);
+                            reject(new Error('API failed to load after 5 seconds. Check browser console for errors.'));
+                        }
+                    }, 100);
+                }
+            });
+        }
+
+        const TEST_CONFIGS = [
+            { difficulty: 'easy', numEq: 20, range: [0, 20], label: 'Easy (20 equations, 0-20 range)' },
+            { difficulty: 'medium', numEq: 20, range: [0, 20], label: 'Medium (20 equations, 0-20 range)' },
+            { difficulty: 'hard', numEq: 20, range: [0, 20], label: 'Hard (20 equations, 0-20 range)' }
+        ];
+
+        const ops = { add: true, sub: true, mul: true, div: true };
+
+        function log(html) {
+            document.getElementById('output').innerHTML += html;
+        }
+
+        function runTest(config) {
+            return new Promise((resolve) => {
+                const { difficulty, numEq, range, label } = config;
+
+                log(`<div class="test-header">📊 Testing ${difficulty.toUpperCase()} - ${label}</div>`);
+                log(`<div class="test-result" id="test-${difficulty}"><pre>Running...</pre></div>`);
+
+                setTimeout(() => {
+                    let success = false;
+                    let attempts = 0;
+                    let result = null;
+                    let logs = [];
+
+                    for (attempts = 1; attempts <= MAX_ATTEMPTS; attempts++) {
+                        try {
+                            // Check if test API is available
+                            if (!window.crosswordTest) {
+                                logs.push(`Attempt ${attempts}: Test API not loaded`);
+                                continue;
+                            }
+
+                            // re() generates AND optimizes the puzzle
+                            const puzzleStructure = window.crosswordTest.generatePuzzle(numEq, difficulty);
+                            if (!puzzleStructure) {
+                                logs.push(`Attempt ${attempts}: generatePuzzle() returned null`);
+                                continue;
+                            }
+
+                            // Debug: log what we got
+                            console.log(`[TEST] Attempt ${attempts}:`, {
+                                hasOptimizedGivens: !!puzzleStructure.optimizedGivens,
+                                givensSize: puzzleStructure.optimizedGivens?.size,
+                                equations: puzzleStructure.equations?.length
+                            });
+
+                            // Check if optimization succeeded
+                            if (!puzzleStructure.optimizedGivens) {
+                                logs.push(`Attempt ${attempts}: No optimized givens found`);
+                                continue;
+                            }
+
+                            // Extract all numbers from the grid (it's a 2D array)
+                            const allNumbers = [];
+                            for (let r = 0; r < puzzleStructure.grid.length; r++) {
+                                for (let c = 0; c < puzzleStructure.grid[r].length; c++) {
+                                    const cell = puzzleStructure.grid[r][c];
+                                    if (cell && cell.k === 'num') {
+                                        allNumbers.push(`${r},${c}`);
+                                    }
+                                }
+                            }
+
+                            // Create result object
+                            result = {
+                                equations: puzzleStructure.equations,
+                                grid: puzzleStructure.grid,
+                                allNumbers: allNumbers,
+                                givens: puzzleStructure.optimizedGivens || new Set(),
+                            };
+
+                            // Get technique score
+                            const techResult = window.crosswordTest.solveWithTrace(result.grid, result.equations, result.givens);
+                            result.techniqueScore = techResult.score;
+
+                            if (result && result.equations && result.equations.length > 0) {
+                                success = true;
+                                break;
+                            }
+                        } catch (err) {
+                            logs.push(`Attempt ${attempts} error: ${err.message}`);
+                        }
+                    }
+
+                    const resultDiv = document.getElementById(`test-${difficulty}`);
+
+                    if (success && result) {
+                        const stats = result.techniqueScore || {};
+                        const details = stats.details || {};
+                        const counts = details.counts || {};
+
+                        const totalTechniques = (counts.T1_ARITH || 0) +
+                                               (counts.T2_SINGLE || 0) +
+                                               (counts.T3_SUBST || 0) +
+                                               (counts.T4_ELIM_2X2 || 0) +
+                                               (counts.T5_CHAIN_3PLUS || 0) +
+                                               (counts.T6_GUESS_DEPTH1 || 0);
+
+                        const numGivens = result.givens ? result.givens.size : 0;
+                        const totalNumbers = result.allNumbers ? result.allNumbers.length : 0;
+                        const givensPercent = totalNumbers > 0 ? Math.round((numGivens / totalNumbers) * 100) : 0;
+
+                        // Check minimum techniques
+                        const hasT1 = (counts.T1_ARITH || 0) >= 1;
+                        const hasT2 = (counts.T2_SINGLE || 0) >= 1;
+                        const hasT3 = (counts.T3_SUBST || 0) >= 1;
+                        const hasMinTechniques = hasT1 && hasT2 && hasT3;
+
+                        // Check band
+                        const actualBand = stats.band;
+                        let bandOK = false;
+                        if (difficulty === 'easy' && actualBand === 'easy') bandOK = true;
+                        if (difficulty === 'medium' && (actualBand === 'easy' || actualBand === 'medium')) bandOK = true;
+                        if (difficulty === 'hard' && (actualBand === 'medium' || actualBand === 'hard')) bandOK = true;
+
+                        const allChecksPass = hasMinTechniques && bandOK;
+
+                        let html = `<pre class="${allChecksPass ? 'success' : 'fail'}">`;
+                        html += allChecksPass ? '✅ SUCCESS' : '⚠️  PARTIAL SUCCESS';
+                        html += ` on attempt ${attempts}/${MAX_ATTEMPTS}\n\n`;
+
+                        html += `<span class="info">Puzzle Statistics:</span>\n`;
+                        html += `  Equations: ${result.equations.length}\n`;
+                        html += `  Givens: ${numGivens}/${totalNumbers} (${givensPercent}%)\n`;
+                        html += `  Band: ${actualBand} ${bandOK ? '✓' : '✗ (expected ' + difficulty + ')'}\n`;
+                        html += `  Raw Score: ${stats.raw || 0}\n`;
+                        html += `  Total Techniques: ${totalTechniques}\n\n`;
+
+                        html += `<span class="info">Technique Breakdown:</span>\n`;
+                        html += `  T1 (Arithmetic): ${counts.T1_ARITH || 0} ${hasT1 ? '✓' : '✗'}\n`;
+                        html += `  T2 (Single): ${counts.T2_SINGLE || 0} ${hasT2 ? '✓' : '✗'}\n`;
+                        html += `  T3 (Cross-Eq): ${counts.T3_SUBST || 0} ${hasT3 ? '✓' : '✗'}\n`;
+                        html += `  T4 (Linear): ${counts.T4_ELIM_2X2 || 0}\n`;
+                        html += `  T5 (Chain): ${counts.T5_CHAIN_3PLUS || 0}\n`;
+                        html += `  T6 (Guess): ${counts.T6_GUESS_DEPTH1 || 0}\n`;
+                        html += `  Max Chain: ${details.maxChainLen || 0}\n\n`;
+
+                        if (!hasMinTechniques) {
+                            html += `<span class="warning">⚠️  Missing minimum techniques (need T1≥1, T2≥1, T3≥1)</span>\n`;
+                        }
+                        if (!bandOK) {
+                            html += `<span class="warning">⚠️  Band mismatch (expected ${difficulty}, got ${actualBand})</span>\n`;
+                        }
+
+                        html += `</pre>`;
+
+                        resultDiv.innerHTML = html;
+                        resultDiv.className = allChecksPass ? 'test-result' : 'test-result failed';
+                        resolve({ difficulty, passed: allChecksPass, attempts });
+                    } else {
+                        let html = `<pre class="fail">❌ FAILED after ${MAX_ATTEMPTS} attempts\n\n`;
+                        if (logs.length > 0) {
+                            html += logs.slice(-3).join('\n');
+                        }
+                        html += `</pre>`;
+                        resultDiv.innerHTML = html;
+                        resultDiv.className = 'test-result failed';
+                        resolve({ difficulty, passed: false, attempts: MAX_ATTEMPTS });
+                    }
+                }, 100);
+            });
+        }
+
+        async function runAllTests() {
+            document.getElementById('runTests').disabled = true;
+            document.getElementById('output').innerHTML = '';
+
+            log(`<div class="test-header">🚀 Starting Test Suite</div>`);
+            log(`<div class="test-result"><pre>Waiting for crossword API to load...</pre></div>`);
+
+            // Wait for API to be ready
+            try {
+                await waitForAPI();
+                log(`<div class="test-result"><pre class="success">✓ API loaded successfully\nMax attempts per test: ${MAX_ATTEMPTS}\nRunning ${TEST_CONFIGS.length} tests...\n</pre></div>`);
+            } catch (err) {
+                let errorDetails = err.message;
+                if (window.scriptErrors && window.scriptErrors.length > 0) {
+                    errorDetails += '\n\nCaptured errors:\n';
+                    window.scriptErrors.forEach(e => {
+                        errorDetails += `  - ${e.message} (${e.file}:${e.line})\n`;
+                    });
+                }
+                log(`<div class="test-result failed"><pre class="fail">❌ ${errorDetails}\n\nThe script may have encountered an error during initialization.\nOpen your browser's developer console (F12) to see the error.</pre></div>`);
+                document.getElementById('runTests').disabled = false;
+                return;
+            }
+
+            const results = [];
+
+            for (const config of TEST_CONFIGS) {
+                const result = await runTest(config);
+                results.push(result);
+            }
+
+            // Summary
+            const allPassed = results.every(r => r.passed);
+            const passCount = results.filter(r => r.passed).length;
+
+            let summaryClass = allPassed ? 'summary' : 'summary failed';
+            let summaryHTML = `<div class="${summaryClass}">`;
+            summaryHTML += `<div style="font-size: 24px; margin-bottom: 10px;">`;
+            summaryHTML += allPassed ? '🎉 ALL TESTS PASSED!' : '💥 SOME TESTS FAILED';
+            summaryHTML += `</div>`;
+            summaryHTML += `<div>Results: ${passCount}/${results.length} tests passed</div>`;
+            summaryHTML += `<div style="margin-top: 15px; font-size: 14px;">`;
+            for (const r of results) {
+                summaryHTML += `<div>${r.passed ? '✅' : '❌'} ${r.difficulty.toUpperCase()} - ${r.attempts} attempt(s)</div>`;
+            }
+            summaryHTML += `</div></div>`;
+
+            log(summaryHTML);
+
+            document.getElementById('runTests').disabled = false;
+        }
+    </script>
+</body>
+</html>

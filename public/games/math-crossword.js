@@ -415,7 +415,7 @@
         r[a] && r[a][d] && r[a][d].k === 'num' && h.push(`${a},${d}`);
     let o = new Set(h),
       n = 0,
-      e = 50;  // Max 50 attempts per puzzle
+      e = 100;  // Max 100 optimization attempts per puzzle
 
     // Target givens by difficulty (3 levels):
     // Easy: 60% givens (40% to solve) → uses only T1/T2/T3
@@ -542,7 +542,7 @@
       if (bandAllowed && hasMinTechniques) {
         consecutiveFails = 0;
 
-        if (typeof window !== 'undefined' && window.console && n % 50 === 0) {
+        if (typeof window !== 'undefined' && window.console && n % 100 === 0) {
           const counts = techResult.score?.details?.counts || {};
           console.log(`[OPT] Accepted: givens=${currentGivensCount}/${targetGivensCount}, band=${currentBand}, delta=${givensDelta}, T1=${counts.T1_ARITH || 0}, T2=${counts.T2_SINGLE || 0}, T3=${counts.T3_SUBST || 0}`);
         }
@@ -1546,6 +1546,7 @@
           b = null,
           k = 0,
           foundValid = false,
+          exactMatch = false,  // Track if we found an exact band match
           a = () => {
             if (!document.getElementById('spinnerStyles')) {
               let v = document.createElement('style');
@@ -1610,14 +1611,14 @@
             m && (m.style.display = 'none'),
             g && (g.style.display = 'none'),
             a();
-          n < 50;
+          n < 200;
 
         ) {
           n++;
           let x = document.getElementById('spinnerText');
           (x &&
-            (x.textContent = `Generating ${i} puzzle... (attempt ${n}/50)`),
-            (E.textContent = `\u{1F504} Targeting ${t.min}-${t.max}% difficulty (attempt ${n}/50)`),
+            (x.textContent = `Generating ${i} puzzle... (attempt ${n}/200)`),
+            (E.textContent = `\u{1F504} Targeting ${t.min}-${t.max}% difficulty (attempt ${n}/200)`),
             await new Promise((c) => setTimeout(c, 10)));
           if (currentGenerationId !== generationId) {
             d();
@@ -1642,8 +1643,18 @@
               console.log(`Attempt ${n}: %=${y}, band=${techScore.band}, raw=${techScore.raw}, T1=${ts.counts.T1_ARITH}, T2=${ts.counts.T2_SINGLE}, T3=${ts.counts.T3_SUBST}, T4=${ts.counts.T4_ELIM_2X2}, T5=${ts.counts.T5_CHAIN_3PLUS}, chain=${ts.maxChainLen}, total=${totalTech} (need ${minRequired}-${maxAllowed})`);
             }
 
-            // Accept if technique band matches (technique-only scoring)
-            const techniqueMatch = techScore.band === i;
+            // Check for exact match and tolerance match
+            const isExactMatch = techScore.band === i;
+            let techniqueMatch = false;
+            if (i === 'easy') {
+              techniqueMatch = (techScore.band === 'easy' || techScore.band === 'medium');
+            } else if (i === 'medium') {
+              techniqueMatch = (techScore.band === 'easy' || techScore.band === 'medium');
+            } else if (i === 'hard') {
+              techniqueMatch = (techScore.band === 'medium' || techScore.band === 'hard');
+            } else {
+              techniqueMatch = techScore.band === i;
+            }
 
             if (techniqueMatch) {
               foundValid = true;
@@ -1660,22 +1671,35 @@
               const currentDelta = Math.abs(currentGivensPercent - targetGivensPercent);
               const bestDelta = e ? Math.abs((k / 100) - targetGivensPercent) : Infinity;
 
-              if (currentDelta < bestDelta) {
+              // Prefer exact matches over tolerance matches
+              // Only replace if: (1) exact match and no prior exact, OR (2) same match type and better delta
+              const shouldReplace = (!exactMatch && isExactMatch) ||
+                                   (exactMatch === isExactMatch && currentDelta < bestDelta);
+
+              if (shouldReplace) {
+                e = c;
+                b = p;
+                k = y;
+                b.techniqueScore = techScore;
+                if (isExactMatch) exactMatch = true;
+              }
+
+              // Only break on EXACT matches (not tolerance matches)
+              // This ensures we keep searching for a true "easy" when requesting easy
+              if (isExactMatch && currentDelta <= 0.01) {
+                break;
+              }
+            } else {
+              // Fallback: keep track of closest to old percentage range
+              if (!e ||
+                Math.abs(y - (t.min + t.max) / 2) <
+                  Math.abs(k - (t.min + t.max) / 2)) {
                 e = c;
                 b = p;
                 k = y;
                 b.techniqueScore = techScore;
               }
-
-              // Early exit if we hit the target exactly (within 1%)
-              if (currentDelta <= 0.01) {
-                break;
-              }
-            } else
-              (!e ||
-                Math.abs(y - (t.min + t.max) / 2) <
-                  Math.abs(k - (t.min + t.max) / 2)) &&
-                ((e = c), (b = p), (k = y));
+            }
           } catch (err) {
             if (typeof window !== 'undefined' && window.console) {
               console.error('Generation error:', err);
@@ -1707,7 +1731,7 @@
             f && setTimeout(() => window.print(), 100));
         } else {
           ((E.textContent =
-            '\u26A0\uFE0F Could not generate puzzle at target difficulty after 50 attempts. Try different settings.'),
+            '\u26A0\uFE0F Could not generate puzzle at target difficulty after 200 attempts. Try different settings.'),
             (E.style.background = '#f8d7da'),
             (E.style.color = '#721c24'),
             (E.style.border = '2px solid #f5c6cb'));
