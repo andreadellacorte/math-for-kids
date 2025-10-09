@@ -123,6 +123,53 @@
     return { raw, band, details: trace };
   }
 
+  // Score how well technique distribution matches the target difficulty
+  function scoreTechniqueQuality(counts, difficulty) {
+    const t1 = counts.T1_ARITH || 0;
+    const t2 = counts.T2_SINGLE || 0;
+    const t3 = counts.T3_SUBST || 0;
+    const t4 = counts.T4_ELIM_2X2 || 0;
+    const t5 = counts.T5_CHAIN_3PLUS || 0;
+    const t6 = counts.T6_GUESS_DEPTH1 || 0;
+
+    let score = 0;
+
+    if (difficulty === 'easy') {
+      // Easy wants: T1 (required), T3 (good), T2 (rare bonus), NO advanced
+      if (t1 > 0) score += 50;
+      if (t3 > 0) score += 30;
+      if (t2 > 0) score += 50;  // Big bonus for rare T2
+
+      // Prefer T1 > T3
+      if (t1 > t3) score += 10;
+
+      // NO advanced techniques
+      if (t4 === 0 && t5 === 0 && t6 === 0) score += 20;
+
+    } else if (difficulty === 'medium') {
+      // Medium wants: T1/T3 (base), T4 or T5 (bonus), T2 (rare bonus), NO T6
+      if (t1 > 0) score += 40;
+      if (t3 > 0) score += 30;
+      if (t2 > 0) score += 40;  // Bonus for rare T2
+      if (t4 > 0) score += 50;  // Big bonus for T4
+      if (t5 > 0) score += 50;  // Big bonus for T5
+
+      // NO T6
+      if (t6 === 0) score += 20;
+
+    } else if (difficulty === 'hard') {
+      // Hard wants: All technique types, especially T6
+      if (t1 > 0) score += 30;
+      if (t3 > 0) score += 30;
+      if (t2 > 0) score += 40;  // Bonus for rare T2
+      if (t4 > 0) score += 40;  // Bonus for T4
+      if (t5 > 0) score += 40;  // Bonus for T5
+      if (t6 > 0) score += 60;  // Huge bonus for very rare T6
+    }
+
+    return score;
+  }
+
   function solveWithTrace(grid, equations, givens) {
     const trace = createSolveTrace();
     const unsolvable = he(grid, equations, givens, trace);
@@ -434,6 +481,7 @@
     let bestScore = null;
     let bestGivens = new Set(o);
     let bestDelta = Infinity;
+    let bestTechQuality = -1;  // Track best technique quality score
 
     let consecutiveFails = 0;
     const maxConsecutiveFails = 300; // Allow thorough exploration
@@ -530,11 +578,20 @@
       const totalTechs = (counts.T1_ARITH || 0) + (counts.T2_SINGLE || 0) + (counts.T3_SUBST || 0);
       const hasMinTechniques = totalTechs >= 1;
 
-      // Always track the best puzzle (closest to target givens), regardless of band match
-      if (hasMinTechniques && givensDelta < bestDelta) {
+      // Calculate technique quality score
+      const techQuality = scoreTechniqueQuality(counts, l);
+
+      // Track best puzzle based on: 1) technique quality, 2) closeness to target givens
+      // Prefer higher quality, but within same quality tier prefer closer to target
+      const qualityImproved = techQuality > bestTechQuality;
+      const qualitySame = techQuality === bestTechQuality;
+      const givensImproved = givensDelta < bestDelta;
+
+      if (hasMinTechniques && (qualityImproved || (qualitySame && givensImproved))) {
         bestDelta = givensDelta;
         bestScore = techResult.score;
         bestGivens = new Set(o);
+        bestTechQuality = techQuality;
       }
 
       // Accept and continue if band is allowed AND minimum techniques are present
@@ -542,12 +599,13 @@
       if (bandAllowed && hasMinTechniques) {
         consecutiveFails = 0;
 
-        if (typeof window !== 'undefined' && window.console && n % 100 === 0) {
+        if (typeof window !== 'undefined' && window.console && n % 25 === 0) {
           const counts = techResult.score?.details?.counts || {};
-          console.log(`[OPT] Accepted: givens=${currentGivensCount}/${targetGivensCount}, band=${currentBand}, delta=${givensDelta}, T1=${counts.T1_ARITH || 0}, T2=${counts.T2_SINGLE || 0}, T3=${counts.T3_SUBST || 0}`);
+          console.log(`[OPT] Iteration ${n}: givens=${currentGivensCount}/${targetGivensCount}, band=${currentBand}, quality=${techQuality}, T1=${counts.T1_ARITH || 0}, T2=${counts.T2_SINGLE || 0}, T3=${counts.T3_SUBST || 0}, T4=${counts.T4_ELIM_2X2 || 0}`);
         }
 
-        // Stop if we've reached target givens count
+        // If we're at target or below, we're done with this iteration
+        // The outer loop (200 puzzle attempts) will try different configurations
         if (currentGivensCount <= targetGivensCount) {
           break;
         }
@@ -572,6 +630,13 @@
     // Use best result found
     if (bestScore) {
       o = bestGivens;
+
+      // Log final selection
+      if (typeof window !== 'undefined' && window.console) {
+        const finalCounts = bestScore.details?.counts || {};
+        const finalGivensPercent = Math.round((o.size / h.length) * 100);
+        console.log(`[OPT] Stopped after ${n} iterations: consecutiveFails=${consecutiveFails}, finalGivens=${o.size}/${h.length} (${finalGivensPercent}%), target=${targetGivensCount}, quality=${bestTechQuality}, T1=${finalCounts.T1_ARITH || 0}, T2=${finalCounts.T2_SINGLE || 0}, T3=${finalCounts.T3_SUBST || 0}, T4=${finalCounts.T4_ELIM_2X2 || 0}, T5=${finalCounts.T5_CHAIN_3PLUS || 0}, T6=${finalCounts.T6_GUESS_DEPTH1 || 0}`);
+      }
     }
 
     // Add-back repair: if we overshot (too few givens), try adding numbers back
